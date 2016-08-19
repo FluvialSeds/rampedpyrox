@@ -11,7 +11,7 @@ setup(name='rampedpyrox',
             'Programming Language :: Python :: 3.5',
             'Topic :: Scientific/Engineering'
       ],
-      url='http://github.com/put_url_here',
+      url='http://github.com/FluvialSeds/rampedpyrox',
       author='Jordon D. Hemingway',
       author_email='jhemingway@whoi.edu',
       license='MIT',
