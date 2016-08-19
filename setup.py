@@ -17,7 +17,8 @@ setup(name='rampedpyrox',
       license='MIT',
       packages=['rampedpyrox'],
       install_requires=[
-      	'numpy',
+      	'matplotlib',
+            'numpy',
       	'pandas',
       	'scipy'
       ],

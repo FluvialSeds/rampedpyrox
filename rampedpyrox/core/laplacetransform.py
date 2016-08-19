@@ -1,3 +1,5 @@
+## TODO: update calc_L_curve to be more pythonic
+
 import matplotlib.pyplot as plt
 import numpy as np
 
