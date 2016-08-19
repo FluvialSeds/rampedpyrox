@@ -1,6 +1,7 @@
 import numpy as np
 
 from numpy.linalg import norm
+from scipy.optimize import least_squares
 
 def _phi_hat(eps, mu, sigma, height):
 	'''
@@ -18,6 +19,24 @@ def _phi_hat(eps, mu, sigma, height):
 	phi_hat = np.sum(y_scaled,axis=1)
 
 	return phi_hat
+
+def _phi_hat_diff(params, eps, phi):
+	'''
+	Calculates the difference between phi and phi_hat for scipy least_squares
+	'''
+
+	n = int(len(params)/3)
+
+	#unpack parameters
+	mu = params[:n]
+	sigma = params[n:2*n]
+	height = params[2*n:]
+
+
+	#calculate phi_hat
+	phi_hat = _phi_hat(eps, mu, sigma, height)
+
+	return phi_hat - phi
 
 def _gaussian(x, mu, sigma):
 	'''
@@ -132,7 +151,10 @@ class EnergyComplex(object):
 			raise ValueError('nPeaks must be "auto" or int')
 
 		#calculate arrays of each best-fit peak
-		peaks = _fit_peaks(self.eps, self.phi, ind_sorted, )
+		#peaks = _fit_peaks(self.eps, self.phi, ind_sorted)
+
+		params = np.hstack((mu,sigma,height))
+		res = least_squares(_phi_hat_diff,params,args=(eps,phi))
 
 
 	def plot():
