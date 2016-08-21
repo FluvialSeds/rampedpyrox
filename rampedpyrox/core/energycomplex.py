@@ -1,42 +1,63 @@
 import numpy as np
+import warnings
 
 from numpy.linalg import norm
 from scipy.optimize import least_squares
 
-def _phi_hat(eps, mu, sigma, height):
+
+def _deconvolve(eps, phi, nPeaks = 'auto', thres=0.05):
 	'''
-	Calculates phi hat for given parameters.
-	'''
-
-	#generate Gaussian peaks
-	y = _gaussian(eps,mu,sigma)
-
-	#scale peaks to inputted height
-	H = np.max(y,axis=0)
-	y_scaled = y*height/H
-
-	#calculate phi_hat
-	phi_hat = np.sum(y_scaled,axis=1)
-
-	return phi_hat
-
-def _phi_hat_diff(params, eps, phi):
-	'''
-	Calculates the difference between phi and phi_hat for scipy least_squares
+	Deconvolves f(Ea) into Gaussian peaks.
 	'''
 
-	n = int(len(params)/3)
+	#find peak indices
+	if nPeaks is 'auto':
+		ind_sorted = _peak_indices(phi, thres=thres, min_dist=1)
+	elif isinstance(nPeaks,int):
+		all_ind = _peak_indices(phi, thres=thres, min_dist=1)
 
-	#unpack parameters
-	mu = params[:n]
-	sigma = params[n:2*n]
-	height = params[2*n:]
+		#check if nPeaks is greater than the total amount of peaks
+		if len(all_ind) < nPeaks:
+			raise ValueError('nPeaks > total detected at current threshold')
+		
+		ind_sorted = all_ind[:nPeaks]
+	else:
+		raise ValueError('nPeaks must be "auto" or int')
 
+	#re-sort indices by increasing Ea (rather than decreasing phi)
+	ind = np.sort(ind_sorted)
+	n = len(ind)
 
-	#calculate phi_hat
-	phi_hat = _phi_hat(eps, mu, sigma, height)
+	#calculate initial guess parameters
+	mu0 = eps[ind]
+	sigma0 = 10*np.ones(n) #arbitrarily guess sigma = 10kJ/mol
+	height0 = phi[ind]
 
-	return phi_hat - phi
+	#pack together for least_squares and create bounds
+	params = np.hstack((mu0,sigma0,height0))
+	lb = np.zeros(3*n)
+	ub_mu = np.max(eps)*np.ones(n)
+	ub_sig = ub_mu/2
+	ub_height = np.max(phi)*np.ones(n)
+	ub = np.hstack((ub_mu,ub_sig,ub_height))
+	bounds = (lb,ub)
+
+	#run least-squares fit
+	res = least_squares(_phi_hat_diff,params,
+		args=(eps,phi),
+		bounds=bounds,
+		method='trf')
+
+	#ensure success
+	if not res.success:
+		warnings.warn('least_squares could not converge on a successful fit')
+
+	#extract best-fit parameters
+	mu = res.x[:n]
+	sigma = res.x[n:2*n]
+	height = res.x[2*n:]
+
+	return mu, sigma, height
 
 def _gaussian(x, mu, sigma):
 	'''
@@ -112,13 +133,50 @@ def _peak_indices(phi, thres=0.05, min_dist=1):
 
 	return ind_sorted
 
+def _phi_hat(eps, mu, sigma, height):
+	'''
+	Calculates phi hat for given parameters.
+	'''
+
+	#generate Gaussian peaks
+	y = _gaussian(eps,mu,sigma)
+
+	#scale peaks to inputted height
+	H = np.max(y,axis=0)
+	y_scaled = y*height/H
+
+	#calculate phi_hat
+	phi_hat = np.sum(y_scaled,axis=1)
+
+	return phi_hat, y_scaled
+
+def _phi_hat_diff(params, eps, phi):
+	'''
+	Calculates the difference between phi and phi_hat for scipy least_squares
+	'''
+
+	n = int(len(params)/3)
+	if n != len(params)/3:
+		raise ValueError('params array must be length 3n (mu, sigma, height)')
+
+	#unpack parameters
+	mu = params[:n]
+	sigma = params[n:2*n]
+	height = params[2*n:]
+
+
+	#calculate phi_hat
+	phi_hat,_ = _phi_hat(eps, mu, sigma, height)
+
+	return phi_hat - phi
+
 
 class EnergyComplex(object):
 	'''
 	Class for storing f(Ea) and calculating peak deconvolution
 	'''
 
-	def __init__(self, phi, eps):
+	def __init__(self, eps, phi, nPeaks='auto', thres=0.05):
 		'''
 		Initializes the EnergyComplex object.
 		'''
@@ -127,40 +185,47 @@ class EnergyComplex(object):
 		if len(phi) != len(eps):
 			raise ValueError('phi and eps vectors must have same length')
 
+		#perform deconvolution
+		mu,sigma,height = _deconvolve(eps, phi, nPeaks = nPeaks, thres=thres)
+		phi_hat,y_scaled = _phi_hat(eps, mu, sigma, height)
+
 		#define public parameters
 		self.phi = phi
 		self.eps = eps
+		self.mu = mu
+		self.sigma = sigma
+		self.height = height
+		self.phi_hat = phi_hat
+		self.y_scaled = y_scaled
 
-	def deconvolve(self, nPeaks = 'auto', thres=0.05, combine_last = None):
+	def plot(self, ax=None):
 		'''
-		Deconvolves f(Ea) into Gaussian peaks.
+		Plots the inverse and peak-deconvolved EC.
 		'''
 
-		#find peak indices
-		if nPeaks is 'auto':
-			ind_sorted = _peak_indices(self.phi, thres=thres, min_dist=1)
-		elif isinstance(nPeaks,int):
-			all_ind = _peak_indices(self.phi, thres=thres, min_dist=1)
+		if ax is None:
+			_,ax = plt.subplots(1,1)
 
-			#check if nPeaks is greater than the total amount of peaks
-			if len(all_ind) < nPeaks:
-				raise ValueError('nPeaks > total detected at current threshold')
-			
-			ind_sorted = all_ind[:nPeaks]
-		else:
-			raise ValueError('nPeaks must be "auto" or int')
+		#plot phi in black
+		plt.plot(self.eps,self.phi,
+			color='k',
+			linewidth=2,
+			label=r'Inversion Result $(\phi)$')
 
-		#calculate arrays of each best-fit peak
-		#peaks = _fit_peaks(self.eps, self.phi, ind_sorted)
+		#plot phi_hat in red
+		plt.plot(self.eps,self.phi_hat,
+			color='r',
+			linewidth=1,
+			label=r'Peak-fitted estimate $(\hat{\phi})$')
 
-		params = np.hstack((mu,sigma,height))
-		res = least_squares(_phi_hat_diff,params,args=(eps,phi))
+		#plot individual peaks in dashes
+		plt.plot(self.eps,self.y_scaled,
+			'--k',
+			linewidth=1,
+			label=r'Individual fitted Gaussians')
 
+		ax.legend(location='best')
 
-	def plot():
-		'''
-		Plots the inverse or peak-deconvolved EC.
-		'''
 
 	def summary():
 		'''
