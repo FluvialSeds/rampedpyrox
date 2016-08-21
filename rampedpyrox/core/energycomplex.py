@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import warnings
 
@@ -204,28 +205,35 @@ class EnergyComplex(object):
 		'''
 
 		if ax is None:
-			_,ax = plt.subplots(1,1)
+			_,ax = plt.subplots(1,1,figsize=(8,6))
 
 		#plot phi in black
-		plt.plot(self.eps,self.phi,
+		ax.plot(self.eps,self.phi,
 			color='k',
 			linewidth=2,
 			label=r'Inversion Result $(\phi)$')
 
 		#plot phi_hat in red
-		plt.plot(self.eps,self.phi_hat,
+		ax.plot(self.eps,self.phi_hat,
 			color='r',
-			linewidth=1,
+			linewidth=2,
 			label=r'Peak-fitted estimate $(\hat{\phi})$')
 
 		#plot individual peaks in dashes
-		plt.plot(self.eps,self.y_scaled,
+		ax.plot(self.eps,self.y_scaled,
 			'--k',
 			linewidth=1,
-			label=r'Individual fitted Gaussians')
+			label=r'Individual fitted Gaussians (n=%.0f)' %len(self.mu))
 
-		ax.legend(location='best')
-
+		#remove duplicate legend entries
+		handles, labels = ax.get_legend_handles_labels()
+		handle_list, label_list = [], []
+		for handle, label in zip(handles, labels):
+			if label not in label_list:
+				handle_list.append(handle)
+				label_list.append(label)
+		
+		ax.legend(handle_list,label_list,loc='best')
 
 	def summary():
 		'''
