@@ -1,4 +1,5 @@
 #TODO: Make legend more pythonic.
+#TODO: Fix peak fitting algorithm to include shoulders
 
 import matplotlib.pyplot as plt
 import numpy as np
