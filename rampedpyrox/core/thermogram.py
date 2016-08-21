@@ -83,6 +83,8 @@ class Thermogram(object):
 			ax.set_xlabel('Temp. (Kelvin)')
 			ax.set_ylabel(r'rate constant ($K^{-1}$)')
 
+		return ax
+
 	def summary():
 		'''
 		Prints a summary of the Thermogram object.

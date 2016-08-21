@@ -235,6 +235,8 @@ class EnergyComplex(object):
 		
 		ax.legend(handle_list,label_list,loc='best')
 
+		return ax
+
 	def summary():
 		'''
 		Prints a summary of the EnergyComplex object.
