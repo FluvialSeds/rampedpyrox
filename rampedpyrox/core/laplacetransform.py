@@ -218,6 +218,24 @@ class LaplaceTransform(object):
 		Calculates the Thermogram for a given Energy Complex (forward model).
 		'''
 
+		_,nPeak = np.shape(ec.peaks)
+
+		#calculate the estimated g, gdot_t, and gdot_Tau
+		Taudot_t = np.gradient(self.Tau)/np.gradient(self.t) #Kelvin/second
+		g_hat = np.inner(self.A,ec.phi_hat) #fraction
+		gdot_t_hat = np.gradient(g_hat)/np.gradient(self.t) #second-1
+		gdot_Tau_hat = gdot_t_hat/Taudot_t #Kelvin-1
+
+		#calculate g, gdot_t, and gdot_Tau for each peak
+		gp = np.inner(self.A,ec.peaks.T) #fractions
+		dt_mat = np.gradient(np.outer(self.t,np.ones(nPeak)),axis=0)
+		dTau_mat = np.outer(Taudot_t,np.ones(nPeak))
+		gpdot_t = np.gradient(gp,axis=0)/dt_mat #second-1
+		gpdot_Tau = gpdot_t/dTau_mat #Kelvin-1
+
+		return g_hat,gdot_t_hat,gdot_Tau_hat,gp,gpdot_t,gpdot_Tau
+
+
 	def plot_L_curve(self, tg, ax=None, log_om_min=-3, log_om_max=2, nOm=100):
 		'''
 		Calculates the L curve w.r.t. a given thermogram and plots

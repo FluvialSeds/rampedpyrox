@@ -1,3 +1,5 @@
+#TODO: Make legend more pythonic.
+
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
@@ -177,7 +179,7 @@ class EnergyComplex(object):
 	Class for storing f(Ea) and calculating peak deconvolution
 	'''
 
-	def __init__(self, eps, phi, nPeaks='auto', thres=0.05):
+	def __init__(self, eps, phi, nPeaks='auto', thres=0.05, combine_last=None):
 		'''
 		Initializes the EnergyComplex object.
 		'''
@@ -185,10 +187,12 @@ class EnergyComplex(object):
 		#assert phi and eps are same length
 		if len(phi) != len(eps):
 			raise ValueError('phi and eps vectors must have same length')
+		nE = len(phi)
 
 		#perform deconvolution
 		mu,sigma,height = _deconvolve(eps, phi, nPeaks = nPeaks, thres=thres)
 		phi_hat,y_scaled = _phi_hat(eps, mu, sigma, height)
+		phi_err = norm(phi-phi_hat)/nE
 
 		#define public parameters
 		self.phi = phi
@@ -197,7 +201,15 @@ class EnergyComplex(object):
 		self.sigma = sigma
 		self.height = height
 		self.phi_hat = phi_hat
-		self.y_scaled = y_scaled
+		self.phi_err = phi_err
+
+		#combine last peaks if necessary
+		if combine_last:
+			n = len(mu)-combine_last
+			combined = np.sum(y_scaled[:,n:],axis=1)
+			self.peaks = np.column_stack((y_scaled[:,:n],combined))
+		else:
+			self.peaks = y_scaled
 
 	def plot(self, ax=None):
 		'''
@@ -220,7 +232,7 @@ class EnergyComplex(object):
 			label=r'Peak-fitted estimate $(\hat{\phi})$')
 
 		#plot individual peaks in dashes
-		ax.plot(self.eps,self.y_scaled,
+		ax.plot(self.eps,self.peaks,
 			'--k',
 			linewidth=1,
 			label=r'Individual fitted Gaussians (n=%.0f)' %len(self.mu))
@@ -234,6 +246,10 @@ class EnergyComplex(object):
 				label_list.append(label)
 		
 		ax.legend(handle_list,label_list,loc='best')
+
+		#label axes
+		ax.set_xlabel('Activation Energy (kJ)')
+		ax.set_ylabel('f(Ea) (unitless)')
 
 		return ax
 

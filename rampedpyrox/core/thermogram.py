@@ -116,10 +116,25 @@ class ModeledData(Thermogram):
 	Subclass for thermograms generated using an f(Ea) distribution.
 	'''
 
-	def __init__():
+	def __init__(self):
 		'''
 		Initializes the ModeledData object.
 		'''
 
 		super(ModeledData,self).__init__(t, tau, g)
+
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
 
