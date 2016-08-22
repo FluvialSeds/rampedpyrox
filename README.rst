@@ -35,7 +35,7 @@ Main Features
 
 * Isotope deconvolution:
 	- Radiocarbon (Fm) deconvolution
-	- Stable-carbon (:math:`\delta^{13}`\ C) deconvolution
+	- Stable-carbon (:sup:`13`\ C) deconvolution
 	- Accounts for kinetic isotope effect (KIE)
 		- Allows unique KIE for each peak
 
