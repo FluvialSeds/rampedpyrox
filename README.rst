@@ -35,7 +35,7 @@ Main Features
 
 * Isotope deconvolution:
 	- Radiocarbon (Fm) deconvolution
-	- Stable-carbon (:math:'{\delta^{13}C}') deconvolution
+	- Stable-carbon (:math: r'\delta^{13}C' ) deconvolution
 
 
 How to Obtain
