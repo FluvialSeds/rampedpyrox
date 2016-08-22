@@ -1,15 +1,9 @@
 '''
-This module contains the Thermogram class and corresponding subclasses:
+.. module:: thermogram
+   :platform: Unix
+   :synopsis: Contains the Thermogram class and corresponding subclasses
+.. moduleauthor:: Jordon D. Hemingway <jordonhemingway@gmail.com> 
 
-RealData
-ModeledData
-
-Thermogram subclasses are containers to store either real data or inverse model
-results. Real data must be in the form of the "all_data.csv" file that is saved
-during a Ramped Pyrox sample run at NOSAMS, and must contain the following
-columns: date_time (index column), CO2_scaled, temp.
-
-Subclasses can also plot thermogram data.
 '''
 
 import matplotlib.pyplot as plt
@@ -23,6 +17,21 @@ from scipy.interpolate import interp1d
 def _extract_tg(all_data, nT):
 	'''
 	Extracts time, temperature, and carbon remaining vectors from all_data.
+	Called by Thermogram during __init__.
+
+	Args:
+		all_data (str. or pd.DataFrame): File containing thermogram data,
+		either as a path string or pandas.DataFrame object
+
+		nT (int): The number of time points to use
+
+	Returns:
+		t (np.ndarray): Array of timepoints
+		Tau (np.ndarray): Array of temperature points
+		g (np.ndarray): Array of fraction of carbon remaining
+
+	Raises:
+		ValueError
 	'''
 
 	#import all_data as a pd.DataFrame if inputted as a string path and check
@@ -60,12 +69,20 @@ def _extract_tg(all_data, nT):
 
 class Thermogram(object):
 	'''
-	Base class for thermogram objects, intended for subclassing.
+	Base class for thermogram objects.
+
+	.. note::
+		This class is intended for subclassing and should never be called directly
 	'''
 
 	def __init__(self, t, Tau, g):
 		'''
 		Initializes the Thermogram object.
+
+		Args:
+			t (np.ndarray): Array of timepoints
+			Tau (np.ndarray): Array of temperature points
+			g (np.ndarray): Array of fraction of carbon remaining
 		'''
 
 		#define public parameters
@@ -80,6 +97,10 @@ class Thermogram(object):
 	def plot(self, ax=None, xaxis='time'):
 		'''
 		Plots the thermogram against time or temp.
+
+		Kwargs:
+			ax (plt axis handle): Axis to plot on
+			xaxis (str): Sets the x axis units: either 'time' or 'temp'
 		'''
 
 		if xaxis not in ['time','temp']:
@@ -113,6 +134,12 @@ class RealData(Thermogram):
 	def __init__(self, all_data, nT=250):
 		'''
 		Initializes the RealData object.
+
+		Args:
+			all_data (str. or pd.DataFrame): File containing thermogram data,
+			either as a path string or pandas.DataFrame object
+
+			nT (int): The number of time points to use
 		'''
 
 		#extract t, Tau, and g from all_data
@@ -127,6 +154,13 @@ class RealData(Thermogram):
 	def plot(self, ax=None, xaxis='time'):
 		'''
 		Plots the true thermogram and peaks against time or temp.
+
+		Kwargs:
+			ax (plt axis handle): Axis to plot on or None
+			xaxis (str): Sets the x axis units: either 'time' or 'temp'
+
+		Returns:
+			ax (plt axis handle): Updated axis with plotted data
 		'''
 
 		#plot the thermogram and edit tg_line parameters
@@ -156,6 +190,14 @@ class ModeledData(Thermogram):
 	def __init__(self, t, Tau, g_hat, gp):
 		'''
 		Initializes the ModeledData object.
+
+		Args:
+			t (np.ndarray): Array of timepoints
+			Tau (np.ndarray): Array of temperature points
+			g_hat (np.ndarray): Array of estimated fraction of carbon remaining
+			resulting from running the inverse model
+			gp (np.ndarray): 2d array of estimated fraction of carbin within
+			each peak remaining resulting from running the inverse model
 		'''
 
 		super(ModeledData,self).__init__(t, Tau-273.15, g_hat)
@@ -177,6 +219,13 @@ class ModeledData(Thermogram):
 	def plot(self, ax=None, xaxis='time'):
 		'''
 		Plots the modeled thermogram and peaks against time or temp.
+
+		Kwargs:
+			ax (plt axis handle): Axis to plot on or None
+			xaxis (str): Sets the x axis units: either 'time' or 'temp'
+
+		Returns:
+			ax (plt axis handle): Updated axis with plotted data
 		'''
 
 		#plot the thermogram and edit tg_line parameters
@@ -208,18 +257,3 @@ class ModeledData(Thermogram):
 		ax.legend(handle_list,label_list,loc='best')
 
 		return ax
-		
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,0 +1,345 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>rampedpyrox.core.thermogram &#8212; rampedpyrox 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="rampedpyrox 0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for rampedpyrox.core.thermogram</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">.. module:: thermogram</span>
+<span class="sd">   :platform: Unix</span>
+<span class="sd">   :synopsis: Contains the Thermogram class and corresponding subclasses</span>
+<span class="sd">.. moduleauthor:: Jordon D. Hemingway &lt;jordonhemingway@gmail.com&gt; </span>
+
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="k">import</span> <span class="n">interp1d</span>
+
+
+<span class="c1">#define function to extract Thermogram variables from &#39;real_data&#39;</span>
+<span class="k">def</span> <span class="nf">_extract_tg</span><span class="p">(</span><span class="n">all_data</span><span class="p">,</span> <span class="n">nT</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Extracts time, temperature, and carbon remaining vectors from all_data.</span>
+<span class="sd">	Called by Thermogram during __init__.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		all_data (str. or pd.DataFrame): File containing thermogram data,</span>
+<span class="sd">		either as a path string or pandas.DataFrame object</span>
+
+<span class="sd">		nT (int): The number of time points to use</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		t (np.ndarray): Array of timepoints</span>
+<span class="sd">		Tau (np.ndarray): Array of temperature points</span>
+<span class="sd">		g (np.ndarray): Array of fraction of carbon remaining</span>
+
+<span class="sd">	Raises:</span>
+<span class="sd">		ValueError</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+	<span class="c1">#import all_data as a pd.DataFrame if inputted as a string path and check</span>
+	<span class="c1">#that it is in the right format</span>
+	<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">all_data</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
+		<span class="n">all_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="n">all_data</span><span class="p">)</span>
+	<span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">all_data</span><span class="p">,</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+		<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;all_data must be pd.DataFrame or path string&#39;</span><span class="p">)</span>
+
+	<span class="k">if</span> <span class="s1">&#39;CO2_scaled&#39;</span> <span class="ow">and</span> <span class="s1">&#39;temp&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">all_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+		<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;all_data must have &quot;CO2_scaled&quot; and &quot;temp&quot; columns&#39;</span><span class="p">)</span>
+
+	<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">all_data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span><span class="n">pd</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">):</span>
+		<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;all_data index must be DatetimeIndex&#39;</span><span class="p">)</span>
+
+	<span class="c1">#extract necessary data</span>
+	<span class="n">secs</span> <span class="o">=</span> <span class="p">(</span><span class="n">all_data</span><span class="o">.</span><span class="n">index</span> <span class="o">-</span> <span class="n">all_data</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">seconds</span>
+	<span class="n">CO2</span> <span class="o">=</span> <span class="n">all_data</span><span class="o">.</span><span class="n">CO2_scaled</span>
+	<span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">CO2</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">CO2</span><span class="p">)</span>
+	<span class="n">Temp</span> <span class="o">=</span> <span class="n">all_data</span><span class="o">.</span><span class="n">temp</span>
+
+	<span class="c1">#generate t vector</span>
+	<span class="n">t0</span> <span class="o">=</span> <span class="n">secs</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span> <span class="n">tf</span> <span class="o">=</span> <span class="n">secs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">];</span> <span class="n">dt</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">-</span><span class="n">t0</span><span class="p">)</span><span class="o">/</span><span class="n">nT</span>
+	<span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">t0</span><span class="p">,</span><span class="n">tf</span><span class="p">,</span><span class="n">nT</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">dt</span><span class="o">/</span><span class="mi">2</span> <span class="c1">#make downsampled points at midpoint</span>
+	<span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1">#drop last point since it&#39;s beyond tf</span>
+
+	<span class="c1">#down-sample g and Tau using interp1d</span>
+	<span class="n">fT</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">secs</span><span class="p">,</span><span class="n">Temp</span><span class="p">)</span>
+	<span class="n">fg</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">secs</span><span class="p">,</span><span class="n">alpha</span><span class="p">)</span>
+	<span class="n">Tau</span> <span class="o">=</span> <span class="n">fT</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+	<span class="n">g</span> <span class="o">=</span> <span class="mi">1</span><span class="o">-</span><span class="n">fg</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+	
+	<span class="k">return</span> <span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">g</span>
+
+
+<div class="viewcode-block" id="Thermogram"><a class="viewcode-back" href="../../../index.html#rampedpyrox.core.thermogram.Thermogram">[docs]</a><span class="k">class</span> <span class="nc">Thermogram</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Base class for thermogram objects.</span>
+
+<span class="sd">	.. note::</span>
+<span class="sd">		This class is intended for subclassing and should never be called directly</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+		<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Initializes the Thermogram object.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			t (np.ndarray): Array of timepoints</span>
+<span class="sd">			Tau (np.ndarray): Array of temperature points</span>
+<span class="sd">			g (np.ndarray): Array of fraction of carbon remaining</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+
+		<span class="c1">#define public parameters</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">t</span> <span class="c1">#seconds</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">Tau</span> <span class="o">=</span> <span class="n">Tau</span> <span class="o">+</span> <span class="mf">273.15</span> <span class="c1">#Kelvin</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">g</span> <span class="o">=</span> <span class="n">g</span> <span class="c1">#fraction</span>
+
+		<span class="bp">self</span><span class="o">.</span><span class="n">Taudot_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">Tau</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="c1">#Kelvin/second</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">gdot_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">g</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="c1">#second-1</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">gdot_Tau</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gdot_t</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">Taudot_t</span> <span class="c1">#Kelvin-1</span>
+
+	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
+		<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Plots the thermogram against time or temp.</span>
+
+<span class="sd">		Kwargs:</span>
+<span class="sd">			ax (plt axis handle): Axis to plot on</span>
+<span class="sd">			xaxis (str): Sets the x axis units: either &#39;time&#39; or &#39;temp&#39;</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+
+		<span class="k">if</span> <span class="n">xaxis</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">,</span><span class="s1">&#39;temp&#39;</span><span class="p">]:</span>
+			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;&quot;xaxis&quot; must be either &quot;time&quot; or &quot;temp&quot;&#39;</span><span class="p">)</span>
+
+		<span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="n">_</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+
+		<span class="k">if</span> <span class="n">xaxis</span> <span class="o">==</span> <span class="s1">&#39;time&#39;</span><span class="p">:</span>
+			<span class="n">tg_line</span><span class="p">,</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">gdot_t</span><span class="p">)</span>
+			<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;time (seconds)&#39;</span><span class="p">)</span>
+			<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">r&#39;rate constant ($s^{-1}$)&#39;</span><span class="p">)</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">tg_line</span><span class="p">,</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Tau</span><span class="p">,</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">gdot_Tau</span><span class="p">)</span>
+			<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Temp. (Kelvin)&#39;</span><span class="p">)</span>
+			<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">r&#39;rate constant ($K^{-1}$)&#39;</span><span class="p">)</span>
+
+		<span class="k">return</span> <span class="n">ax</span><span class="p">,</span> <span class="n">tg_line</span>
+
+	<span class="k">def</span> <span class="nf">summary</span><span class="p">():</span>
+		<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Prints a summary of the Thermogram object.</span>
+<span class="sd">		&#39;&#39;&#39;</span></div>
+
+
+<div class="viewcode-block" id="RealData"><a class="viewcode-back" href="../../../index.html#rampedpyrox.core.thermogram.RealData">[docs]</a><span class="k">class</span> <span class="nc">RealData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Subclass for real data thermograms (i.e. actual dirt burner data).</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">all_data</span><span class="p">,</span> <span class="n">nT</span><span class="o">=</span><span class="mi">250</span><span class="p">):</span>
+		<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Initializes the RealData object.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			all_data (str. or pd.DataFrame): File containing thermogram data,</span>
+<span class="sd">			either as a path string or pandas.DataFrame object</span>
+
+<span class="sd">			nT (int): The number of time points to use</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+
+		<span class="c1">#extract t, Tau, and g from all_data</span>
+		<span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="n">_extract_tg</span><span class="p">(</span><span class="n">all_data</span><span class="p">,</span> <span class="n">nT</span><span class="p">)</span>
+
+		<span class="c1">#pass variables to Thermogram superclass</span>
+		<span class="nb">super</span><span class="p">(</span><span class="n">RealData</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+
+		<span class="c1">#define private parameters</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_nT</span> <span class="o">=</span> <span class="n">nT</span>
+
+<div class="viewcode-block" id="RealData.plot"><a class="viewcode-back" href="../../../index.html#rampedpyrox.core.thermogram.RealData.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
+		<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Plots the true thermogram and peaks against time or temp.</span>
+
+<span class="sd">		Kwargs:</span>
+<span class="sd">			ax (plt axis handle): Axis to plot on or None</span>
+<span class="sd">			xaxis (str): Sets the x axis units: either &#39;time&#39; or &#39;temp&#39;</span>
+
+<span class="sd">		Returns:</span>
+<span class="sd">			ax (plt axis handle): Updated axis with plotted data</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+
+		<span class="c1">#plot the thermogram and edit tg_line parameters</span>
+		<span class="n">ax</span><span class="p">,</span><span class="n">tg_line</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RealData</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="n">xaxis</span><span class="p">)</span>
+		<span class="n">tg_line</span><span class="o">.</span><span class="n">set_linewidth</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+		<span class="n">tg_line</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+		<span class="n">tg_line</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s1">&#39;True Thermogram&#39;</span><span class="p">)</span>
+
+		<span class="c1">#remove duplicate legend entries (necessary if ModeledData on sam axis)</span>
+		<span class="n">handles</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_legend_handles_labels</span><span class="p">()</span>
+		<span class="n">handle_list</span><span class="p">,</span> <span class="n">label_list</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+		<span class="k">for</span> <span class="n">handle</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">handles</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+			<span class="k">if</span> <span class="n">label</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">label_list</span><span class="p">:</span>
+				<span class="n">handle_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+				<span class="n">label_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+		
+		<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handle_list</span><span class="p">,</span><span class="n">label_list</span><span class="p">,</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;best&#39;</span><span class="p">)</span>
+
+		<span class="k">return</span> <span class="n">ax</span></div></div>
+
+
+<div class="viewcode-block" id="ModeledData"><a class="viewcode-back" href="../../../index.html#rampedpyrox.core.thermogram.ModeledData">[docs]</a><span class="k">class</span> <span class="nc">ModeledData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Subclass for thermograms generated using an f(Ea) distribution.</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">g_hat</span><span class="p">,</span> <span class="n">gp</span><span class="p">):</span>
+		<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Initializes the ModeledData object.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			t (np.ndarray): Array of timepoints</span>
+<span class="sd">			Tau (np.ndarray): Array of temperature points</span>
+<span class="sd">			g_hat (np.ndarray): Array of estimated fraction of carbon remaining</span>
+<span class="sd">			resulting from running the inverse model</span>
+<span class="sd">			gp (np.ndarray): 2d array of estimated fraction of carbin within</span>
+<span class="sd">			each peak remaining resulting from running the inverse model</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+
+		<span class="nb">super</span><span class="p">(</span><span class="n">ModeledData</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="o">-</span><span class="mf">273.15</span><span class="p">,</span> <span class="n">g_hat</span><span class="p">)</span>
+
+		<span class="c1">#calculate tg contribution for each peak</span>
+		<span class="n">_</span><span class="p">,</span><span class="n">nPeak</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">gp</span><span class="p">)</span>
+		<span class="n">dt_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nPeak</span><span class="p">)),</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+		<span class="n">dTau_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Taudot_t</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nPeak</span><span class="p">))</span>
+		
+		<span class="c1">#define public parameters</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">gp</span> <span class="o">=</span> <span class="n">gp</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">gpdot_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">gp</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">/</span><span class="n">dt_mat</span> <span class="c1">#second-1</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">gpdot_Tau</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpdot_t</span><span class="o">/</span><span class="n">dTau_mat</span> <span class="c1">#Kelvin-1</span>
+
+		<span class="c1">#define private parameters</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_nT</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_nPeak</span> <span class="o">=</span> <span class="n">nPeak</span>
+
+<div class="viewcode-block" id="ModeledData.plot"><a class="viewcode-back" href="../../../index.html#rampedpyrox.core.thermogram.ModeledData.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
+		<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Plots the modeled thermogram and peaks against time or temp.</span>
+
+<span class="sd">		Kwargs:</span>
+<span class="sd">			ax (plt axis handle): Axis to plot on or None</span>
+<span class="sd">			xaxis (str): Sets the x axis units: either &#39;time&#39; or &#39;temp&#39;</span>
+
+<span class="sd">		Returns:</span>
+<span class="sd">			ax (plt axis handle): Updated axis with plotted data</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+
+		<span class="c1">#plot the thermogram and edit tg_line parameters</span>
+		<span class="n">ax</span><span class="p">,</span><span class="n">tg_line</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ModeledData</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="n">xaxis</span><span class="p">)</span>
+		<span class="n">tg_line</span><span class="o">.</span><span class="n">set_linewidth</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+		<span class="n">tg_line</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+		<span class="n">tg_line</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s1">&#39;Modeled Thermogram&#39;</span><span class="p">)</span>
+
+		<span class="c1">#plot individual peak contributions</span>
+		<span class="k">if</span> <span class="n">xaxis</span> <span class="o">==</span> <span class="s1">&#39;time&#39;</span><span class="p">:</span>
+			<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">gpdot_t</span><span class="p">,</span>
+				<span class="s1">&#39;--k&#39;</span><span class="p">,</span>
+				<span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+				<span class="n">label</span><span class="o">=</span><span class="s1">r&#39;Individual fitted peaks (n=</span><span class="si">%.0f</span><span class="s1">)&#39;</span> <span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">_nPeak</span><span class="p">)</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Tau</span><span class="p">,</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">gpdot_Tau</span><span class="p">,</span>
+				<span class="s1">&#39;--k&#39;</span><span class="p">,</span>
+				<span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+				<span class="n">label</span><span class="o">=</span><span class="s1">r&#39;Individual fitted peaks (n=</span><span class="si">%.0f</span><span class="s1">)&#39;</span> <span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">_nPeak</span><span class="p">)</span>
+
+		<span class="c1">#remove duplicate legend entries</span>
+		<span class="n">handles</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_legend_handles_labels</span><span class="p">()</span>
+		<span class="n">handle_list</span><span class="p">,</span> <span class="n">label_list</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+		<span class="k">for</span> <span class="n">handle</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">handles</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+			<span class="k">if</span> <span class="n">label</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">label_list</span><span class="p">:</span>
+				<span class="n">handle_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+				<span class="n">label_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+		
+		<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handle_list</span><span class="p">,</span><span class="n">label_list</span><span class="p">,</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;best&#39;</span><span class="p">)</span>
+
+		<span class="k">return</span> <span class="n">ax</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Jordon D. Hemingway.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
