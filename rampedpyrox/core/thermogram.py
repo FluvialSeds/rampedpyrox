@@ -1,3 +1,17 @@
+'''
+This module contains the Thermogram class and corresponding subclasses:
+
+RealData
+ModeledData
+
+Thermogram subclasses are containers to store either real data or inverse model
+results. Real data must be in the form of the "all_data.csv" file that is saved
+during a Ramped Pyrox sample run at NOSAMS, and must contain the following
+columns: date_time (index column), CO2_scaled, temp.
+
+Subclasses can also plot thermogram data.
+'''
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -75,21 +89,15 @@ class Thermogram(object):
 			_,ax = plt.subplots(1,1)
 
 		if xaxis == 'time':
-			ax.plot(self.t,-self.gdot_t,
-				'k',
-				linewidth=2,
-				label='Thermogram')
+			tg_line, = ax.plot(self.t,-self.gdot_t)
 			ax.set_xlabel('time (seconds)')
 			ax.set_ylabel(r'rate constant ($s^{-1}$)')
 		else:
-			ax.plot(self.Tau,-self.gdot_Tau,
-				'k',
-				linewidth=2,
-				label='Thermogram')
+			tg_line, = ax.plot(self.Tau,-self.gdot_Tau)
 			ax.set_xlabel('Temp. (Kelvin)')
 			ax.set_ylabel(r'rate constant ($K^{-1}$)')
 
-		return ax
+		return ax, tg_line
 
 	def summary():
 		'''
@@ -116,6 +124,29 @@ class RealData(Thermogram):
 		#define private parameters
 		self._nT = nT
 
+	def plot(self, ax=None, xaxis='time'):
+		'''
+		Plots the true thermogram and peaks against time or temp.
+		'''
+
+		#plot the thermogram and edit tg_line parameters
+		ax,tg_line = super(RealData,self).plot(ax=ax, xaxis=xaxis)
+		tg_line.set_linewidth(2)
+		tg_line.set_color('k')
+		tg_line.set_label('True Thermogram')
+
+		#remove duplicate legend entries (necessary if ModeledData on sam axis)
+		handles, labels = ax.get_legend_handles_labels()
+		handle_list, label_list = [], []
+		for handle, label in zip(handles, labels):
+			if label not in label_list:
+				handle_list.append(handle)
+				label_list.append(label)
+		
+		ax.legend(handle_list,label_list,loc='best')
+
+		return ax
+
 
 class ModeledData(Thermogram):
 	'''
@@ -127,7 +158,7 @@ class ModeledData(Thermogram):
 		Initializes the ModeledData object.
 		'''
 
-		super(ModeledData,self).__init__(t, Tau, g_hat)
+		super(ModeledData,self).__init__(t, Tau-273.15, g_hat)
 
 		#calculate tg contribution for each peak
 		_,nPeak = np.shape(gp)
@@ -148,8 +179,11 @@ class ModeledData(Thermogram):
 		Plots the modeled thermogram and peaks against time or temp.
 		'''
 
-		#plot the thermogram
-		ax = super(ModeledData,self).plot(ax=ax, xaxis=xaxis)
+		#plot the thermogram and edit tg_line parameters
+		ax,tg_line = super(ModeledData,self).plot(ax=ax, xaxis=xaxis)
+		tg_line.set_linewidth(2)
+		tg_line.set_color('r')
+		tg_line.set_label('Modeled Thermogram')
 
 		#plot individual peak contributions
 		if xaxis == 'time':
