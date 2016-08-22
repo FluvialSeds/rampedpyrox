@@ -75,11 +75,17 @@ class Thermogram(object):
 			_,ax = plt.subplots(1,1)
 
 		if xaxis == 'time':
-			ax.plot(self.t,-self.gdot_t)
+			ax.plot(self.t,-self.gdot_t,
+				'k',
+				linewidth=2,
+				label='Thermogram')
 			ax.set_xlabel('time (seconds)')
 			ax.set_ylabel(r'rate constant ($s^{-1}$)')
 		else:
-			ax.plot(self.Tau,-self.gdot_Tau)
+			ax.plot(self.Tau,-self.gdot_Tau,
+				'k',
+				linewidth=2,
+				label='Thermogram')
 			ax.set_xlabel('Temp. (Kelvin)')
 			ax.set_ylabel(r'rate constant ($K^{-1}$)')
 
@@ -116,13 +122,58 @@ class ModeledData(Thermogram):
 	Subclass for thermograms generated using an f(Ea) distribution.
 	'''
 
-	def __init__(self):
+	def __init__(self, t, Tau, g_hat, gp):
 		'''
 		Initializes the ModeledData object.
 		'''
 
-		super(ModeledData,self).__init__(t, tau, g)
+		super(ModeledData,self).__init__(t, Tau, g_hat)
 
+		#calculate tg contribution for each peak
+		_,nPeak = np.shape(gp)
+		dt_mat = np.gradient(np.outer(t,np.ones(nPeak)),axis=0)
+		dTau_mat = np.outer(self.Taudot_t,np.ones(nPeak))
+		
+		#define public parameters
+		self.gp = gp
+		self.gpdot_t = np.gradient(gp,axis=0)/dt_mat #second-1
+		self.gpdot_Tau = self.gpdot_t/dTau_mat #Kelvin-1
+
+		#define private parameters
+		self._nT = len(t)
+		self._nPeak = nPeak
+
+	def plot(self, ax=None, xaxis='time'):
+		'''
+		Plots the modeled thermogram and peaks against time or temp.
+		'''
+
+		#plot the thermogram
+		ax = super(ModeledData,self).plot(ax=ax, xaxis=xaxis)
+
+		#plot individual peak contributions
+		if xaxis == 'time':
+			ax.plot(self.t,-self.gpdot_t,
+				'--k',
+				linewidth=1,
+				label=r'Individual fitted peaks (n=%.0f)' %self._nPeak)
+		else:
+			ax.plot(self.Tau,-self.gpdot_Tau,
+				'--k',
+				linewidth=1,
+				label=r'Individual fitted peaks (n=%.0f)' %self._nPeak)
+
+		#remove duplicate legend entries
+		handles, labels = ax.get_legend_handles_labels()
+		handle_list, label_list = [], []
+		for handle, label in zip(handles, labels):
+			if label not in label_list:
+				handle_list.append(handle)
+				label_list.append(label)
+		
+		ax.legend(handle_list,label_list,loc='best')
+
+		return ax
 		
 
 
