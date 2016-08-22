@@ -23,25 +23,25 @@ Main Features
 =============
 
 * Storing and plotting thermogram data:
-  * Real data
-  * Inverse model results
+	* Real data
+	* Inverse model results
 
 * Performing first-order DAEM inverse model:
-  * Calculate Laplace Transform
-  * User-controlled regularization (smoothing)
-    * Plot L-curves
+	* Calculate Laplace Transform
+	* User-controlled regularization (smoothing)
+		* Plot L-curves
 
 * DAEM deconvolution:
-  * Automated or user-defined peak number selection
+	* Automated or user-defined peak number selection
 
 * Isotope deconvolution:
-  * Radiocarbon (Fm) deconvolution
-  * Stable-carbon (:sup:`13`\ C) deconvolution
-  * Accounts for kinetic isotope effect (KIE)
-    * Allows unique KIE for each peak
+	* Radiocarbon (Fm) deconvolution
+	* Stable-carbon (:sup:`13`\ C) deconvolution
+	* Accounts for kinetic isotope effect (KIE)
+		* Allows unique KIE for each peak
 
 * Model performance metrics
-  * Calculates some statistics...
+	* Calculates some statistics...
 
 
 How to Obtain
