@@ -9,29 +9,29 @@ from numpy.linalg import norm
 from scipy.optimize import least_squares
 
 
-def _deconvolve(eps, phi, nPeaks = 'auto', thres=0.05):
+def _deconvolve(eps, phi, nPeaks='auto'):
 	'''
 	Deconvolves f(Ea) into Gaussian peaks.
 	'''
 
 	#find peak indices and bounds
-	ind,mu_bound = _peak_indices(phi,nPeaks=nPeaks)
-
-	#re-sort indices by increasing Ea (rather than decreasing phi)
-	#ind = np.sort(ind_sorted)
-	n = len(ind)
+	ind,lb_ind,ub_ind = _peak_indices(phi,nPeaks=nPeaks)
 
 	#calculate initial guess parameters
+	n = len(ind)
 	mu0 = eps[ind]
 	sigma0 = 10*np.ones(n) #arbitrarily guess sigma = 10kJ/mol
 	height0 = phi[ind]
 
-	#pack together for least_squares and create bounds
+	#pack together for least_squares
 	params = np.hstack((mu0,sigma0,height0))
-	lb = np.zeros(3*n)
-	ub_mu = np.max(eps)*np.ones(n)
-	ub_sig = ub_mu/2
-	ub_height = np.max(phi)*np.ones(n)
+
+	#calculate bounds
+	lb_mu = eps[lb_ind]; ub_mu = eps[ub_ind]
+	lb_sig = np.zeros(n); ub_sig = np.ones(n)*np.max(eps)/2.
+	lb_height = np.zeros(n); ub_height = np.ones(n)*np.max(phi)
+
+	lb = np.hstack((lb_mu,lb_sig,lb_height))
 	ub = np.hstack((ub_mu,ub_sig,ub_height))
 	bounds = (lb,ub)
 
@@ -124,9 +124,10 @@ def _peak_indices(phi, nPeaks='auto'):
 			raise ValueError('nPeaks greater than total detected peaks')
 
 		#sort according to increasing d2phi, keep first nPeaks, and re-sort
-		ind_sorted = ind[np.argsort(d2phi[ind])]
-		i = ind_sorted[:nPeaks]
-		ind = np.sort(i)
+		i = np.argsort(d2phi[ind])[:nPeaks]
+		i = np.sort(i)
+
+		ind = ind[i]; lb_ind = lb_ind[i]; ub_ind = ub_ind[i]
 
 	elif nPeaks is not 'auto':
 		raise ValueError('nPeaks must be "auto" or int')
@@ -176,7 +177,7 @@ class EnergyComplex(object):
 	Class for storing f(Ea) and calculating peak deconvolution
 	'''
 
-	def __init__(self, eps, phi, nPeaks='auto', thres=0.05, combine_last=None):
+	def __init__(self, eps, phi, nPeaks='auto', combine_last=None):
 		'''
 		Initializes the EnergyComplex object.
 		'''
@@ -187,7 +188,7 @@ class EnergyComplex(object):
 		nE = len(phi)
 
 		#perform deconvolution
-		mu,sigma,height = _deconvolve(eps, phi, nPeaks = nPeaks, thres=thres)
+		mu,sigma,height = _deconvolve(eps, phi, nPeaks=nPeaks)
 		phi_hat,y_scaled = _phi_hat(eps, mu, sigma, height)
 		phi_err = norm(phi-phi_hat)/nE
 
