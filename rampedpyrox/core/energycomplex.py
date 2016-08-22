@@ -1,5 +1,5 @@
 #TODO: Make legend more pythonic.
-#TODO: Fix peak fitting algorithm to include shoulders
+#TODO: Fix how _peak_indices sorts to select first nPeaks
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,22 +14,11 @@ def _deconvolve(eps, phi, nPeaks = 'auto', thres=0.05):
 	Deconvolves f(Ea) into Gaussian peaks.
 	'''
 
-	#find peak indices
-	if nPeaks is 'auto':
-		ind_sorted = _peak_indices(phi, thres=thres, min_dist=1)
-	elif isinstance(nPeaks,int):
-		all_ind = _peak_indices(phi, thres=thres, min_dist=1)
-
-		#check if nPeaks is greater than the total amount of peaks
-		if len(all_ind) < nPeaks:
-			raise ValueError('nPeaks > total detected at current threshold')
-		
-		ind_sorted = all_ind[:nPeaks]
-	else:
-		raise ValueError('nPeaks must be "auto" or int')
+	#find peak indices and bounds
+	ind,mu_bound = _peak_indices(phi,nPeaks=nPeaks)
 
 	#re-sort indices by increasing Ea (rather than decreasing phi)
-	ind = np.sort(ind_sorted)
+	#ind = np.sort(ind_sorted)
 	n = len(ind)
 
 	#calculate initial guess parameters
@@ -97,45 +86,52 @@ def _gaussian(x, mu, sigma):
 
 	return y
 
-def _peak_indices(phi, thres=0.05, min_dist=1):
+def _peak_indices(phi, nPeaks='auto'):
 	'''
-	Finds the indices of the peaks in phi (modified from peakutils.indexes).
+	Finds the indices and the bounded range of the peaks in phi.
 	'''
 
-	#convert relative threshold to absolute value
-	thres = thres*(np.max(phi)-np.min(phi))+np.min(phi)
+	#calculate derivatives
+	dphi = np.gradient(phi)
+	d2phi = np.gradient(dphi)
 
-	#ensure min_dist is an integer
-	min_dist = int(min_dist)
+	#calculate bounds such that second derivative is <= 0
+	lb_ind = np.where(
+		(d2phi <= 0) &
+		(np.hstack([0.,d2phi[:-1]]) > 0))[0]
 
-	#find the peaks above threshold by using the first order difference
-	#stack with 0 on either side to find when dphi crosses 0 from + to -
-	dphi = np.diff(phi)
-	ind = np.where((np.hstack([dphi, 0.]) < 0.)
-		& (np.hstack([0., dphi]) > 0.)
-		& (phi > thres))[0]
+	ub_ind = np.where(
+		(d2phi > 0) &
+		(np.hstack([0.,d2phi[:-1]]) <= 0))[0]
 
-	#sort indices from largest to smallest peak
-	ind_sorted = ind[np.argsort(phi[ind])][::-1]
+	#remove first UB (initial increase), last LB (final decrease), and check len
+	ub_ind = ub_ind[1:]
+	lb_ind = lb_ind[:-1]
+	if len(ub_ind) is not len(lb_ind):
+		raise ValueError('UB and LB arrays have different lenghts')
 
-	#remove peaks that are too close together
-	if len(ind) > 1 and min_dist > 1:
-		rem = np.ones(len(phi), dtype=bool)
-		rem[ind_sorted] = False
+	#find index of minimum d2phi within each bounded range
+	ind = []
+	for i,j in zip(lb_ind,ub_ind):
+		ind.append(i+np.argmin(d2phi[i:j]))
+	#convert ind to ndarray
+	ind = np.array(ind)
 
-		#starting with highest peak, remove any others within +/- min_dist
-		for i in ind_sorted:
-			if not rem[i]:
-				sl = slice(max(0, i-min_dist), i+min_dist+1)
-				rem[sl] = True
-				rem[i] = False
+	#retain first nPeaks according to increasing d2phi
+	if isinstance(nPeaks,int):
+		#check if nPeaks is greater than the total amount of peaks
+		if len(ind) < nPeaks:
+			raise ValueError('nPeaks greater than total detected peaks')
 
-		ind = np.arange(len(phi))[~rem]
+		#sort according to increasing d2phi, keep first nPeaks, and re-sort
+		ind_sorted = ind[np.argsort(d2phi[ind])]
+		i = ind_sorted[:nPeaks]
+		ind = np.sort(i)
 
-		#resort
-		ind_sorted = ind[np.argsort(phi[ind])][::-1]
+	elif nPeaks is not 'auto':
+		raise ValueError('nPeaks must be "auto" or int')
 
-	return ind_sorted
+	return ind, lb_ind, ub_ind
 
 def _phi_hat(eps, mu, sigma, height):
 	'''
