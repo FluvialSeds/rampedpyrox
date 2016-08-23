@@ -68,14 +68,8 @@ Table of contents
    :maxdepth: 2
 
    Thermogram
-
    LaplaceTransform
-
    EnergyComplex
-
-
-
-
 
 Indices and tables
 ==================
