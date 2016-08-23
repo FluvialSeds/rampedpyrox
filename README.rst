@@ -17,7 +17,7 @@ Documentation
 =============
 The documentation for the latest release is available at:
 
-	rampedpyrox.readthedocs.io
+	http://rampedpyrox.readthedocs.io
 
 Main Features
 =============
