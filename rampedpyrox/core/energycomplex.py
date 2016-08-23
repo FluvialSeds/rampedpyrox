@@ -41,7 +41,7 @@ def _deconvolve(eps, phi, nPeaks='auto', thres=0.05):
 	'''
 
 	#find peak indices and bounds
-	ind,lb_ind,ub_ind = _peak_indices(phi,nPeaks=nPeaks)
+	ind,lb_ind,ub_ind = _peak_indices(phi,nPeaks=nPeaks,thres=thres)
 
 	#calculate initial guess parameters
 	n = len(ind)
