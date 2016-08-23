@@ -15,7 +15,7 @@ from numpy.linalg import norm
 from scipy.optimize import least_squares
 
 
-def _deconvolve(eps, phi, nPeaks='auto'):
+def _deconvolve(eps, phi, nPeaks='auto', thres=0.05):
 	'''
 	Performs Gaussian peak deconvolution.
 	Called by ``EnergyComplex.__init__()``.
@@ -27,6 +27,9 @@ def _deconvolve(eps, phi, nPeaks='auto'):
 
 		nPeaks (int or str): Number of Gaussians to use in deconvolution,
 			either an integer or 'auto'. Defaults to 'auto'.
+
+		thres (float): Threshold for peak detection cutoff. Thres is the relative
+			height of the global maximum under which no peaks will be detected.
 
 	Returns:
 		mu (np.ndarray): Array of resulting Gaussian peak means.
@@ -129,7 +132,7 @@ def _gaussian(x, mu, sigma):
 
 	return y
 
-def _peak_indices(phi, nPeaks='auto'):
+def _peak_indices(phi, nPeaks='auto', thres=0.05):
 	'''
 	Finds the indices and the bounded range of the mu values for peaks in phi.
 	Called by ``_deconvolve()``.
@@ -139,6 +142,9 @@ def _peak_indices(phi, nPeaks='auto'):
 
 		nPeaks (int or str): Number of Gaussians to use in deconvolution,
 			either an integer or 'auto'. Defaults to 'auto'.
+
+		thres (float): Threshold for peak detection cutoff. Thres is the relative
+			height of the global maximum under which no peaks will be detected.
 
 	Returns:
 		ind (np.ndarray): Array of indices in phi containing peak mu values.
@@ -157,6 +163,9 @@ def _peak_indices(phi, nPeaks='auto'):
 		ValueError: If ``nPeaks`` is not 'auto' or int.
 
 	'''
+
+	#convert thres to absolute value
+	thres = thres*(np.max(phi)-np.min(phi))+np.min(phi)
 
 	#calculate derivatives
 	dphi = np.gradient(phi)
@@ -184,15 +193,31 @@ def _peak_indices(phi, nPeaks='auto'):
 	#convert ind to ndarray
 	ind = np.array(ind)
 
+	#remove peaks below threshold
+	ab = np.where(phi[ind] >= thres)
+	ind = ind[ab]; lb_ind = lb_ind[ab]; ub_ind = ub_ind[ab]
+
 	#retain first nPeaks according to increasing d2phi
+	# if isinstance(nPeaks,int):
+	# 	#check if nPeaks is greater than the total amount of peaks
+	# 	if len(ind) < nPeaks:
+	# 		raise ValueError('nPeaks greater than total detected peaks')
+
+	# 	#sort according to increasing d2phi, keep first nPeaks, and re-sort
+	# 	i = np.argsort(d2phi[ind])[:nPeaks]
+	# 	i = np.sort(i)
+
+	# 	ind = ind[i]; lb_ind = lb_ind[i]; ub_ind = ub_ind[i]
+
+	#retain first nPeaks according to decreasing phi[mu]
 	if isinstance(nPeaks,int):
 		#check if nPeaks is greater than the total amount of peaks
 		if len(ind) < nPeaks:
 			raise ValueError('nPeaks greater than total detected peaks')
 
-		#sort according to increasing d2phi, keep first nPeaks, and re-sort
-		i = np.argsort(d2phi[ind])[:nPeaks]
-		i = np.sort(i)
+		#sort according to decreasing phi, keep first nPeaks, and re-sort
+		ind_sorted = np.argsort(phi[ind])[::-1]
+		i = np.sort(ind_sorted[:nPeaks])
 
 		ind = ind[i]; lb_ind = lb_ind[i]; ub_ind = ub_ind[i]
 
@@ -286,6 +311,9 @@ class EnergyComplex(object):
 		nPeaks (int or str): Number of Gaussians to use in deconvolution,
 			either an integer or 'auto'. Defaults to 'auto'.
 
+		thres (float): Threshold for peak detection cutoff. Thres is the relative
+			height of the global maximum under which no peaks will be detected.
+
 		combine_last (int or None): Number of peaks to combine at the end of
 			the run (necessary if there is not enough isotope resolution at the
 			high temperature range, as is often the case with real data).
@@ -319,7 +347,7 @@ class EnergyComplex(object):
 		parameters much better than the Levenberg-Marquardt algorithm.
 	'''
 
-	def __init__(self, eps, phi, nPeaks='auto', combine_last=None):
+	def __init__(self, eps, phi, nPeaks='auto', thres=0.05, combine_last=None):
 
 		#assert phi and eps are same length
 		if len(phi) != len(eps):
@@ -327,7 +355,7 @@ class EnergyComplex(object):
 		nE = len(phi)
 
 		#perform deconvolution
-		mu,sigma,height = _deconvolve(eps, phi, nPeaks=nPeaks)
+		mu,sigma,height = _deconvolve(eps, phi, nPeaks=nPeaks, thres=thres)
 		phi_hat,y_scaled = _phi_hat(eps, mu, sigma, height)
 		phi_err = norm(phi-phi_hat)/nE
 
