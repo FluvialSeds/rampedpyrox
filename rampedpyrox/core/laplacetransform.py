@@ -4,6 +4,7 @@ and performing the inverse/forward transformation. Stores information in a
 LaplaceTransform object.
 
 * TODO: update calc_L_curve to be more pythonic.
+* TODO: Keep testing "Wabha" function and developing best-fit omega
 * TODO: Add summary method.
 '''
 
@@ -12,6 +13,7 @@ import numpy as np
 
 from scipy.optimize import nnls
 from numpy.linalg import norm
+from numpy.linalg import inv
 
 from rampedpyrox.core.thermogram import ModeledData
 
@@ -287,6 +289,27 @@ def calc_L_curve(A, g, log_om_min=-3, log_om_max=2, nOm=100):
 	om_best = omega_vec[max_curv]
 
 	return om_best, resid_vec, rgh_vec, omega_vec 
+
+def Wabha(A, g, omega):
+
+	#extract shape
+	nT,nE = np.shape(A)
+
+	#calculate phi and g_hat
+	phi,_,_ = _calc_phi(A,g,omega)
+	g_hat = np.inner(A,phi)
+
+	#calculate RSS
+	RSS = norm(g-g_hat)**2
+
+	#calculate d.o.f., tau
+	x = inv(np.dot(A.T,A) + (omega**2)*np.eye(nE))
+	X = np.dot(np.dot(A,x),A.T)
+	tau = np.trace(np.eye(nT) - X)**2
+
+	return RSS/tau
+
+
 
 
 class LaplaceTransform(object):
