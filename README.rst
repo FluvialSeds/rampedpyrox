@@ -59,7 +59,7 @@ Source code can be directly downloaded from GitHub:
 
 Binaries can be installed through the Python package index
 
-	pip install rampedpyrox
+	``pip install rampedpyrox``
 
 License
 =======
