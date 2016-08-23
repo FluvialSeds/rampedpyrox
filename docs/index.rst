@@ -33,25 +33,27 @@ and calculating isotope values.
 
 Importing data into a thermogram object and plotting::
 
+	#load modules
 	import rampedpyrox as rp
 	import matplotlib.pyplot as plt
 
 	data = '/path_to_folder_containing_data/data.csv'
 	nT = 250 #number of timepoints
-	tg = rp.RealData(data,nT=nT)
-	ax = tg.plot(xaxis='time')
+	rd = rp.RealData(data,nT=nT)
+	ax = rd.plot(xaxis='time')
 
 Note that ``data`` can also be inputted as a ``pandas.Dataframe`` and must contain
 'date_time', 'CO2_scaled', and 'temp' columns.
 
 Calculating the Laplace Transform object and plotting the L-curve::
 
+	#load modules
 	import numpy as np
-	
+
 	eps = np.arange(50,350) #Ea range to calculate over
 	logk0 = 10 #pre-exponential (Arrhenius) factor
-	lt = rp.LaplaceTransform(tg.t,tg.Tau,eps,logk0)
-	omega,axis = lt.plot_L_curve()
+	lt = rp.LaplaceTransform(rd.t,rd.Tau,eps,logk0)
+	omega,ax = lt.plot_L_curve(rd)
 
 Running a thermogram through the inverse model and deconvolving Ea distribution::
 
@@ -59,21 +61,18 @@ Running a thermogram through the inverse model and deconvolving Ea distribution:
 	ec = rp.EnergyComplex(eps,phi,nPeaks='auto',combine_last=None)
 	ax = ec.plot()
 
-Contents:
----------
+Table of contents:
+------------------
 
 .. toctree::
    :maxdepth: 2
 
-   core
+   Thermogram
 
-   thermogram
+   LaplaceTransform
 
-   energycomplex
+   EnergyComplex
 
-   isotoperesult
-
-   laplacetransform
 
 
 

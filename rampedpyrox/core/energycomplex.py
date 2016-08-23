@@ -1,5 +1,11 @@
-#TODO: Make legend more pythonic.
-#TODO: Fix how _peak_indices sorts to select first nPeaks
+'''
+Energycomplex module for deconvolving a given Ea distribution into individual
+Gaussian peaks.
+
+* TODO: Make legend more pythonic.
+* TODO: Fix how _peak_indices sorts to select first nPeaks.
+* TODO: Include references for finding peak indices.
+'''
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,7 +17,24 @@ from scipy.optimize import least_squares
 
 def _deconvolve(eps, phi, nPeaks='auto'):
 	'''
-	Deconvolves f(Ea) into Gaussian peaks.
+	Performs Gaussian peak deconvolution.
+	Called by ``EnergyComplex.__init__()``.
+
+	Args:
+		eps (np.ndarray): Array of Ea values.
+
+		phi (np.ndarray): Array of the pdf of the distribution of Ea.
+
+		nPeaks (int or str): Number of Gaussians to use in deconvolution,
+			either an integer or 'auto'. Defaults to 'auto'.
+
+	Returns:
+		mu (np.ndarray): Array of resulting Gaussian peak means.
+
+		sigma (np.ndarray): Array of resulting Gaussian peak standard deviations.
+
+		height (np.ndarray): Array of resulting Gaussian peak heights.
+
 	'''
 
 	#find peak indices and bounds
@@ -55,6 +78,26 @@ def _deconvolve(eps, phi, nPeaks='auto'):
 def _gaussian(x, mu, sigma):
 	'''
 	Calculates a Gaussian peak for a given x vector, mu, and sigma.
+	Called by ``_phi_hat()``.
+
+	Args:
+		x (np.ndarray): Array of x values for Gaussian calculation.
+
+		mu (int, float, or np.ndarray): Gaussian means, either a single scalar
+			for one peak or an array for simultaneously calculating multiple
+			peaks.
+
+		sigma (int, float, or np.ndarray): Gaussian standard deviations, either
+			a single scalar for one peak or an array for simultaneously
+			calculating multiple peaks.
+
+	Returns:
+		y (np.ndarray): Array of resulting y values of shape [len(x) x len(mu)].
+
+	Raises:
+		ValueError: If mu and sigma arrays are not the same length.
+		
+		ValueError: If mu and sigma arrays are not int, float, or np.ndarray.
 	'''
 
 	#check data types and broadcast if necessary
@@ -88,7 +131,31 @@ def _gaussian(x, mu, sigma):
 
 def _peak_indices(phi, nPeaks='auto'):
 	'''
-	Finds the indices and the bounded range of the peaks in phi.
+	Finds the indices and the bounded range of the mu values for peaks in phi.
+	Called by ``_deconvolve()``.
+
+	Args:
+		phi (np.ndarray): Array of the pdf of the distribution of Ea.
+
+		nPeaks (int or str): Number of Gaussians to use in deconvolution,
+			either an integer or 'auto'. Defaults to 'auto'.
+
+	Returns:
+		ind (np.ndarray): Array of indices in phi containing peak mu values.
+
+		lb_ind(np.ndarray): Array of indices in phi containing the lower bound
+			for each peak mu value.
+
+		ub_ind(np.ndarray): Array of indices in phi containing the upper bound
+			for each peak mu value.
+
+	Raises:
+		ValueError: If ub_ind and lb_ind arrays are not the same length.
+		
+		ValueError: If ``nPeaks`` is greater than the total number of peaks detected.
+		
+		ValueError: If ``nPeaks`` is not 'auto' or int.
+
 	'''
 
 	#calculate derivatives
@@ -137,6 +204,23 @@ def _peak_indices(phi, nPeaks='auto'):
 def _phi_hat(eps, mu, sigma, height):
 	'''
 	Calculates phi hat for given parameters.
+	Called by ``_phi_hat_diff()``.
+	Called by ``EnergyComplex.__init__()``.
+
+	Args:
+		eps (np.ndarray): Array of Ea values.
+
+		mu (np.ndarray): Array of Gaussian peak means.
+
+		sigma (np.ndarray): Array of Gaussian peak standard deviations.
+
+		height (np.ndarray): Array of Gaussian peak heights.
+
+	Returns:
+		phi_hat (np.ndarray): Array of estimated Ea distribution.
+
+		y_scaled (np.ndarray): Array of individual estimated Ea Gaussian peaks.
+			Shape is [len(eps) x len(mu)].
 	'''
 
 	#generate Gaussian peaks
@@ -153,7 +237,25 @@ def _phi_hat(eps, mu, sigma, height):
 
 def _phi_hat_diff(params, eps, phi):
 	'''
-	Calculates the difference between phi and phi_hat for scipy least_squares
+	Calculates the difference between phi and phi_hat for scipy least_squares.
+	Called by ``_deconvolve()``.
+
+	Args:
+		params (np.ndarray): Array of hrizontally stacked parameter values with
+			shape [mus, sigmas, heights].
+
+		eps (np.ndarray): Array of Ea values.
+
+		phi (np.ndarray): Array of the pdf of the distribution of Ea.
+
+	Returns:
+		diff (np.ndarray): Array of the difference between phi_hat and phi
+			at each point.
+
+	Raises:
+		ValueError: If len(params) is not 3*n, where n is the length of the
+			mu, sigma, and height vectors.
+
 	'''
 
 	n = int(len(params)/3)
@@ -174,13 +276,50 @@ def _phi_hat_diff(params, eps, phi):
 
 class EnergyComplex(object):
 	'''
-	Class for storing f(Ea) and calculating peak deconvolution
+	Class for storing Ea distribution and calculating peak deconvolution.
+
+	Args:
+		eps (np.ndarray): Array of Ea values.
+
+		phi (np.ndarray): Array of the pdf of the distribution of Ea.
+
+		nPeaks (int or str): Number of Gaussians to use in deconvolution,
+			either an integer or 'auto'. Defaults to 'auto'.
+
+		combine_last (int or None): Number of peaks to combine at the end of
+			the run (necessary if there is not enough isotope resolution at the
+			high temperature range, as is often the case with real data).
+			Defaults to None.
+
+	Returns:
+		ec (rp.EnergyComplex): ``EnergyComplex`` object.
+
+	Raises:
+		ValueError: If phi and eps vectors are not the same length.
+
+		ValueError: If ``nPeaks`` is greater than the total number of peaks detected.
+		
+		ValueError: If ``nPeaks`` is not 'auto' or int.
+
+	Examples:
+		Running a thermogram through the inverse model and deconvolving::
+
+			#assuming a LaplaceTransform object lt and RealData object rd
+			phi,resid_err,rgh_err,omega = lt.calc_fE_inv(rd,omega='auto')
+			ec = rp.EnergyComplex(eps,phi,nPeaks='auto',combine_last=None)
+			ax = ec.plot()
+
+	References:
+
+	Notes:
+		All results are bounded to be non-negative, and mu values are bounded to be
+		within the concave down regions of the Ea distribution. This class 
+		implements the scipy.optimize.least_squares method using the 'Trust Region
+		Reflective' algorithm, as this algorithm is able to handle bounded
+		parameters much better than the Levenberg-Marquardt algorithm.
 	'''
 
 	def __init__(self, eps, phi, nPeaks='auto', combine_last=None):
-		'''
-		Initializes the EnergyComplex object.
-		'''
 
 		#assert phi and eps are same length
 		if len(phi) != len(eps):
@@ -212,6 +351,19 @@ class EnergyComplex(object):
 	def plot(self, ax=None):
 		'''
 		Plots the inverse and peak-deconvolved EC.
+
+		Args:
+			ax (None or matplotlib.axis): Axis to plot on. If None, 
+			creates an axis object to return. Defaults to None.
+
+		Returns:
+			ax (matplotlib.axis): Updated axis with plotted data.
+
+		Examples:
+			Basic implementation::
+
+				#assuming EnergyComplex object ec
+				ax = ec.plot()
 		'''
 
 		if ax is None:

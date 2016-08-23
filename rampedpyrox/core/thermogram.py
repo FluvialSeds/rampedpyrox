@@ -1,9 +1,8 @@
 '''
-.. module:: thermogram
-   :platform: Unix
-   :synopsis: Contains the Thermogram class and corresponding subclasses
-.. moduleauthor:: Jordon D. Hemingway <jordonhemingway@gmail.com> 
+Thermogram module for storing thermogram data, either RealData (i.e. collected
+from an actual instrument) or ModeledData (i.e. results from inverse model).
 
+* TODO: Add summary method.
 '''
 
 import matplotlib.pyplot as plt
@@ -21,17 +20,19 @@ def _extract_tg(all_data, nT):
 
 	Args:
 		all_data (str. or pd.DataFrame): File containing thermogram data,
-		either as a path string or pandas.DataFrame object
+			either as a path string or pandas.DataFrame object.
 
-		nT (int): The number of time points to use
+		nT (int): The number of time points to use.
 
 	Returns:
-		t (np.ndarray): Array of timepoints
-		Tau (np.ndarray): Array of temperature points
-		g (np.ndarray): Array of fraction of carbon remaining
+		t (np.ndarray): Array of timepoints.
+		Tau (np.ndarray): Array of temperature points.
+		g (np.ndarray): Array of fraction of carbon remaining.
 
 	Raises:
-		ValueError
+		ValueError: If `all_data` is not str or pd.DataFrame.
+		ValueError: If `all_data` does not contain "CO2_scaled" and "temp" columns.
+		ValueError: If index is not `DatetimeIndex`.
 	'''
 
 	#import all_data as a pd.DataFrame if inputted as a string path and check
@@ -70,20 +71,10 @@ def _extract_tg(all_data, nT):
 class Thermogram(object):
 	'''
 	Base class for thermogram objects.
-
-	.. note::
-		This class is intended for subclassing and should never be called directly
+	This class is intended for subclassing and should never be called directly
 	'''
 
 	def __init__(self, t, Tau, g):
-		'''
-		Initializes the Thermogram object.
-
-		Args:
-			t (np.ndarray): Array of timepoints
-			Tau (np.ndarray): Array of temperature points
-			g (np.ndarray): Array of fraction of carbon remaining
-		'''
 
 		#define public parameters
 		self.t = t #seconds
@@ -97,10 +88,7 @@ class Thermogram(object):
 	def plot(self, ax=None, xaxis='time'):
 		'''
 		Plots the thermogram against time or temp.
-
-		Kwargs:
-			ax (plt axis handle): Axis to plot on
-			xaxis (str): Sets the x axis units: either 'time' or 'temp'
+		Modified by either RealData.plot or ModeledData.plot
 		'''
 
 		if xaxis not in ['time','temp']:
@@ -128,19 +116,34 @@ class Thermogram(object):
 
 class RealData(Thermogram):
 	'''
-	Subclass for real data thermograms (i.e. actual dirt burner data).
+	Class for real data thermograms (e.g. data from RampedPyrox experiment).
+
+	Args:
+		all_data (str or pd.DataFrame): File containing thermogram data,
+			either as a path string or pandas.DataFrame object.
+
+		nT (int): The number of time points to use. Defaults to 250.
+
+	Returns:
+		rd (rp.RealData): RealData object containing thermogram data.
+
+	Raises:
+		ValueError: If `all_data` is not str or pd.DataFrame.
+		ValueError: If `all_data` does not contain "CO2_scaled" and "temp" columns.
+		ValueError: If index is not `DatetimeIndex`.
+
+	Examples:
+		Importing data into a thermogram object::
+	
+			#load modules
+			import rampedpyrox as rp
+
+			data = '/path_to_folder_containing_data/data.csv'
+			nT = 250 #number of timepoints
+			rd = rp.RealData(data,nT=nT)
 	'''
 
 	def __init__(self, all_data, nT=250):
-		'''
-		Initializes the RealData object.
-
-		Args:
-			all_data (str. or pd.DataFrame): File containing thermogram data,
-			either as a path string or pandas.DataFrame object
-
-			nT (int): The number of time points to use
-		'''
 
 		#extract t, Tau, and g from all_data
 		t, Tau, g = _extract_tg(all_data, nT)
@@ -153,14 +156,28 @@ class RealData(Thermogram):
 
 	def plot(self, ax=None, xaxis='time'):
 		'''
-		Plots the true thermogram and peaks against time or temp.
+		Plots the true thermogram against time or temp.
 
-		Kwargs:
-			ax (plt axis handle): Axis to plot on or None
-			xaxis (str): Sets the x axis units: either 'time' or 'temp'
+		Args:
+			ax (None or matplotlib.axis): Axis to plot on. If None, 
+				creates an axis object to return. Defaults to None.
+			xaxis (str): Sets the x axis units, either 'time' or 'temp'.
+				Defaults to 'time'.
 
 		Returns:
-			ax (plt axis handle): Updated axis with plotted data
+			ax (matplotlib.axis): Updated axis with plotted data.
+
+		Raises:
+			ValueError: If `xaxis` is not 'time' or 'temp'.
+
+		Examples:
+			Plotting thermogram data::
+
+				#load modules
+				import matplotlib.pyplot as plt
+
+				fig,ax = plt.subplots(1,1)
+				ax = rd.plot(ax=ax,xaxis='time')
 		'''
 
 		#plot the thermogram and edit tg_line parameters
@@ -185,20 +202,40 @@ class RealData(Thermogram):
 class ModeledData(Thermogram):
 	'''
 	Subclass for thermograms generated using an f(Ea) distribution.
+
+	Args:
+		t (np.ndarray): Array of timepoints.
+		Tau (np.ndarray): Array of temperature points.
+		g (np.ndarray): Array of fraction of carbon remaining.
+
+	Returns:
+		md (rp.ModeledData): Modeled object containing thermogram data.
+
+	Raises:
+		ValueError: If any of the inputted arrays are not same length.
+
+	Examples:
+		Creating a ModeledData object using inversemodel results::
+	
+			#load modules
+			import rampedpyrox as rp
+
+			#t and Tau from RealData object, g_hat and gp from running
+			# LaplaceTransform.calc_TG_fwd()
+			md = rp.ModeledData(rd.t,rd.Tau,g_hat,gp)
 	'''
 
 	def __init__(self, t, Tau, g_hat, gp):
-		'''
-		Initializes the ModeledData object.
 
-		Args:
-			t (np.ndarray): Array of timepoints
-			Tau (np.ndarray): Array of temperature points
-			g_hat (np.ndarray): Array of estimated fraction of carbon remaining
-			resulting from running the inverse model
-			gp (np.ndarray): 2d array of estimated fraction of carbin within
-			each peak remaining resulting from running the inverse model
-		'''
+		#ensure equal array lengths
+		nT = len(t)
+
+		if len(Tau) is not nT:
+			raise ValueError('t and Tau arrays must have same length')
+		elif len(g_hat) is not nT:
+			raise ValueError('t and g_hat arrays must have same length')
+		elif len(gp) is not nT:
+			raise ValueError('t and gp arrays must have same length')
 
 		super(ModeledData,self).__init__(t, Tau-273.15, g_hat)
 
@@ -213,19 +250,33 @@ class ModeledData(Thermogram):
 		self.gpdot_Tau = self.gpdot_t/dTau_mat #Kelvin-1
 
 		#define private parameters
-		self._nT = len(t)
+		self._nT = nT
 		self._nPeak = nPeak
 
 	def plot(self, ax=None, xaxis='time'):
 		'''
-		Plots the modeled thermogram and peaks against time or temp.
+		Plots the modeled thermogram and individual peaks against time or temp.
 
-		Kwargs:
-			ax (plt axis handle): Axis to plot on or None
-			xaxis (str): Sets the x axis units: either 'time' or 'temp'
+		Args:
+			ax (None or matplotlib.axis): Axis to plot on. If None, 
+				creates an axis object to return. Defaults to None.
+			xaxis (str): Sets the x axis units, either 'time' or 'temp'.
+				Defaults to time.
 
 		Returns:
-			ax (plt axis handle): Updated axis with plotted data
+			ax (matplotlib.axis): Updated axis with plotted data.
+
+		Raises:
+			ValueError: If `xaxis` is not 'time' or 'temp'.
+
+		Examples:
+			Plotting thermogram data::
+
+				#load modules
+				import matplotlib.pyplot as plt
+
+				fig,ax = plt.subplots(1,1)
+				ax = md.plot(ax=ax,xaxis='time')
 		'''
 
 		#plot the thermogram and edit tg_line parameters

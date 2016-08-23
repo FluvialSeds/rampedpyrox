@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>&lt;no title&gt; &#8212; rampedpyrox 0.1 documentation</title>
+    <title>Energy Complex &#8212; rampedpyrox 0.1 documentation</title>
     
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -24,6 +24,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="rampedpyrox 0.1 documentation" href="index.html" />
+    <link rel="prev" title="Laplace Transform" href="LaplaceTransform.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -39,23 +40,161 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  
+  <div class="section" id="energy-complex">
+<h1>Energy Complex<a class="headerlink" href="#energy-complex" title="Permalink to this headline">¶</a></h1>
+<p>This module creates <code class="docutils literal"><span class="pre">EnergyComplex</span></code> objects that contain the inversion model results,
+deconvolves them into individual Gaussian peaks (with n either inputted by the user or
+calculated automatically), and plots resulting Ea distribution.</p>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<p>Running a thermogram through the inverse model and deconvolving Ea distribution:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#load modules</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="n">phi</span><span class="p">,</span><span class="n">resid_err</span><span class="p">,</span><span class="n">rgh_err</span><span class="p">,</span><span class="n">omega</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">calc_fE_inv</span><span class="p">(</span><span class="n">tg</span><span class="p">,</span><span class="n">omega</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">)</span>
+<span class="n">ec</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">EnergyComplex</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span><span class="n">phi</span><span class="p">,</span><span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span><span class="n">combine_last</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">ec</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="technical-documentation">
+<h2>Technical documentation<a class="headerlink" href="#technical-documentation" title="Permalink to this headline">¶</a></h2>
+<p>(insert math here)</p>
+<div class="section" id="references">
+<h3>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h3>
+<p>(insert references here)</p>
+</div>
+</div>
+<div class="section" id="module-rampedpyrox.core.energycomplex">
+<span id="module-reference"></span><h2>Module Reference<a class="headerlink" href="#module-rampedpyrox.core.energycomplex" title="Permalink to this headline">¶</a></h2>
+<p>Energycomplex module for deconvolving a given Ea distribution into individual
+Gaussian peaks.</p>
+<ul class="simple">
+<li>TODO: Make legend more pythonic.</li>
+<li>TODO: Fix how _peak_indices sorts to select first nPeaks.</li>
+<li>TODO: Include references for finding peak indices.</li>
+</ul>
+<dl class="class">
+<dt id="rampedpyrox.core.energycomplex.EnergyComplex">
+<em class="property">class </em><code class="descclassname">rampedpyrox.core.energycomplex.</code><code class="descname">EnergyComplex</code><span class="sig-paren">(</span><em>eps</em>, <em>phi</em>, <em>nPeaks='auto'</em>, <em>combine_last=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/energycomplex.html#EnergyComplex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for storing Ea distribution and calculating peak deconvolution.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>eps</strong> (<em>np.ndarray</em>) &#8211; Array of Ea values.</li>
+<li><strong>phi</strong> (<em>np.ndarray</em>) &#8211; Array of the pdf of the distribution of Ea.</li>
+<li><strong>nPeaks</strong> (<em>int or str</em>) &#8211; Number of Gaussians to use in deconvolution,
+either an integer or &#8216;auto&#8217;. Defaults to &#8216;auto&#8217;.</li>
+<li><strong>combine_last</strong> (<em>int or None</em>) &#8211; Number of peaks to combine at the end of
+the run (necessary if there is not enough isotope resolution at the
+high temperature range, as is often the case with real data).
+Defaults to None.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>ec</strong> &#8211; <code class="docutils literal"><span class="pre">EnergyComplex</span></code> object.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">rp.EnergyComplex</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If phi and eps vectors are not the same length.</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <code class="docutils literal"><span class="pre">nPeaks</span></code> is greater than the total number of peaks detected.</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <code class="docutils literal"><span class="pre">nPeaks</span></code> is not &#8216;auto&#8217; or int.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>Running a thermogram through the inverse model and deconvolving:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#assuming a LaplaceTransform object lt and RealData object rd</span>
+<span class="n">phi</span><span class="p">,</span><span class="n">resid_err</span><span class="p">,</span><span class="n">rgh_err</span><span class="p">,</span><span class="n">omega</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">calc_fE_inv</span><span class="p">(</span><span class="n">rd</span><span class="p">,</span><span class="n">omega</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">)</span>
+<span class="n">ec</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">EnergyComplex</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span><span class="n">phi</span><span class="p">,</span><span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span><span class="n">combine_last</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">ec</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>References:</p>
+<p class="rubric">Notes</p>
+<p>All results are bounded to be non-negative, and mu values are bounded to be
+within the concave down regions of the Ea distribution. This class
+implements the scipy.optimize.least_squares method using the &#8216;Trust Region
+Reflective&#8217; algorithm, as this algorithm is able to handle bounded
+parameters much better than the Levenberg-Marquardt algorithm.</p>
+<dl class="method">
+<dt id="rampedpyrox.core.energycomplex.EnergyComplex.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/energycomplex.html#EnergyComplex.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the inverse and peak-deconvolved EC.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ax</strong> (<em>None or matplotlib.axis</em>) &#8211; Axis to plot on. If None,</li>
+<li><strong>an axis object to return. Defaults to None.</strong> (<em>creates</em>) &#8211; </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>ax</strong> &#8211; Updated axis with plotted data.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">matplotlib.axis</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>Basic implementation:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#assuming EnergyComplex object ec</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">ec</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="rampedpyrox.core.energycomplex.EnergyComplex.summary">
+<code class="descname">summary</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/energycomplex.html#EnergyComplex.summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.summary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints a summary of the EnergyComplex object.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
 
           </div>
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Energy Complex</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+<li><a class="reference internal" href="#technical-documentation">Technical documentation</a><ul>
+<li><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-rampedpyrox.core.energycomplex">Module Reference</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="LaplaceTransform.html" title="previous chapter">Laplace Transform</a></li>
   </ul></li>
 </ul>
 </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/energycomplex.txt"
+      <li><a href="_sources/EnergyComplex.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
@@ -81,7 +220,7 @@
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
       
       |
-      <a href="_sources/energycomplex.txt"
+      <a href="_sources/EnergyComplex.txt"
           rel="nofollow">Page source</a>
     </div>
 

@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Documentation for the thermogram module &#8212; rampedpyrox 0.1 documentation</title>
+    <title>Thermogram &#8212; rampedpyrox 0.1 documentation</title>
     
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -24,8 +24,8 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="rampedpyrox 0.1 documentation" href="index.html" />
-    <link rel="next" title="&lt;no title&gt;" href="energycomplex.html" />
-    <link rel="prev" title="Documentation for the core program" href="core.html" />
+    <link rel="next" title="Laplace Transform" href="LaplaceTransform.html" />
+    <link rel="prev" title="Welcome to the RampedPyrox documentation" href="index.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -41,18 +41,202 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="documentation-for-the-thermogram-module">
-<h1>Documentation for the thermogram module<a class="headerlink" href="#documentation-for-the-thermogram-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="thermogram">
+<h1>Thermogram<a class="headerlink" href="#thermogram" title="Permalink to this headline">¶</a></h1>
+<p><code class="docutils literal"><span class="pre">Thermogram</span></code> objects store the time, temperature, and amount of carbon remaining
+thoughout the course of a thermoanalytical run. Temperature ramp rate need not
+be constant thoughout the run &#8211; <code class="docutils literal"><span class="pre">rampedpyrox</span></code> can handle non-constant
+heating rates. This module creates either RealData or ModeledData objects.</p>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<p>Importing data into a thermogram object and plotting:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#load modules</span>
+<span class="kn">import</span> <span class="nn">rampedpyrox</span> <span class="k">as</span> <span class="nn">rp</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;/path_to_folder_containing_data/data.csv&#39;</span>
+<span class="n">nT</span> <span class="o">=</span> <span class="mi">250</span> <span class="c1">#number of timepoints</span>
+<span class="n">rd</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">RealData</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">nT</span><span class="o">=</span><span class="n">nT</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that <code class="docutils literal"><span class="pre">data</span></code> can also be inputted as a <code class="docutils literal"><span class="pre">pandas.Dataframe</span></code> and must contain
+&#8216;date_time&#8217;, &#8216;CO2_scaled&#8217;, and &#8216;temp&#8217; columns.</p>
+</div>
+<div class="section" id="technical-documentation">
+<h2>Technical documentation<a class="headerlink" href="#technical-documentation" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="references">
+<h3>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h3>
+<p>RampedPyrox references:</p>
+<p>1. Rosenheim et al. (2008) Antarctic sediment chronology by programmed-temperature
+pyrolysis: Methodology and data treatment. <em>Geochemistry, Geophysics,
+Geosystems</em>, <strong>9(4)</strong>, Q04005.</p>
+</div>
+</div>
+<div class="section" id="module-rampedpyrox.core.thermogram">
+<span id="module-reference"></span><h2>Module Reference<a class="headerlink" href="#module-rampedpyrox.core.thermogram" title="Permalink to this headline">¶</a></h2>
+<p>Thermogram module for storing thermogram data, either RealData (i.e. collected
+from an actual instrument) or ModeledData (i.e. results from inverse model).</p>
+<ul class="simple">
+<li>TODO: Add summary method.</li>
+</ul>
 <dl class="class">
-<dt id="rampedpyrox.core.thermogram.Thermogram">
-<em class="property">class </em><code class="descclassname">rampedpyrox.core.thermogram.</code><code class="descname">Thermogram</code><span class="sig-paren">(</span><em>t</em>, <em>Tau</em>, <em>g</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#Thermogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.thermogram.Thermogram" title="Permalink to this definition">¶</a></dt>
-<dd><p>Base class for thermogram objects.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">This class is intended for subclassing and should never be called directly</p>
+<dt id="rampedpyrox.core.thermogram.RealData">
+<em class="property">class </em><code class="descclassname">rampedpyrox.core.thermogram.</code><code class="descname">RealData</code><span class="sig-paren">(</span><em>all_data</em>, <em>nT=250</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#RealData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.thermogram.RealData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for real data thermograms (e.g. data from RampedPyrox experiment).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>all_data</strong> (<em>str or pd.DataFrame</em>) &#8211; File containing thermogram data,
+either as a path string or pandas.DataFrame object.</li>
+<li><strong>nT</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; The number of time points to use. Defaults to 250.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>rd</strong> &#8211; RealData object containing thermogram data.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">rp.RealData</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <cite>all_data</cite> is not str or pd.DataFrame.</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <cite>all_data</cite> does not contain &#8220;CO2_scaled&#8221; and &#8220;temp&#8221; columns.</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If index is not <cite>DatetimeIndex</cite>.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>Importing data into a thermogram object:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#load modules</span>
+<span class="kn">import</span> <span class="nn">rampedpyrox</span> <span class="k">as</span> <span class="nn">rp</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;/path_to_folder_containing_data/data.csv&#39;</span>
+<span class="n">nT</span> <span class="o">=</span> <span class="mi">250</span> <span class="c1">#number of timepoints</span>
+<span class="n">rd</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">RealData</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">nT</span><span class="o">=</span><span class="n">nT</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="rampedpyrox.core.thermogram.RealData.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>ax=None</em>, <em>xaxis='time'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#RealData.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.thermogram.RealData.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the true thermogram against time or temp.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ax</strong> (<em>None or matplotlib.axis</em>) &#8211; Axis to plot on. If None,
+creates an axis object to return. Defaults to None.</li>
+<li><strong>xaxis</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Sets the x axis units, either &#8216;time&#8217; or &#8216;temp&#8217;.
+Defaults to &#8216;time&#8217;.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>ax</strong> &#8211; Updated axis with plotted data.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">matplotlib.axis</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <cite>xaxis</cite> is not &#8216;time&#8217; or &#8216;temp&#8217;.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>Plotting thermogram data:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#load modules</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="n">fig</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span><span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+</pre></div>
 </div>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="rampedpyrox.core.thermogram.ModeledData">
+<em class="property">class </em><code class="descclassname">rampedpyrox.core.thermogram.</code><code class="descname">ModeledData</code><span class="sig-paren">(</span><em>t</em>, <em>Tau</em>, <em>g_hat</em>, <em>gp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#ModeledData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.thermogram.ModeledData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subclass for thermograms generated using an f(Ea) distribution.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>t</strong> (<em>np.ndarray</em>) &#8211; Array of timepoints.</li>
+<li><strong>Tau</strong> (<em>np.ndarray</em>) &#8211; Array of temperature points.</li>
+<li><strong>g</strong> (<em>np.ndarray</em>) &#8211; Array of fraction of carbon remaining.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>md</strong> &#8211; Modeled object containing thermogram data.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">rp.ModeledData</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If any of the inputted arrays are not same length.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>Creating a ModeledData object using inversemodel results:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#load modules</span>
+<span class="kn">import</span> <span class="nn">rampedpyrox</span> <span class="k">as</span> <span class="nn">rp</span>
+
+<span class="c1">#t and Tau from RealData object, g_hat and gp from running</span>
+<span class="c1"># LaplaceTransform.calc_TG_fwd()</span>
+<span class="n">md</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">ModeledData</span><span class="p">(</span><span class="n">rd</span><span class="o">.</span><span class="n">t</span><span class="p">,</span><span class="n">rd</span><span class="o">.</span><span class="n">Tau</span><span class="p">,</span><span class="n">g_hat</span><span class="p">,</span><span class="n">gp</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="rampedpyrox.core.thermogram.ModeledData.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>ax=None</em>, <em>xaxis='time'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#ModeledData.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.thermogram.ModeledData.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the modeled thermogram and individual peaks against time or temp.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ax</strong> (<em>None or matplotlib.axis</em>) &#8211; Axis to plot on. If None,
+creates an axis object to return. Defaults to None.</li>
+<li><strong>xaxis</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Sets the x axis units, either &#8216;time&#8217; or &#8216;temp&#8217;.
+Defaults to time.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>ax</strong> &#8211; Updated axis with plotted data.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">matplotlib.axis</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <cite>xaxis</cite> is not &#8216;time&#8217; or &#8216;temp&#8217;.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>Plotting thermogram data:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#load modules</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="n">fig</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span><span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 </div>
 
 
@@ -60,19 +244,32 @@
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Thermogram</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+<li><a class="reference internal" href="#technical-documentation">Technical documentation</a><ul>
+<li><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-rampedpyrox.core.thermogram">Module Reference</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="core.html" title="previous chapter">Documentation for the core program</a></li>
-      <li>Next: <a href="energycomplex.html" title="next chapter">&lt;no title&gt;</a></li>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to the RampedPyrox documentation</a></li>
+      <li>Next: <a href="LaplaceTransform.html" title="next chapter">Laplace Transform</a></li>
   </ul></li>
 </ul>
 </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/thermogram.txt"
+      <li><a href="_sources/Thermogram.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
@@ -98,7 +295,7 @@
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
       
       |
-      <a href="_sources/thermogram.txt"
+      <a href="_sources/Thermogram.txt"
           rel="nofollow">Page source</a>
     </div>
 

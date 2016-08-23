@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="rampedpyrox 0.1 documentation" href="#" />
-    <link rel="next" title="Documentation for the core program" href="core.html" />
+    <link rel="next" title="Thermogram" href="Thermogram.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -67,24 +67,26 @@ calculates the corresponding stable-carbon and radiocarbon isotope values for ea
 calculating activation energy (Ea) distributions, deconvolving into Gaussians,
 and calculating isotope values.</p>
 <p>Importing data into a thermogram object and plotting:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rampedpyrox</span> <span class="k">as</span> <span class="nn">rp</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#load modules</span>
+<span class="kn">import</span> <span class="nn">rampedpyrox</span> <span class="k">as</span> <span class="nn">rp</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
 <span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;/path_to_folder_containing_data/data.csv&#39;</span>
 <span class="n">nT</span> <span class="o">=</span> <span class="mi">250</span> <span class="c1">#number of timepoints</span>
-<span class="n">tg</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">RealData</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">nT</span><span class="o">=</span><span class="n">nT</span><span class="p">)</span>
-<span class="n">ax</span> <span class="o">=</span> <span class="n">tg</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="n">rd</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">RealData</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">nT</span><span class="o">=</span><span class="n">nT</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Note that <code class="docutils literal"><span class="pre">data</span></code> can also be inputted as a <code class="docutils literal"><span class="pre">pandas.Dataframe</span></code> and must contain
 &#8216;date_time&#8217;, &#8216;CO2_scaled&#8217;, and &#8216;temp&#8217; columns.</p>
 <p>Calculating the Laplace Transform object and plotting the L-curve:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#load modules</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span><span class="mi">350</span><span class="p">)</span> <span class="c1">#Ea range to calculate over</span>
 <span class="n">logk0</span> <span class="o">=</span> <span class="mi">10</span> <span class="c1">#pre-exponential (Arrhenius) factor</span>
-<span class="n">lt</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">LaplaceTransform</span><span class="p">(</span><span class="n">tg</span><span class="o">.</span><span class="n">t</span><span class="p">,</span><span class="n">tg</span><span class="o">.</span><span class="n">Tau</span><span class="p">,</span><span class="n">eps</span><span class="p">,</span><span class="n">logk0</span><span class="p">)</span>
-<span class="n">omega</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">plot_L_curve</span><span class="p">()</span>
+<span class="n">lt</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">LaplaceTransform</span><span class="p">(</span><span class="n">rd</span><span class="o">.</span><span class="n">t</span><span class="p">,</span><span class="n">rd</span><span class="o">.</span><span class="n">Tau</span><span class="p">,</span><span class="n">eps</span><span class="p">,</span><span class="n">logk0</span><span class="p">)</span>
+<span class="n">omega</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">plot_L_curve</span><span class="p">(</span><span class="n">rd</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Running a thermogram through the inverse model and deconvolving Ea distribution:</p>
@@ -94,12 +96,28 @@ and calculating isotope values.</p>
 </pre></div>
 </div>
 </div>
-<div class="section" id="contents">
-<h2>Contents:<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="table-of-contents">
+<h2>Table of contents:<a class="headerlink" href="#table-of-contents" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="core.html">Documentation for the core program</a></li>
-<li class="toctree-l1"><a class="reference internal" href="thermogram.html">Documentation for the thermogram module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Thermogram.html">Thermogram</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Thermogram.html#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Thermogram.html#technical-documentation">Technical documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Thermogram.html#module-rampedpyrox.core.thermogram">Module Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="LaplaceTransform.html">Laplace Transform</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="LaplaceTransform.html#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LaplaceTransform.html#technical-documentation">Technical documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LaplaceTransform.html#module-rampedpyrox.core.laplacetransform">Module Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="EnergyComplex.html">Energy Complex</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="EnergyComplex.html#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="EnergyComplex.html#technical-documentation">Technical documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="EnergyComplex.html#module-rampedpyrox.core.energycomplex">Module Reference</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -123,7 +141,7 @@ and calculating isotope values.</p>
   <ul>
 <li><a class="reference internal" href="#">Welcome to the RampedPyrox documentation</a><ul>
 <li><a class="reference internal" href="#minimal-examples">Minimal examples</a></li>
-<li><a class="reference internal" href="#contents">Contents:</a></li>
+<li><a class="reference internal" href="#table-of-contents">Table of contents:</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
@@ -132,7 +150,7 @@ and calculating isotope values.</p>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="#">Documentation overview</a><ul>
-      <li>Next: <a href="core.html" title="next chapter">Documentation for the core program</a></li>
+      <li>Next: <a href="Thermogram.html" title="next chapter">Thermogram</a></li>
   </ul></li>
 </ul>
 </div>

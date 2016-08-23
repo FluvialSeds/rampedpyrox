@@ -1,4 +1,11 @@
-## TODO: update calc_L_curve to be more pythonic
+'''
+Laplacetransform module for calculating the Laplace Transform for a given model
+and performing the inverse/forward transformation. Stores information in a
+LaplaceTransform object.
+
+* TODO: update calc_L_curve to be more pythonic.
+* TODO: Add summary method.
+'''
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,6 +19,21 @@ from rampedpyrox.core.thermogram import ModeledData
 def _calc_phi(A, g, omega):
 	'''
 	Calculates phi, the discretized Lapalce transform f(Ea) result.
+	Called by ``LaplaceTransform.calc_EC_inv()``.
+
+	Args:
+		A (np.ndarray): Laplace Transform matrix of shape [nT x nE].
+
+		g (np.ndarray): Array of fraction of carbon remaining.
+
+		omega (int): Omega value for Tikhonov Regularization.
+
+	Returns:
+		phi (np.ndarray): Array of the pdf of the distribution of Ea.
+
+		resid_err (float): Residual RMSE between true and modeled thermogram.
+
+		rgh_err (float): Roughness RMSE from Tikhonov Regularization.
 	'''
 
 	#extract scalars, calculate R
@@ -36,6 +58,18 @@ def _calc_phi(A, g, omega):
 def _calc_R(n):
 	'''
 	Calculates regularization matrix (R) for a given size, n.
+	Called by ``_calc_phi()``.
+
+	Args:
+		n (int): Size of the regularization matrix will be [n+1 x n].
+
+	Returns:
+		R (np.ndarray): Regularization matrix of size [n+1 x n].
+
+	References:
+		D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+		respiration rates from decay time series. *Biogeosciences*, **9**,
+		3601-3612.
 	'''
 
 	R = np.zeros([n+1,n])
@@ -54,6 +88,20 @@ def _calc_R(n):
 def _round_to_sigfig(vec, sig_figs=6):
 	'''
 	Rounds inputted vector to specified sig fig.
+	Called by ``calc_L_curve``.
+
+	Args:
+		vec (np.ndarray): Array of data to round.
+
+		sig_figs (int): Number of sig figs to round to. Defaults to 6.
+
+	Returns:
+		vec_round (np.ndarray): Rounded array.
+
+	References:
+		D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+		respiration rates from decay time series. *Biogeosciences*, **9**,
+		3601-3612.
 	'''
 
 	p = sig_figs
@@ -67,7 +115,47 @@ def _round_to_sigfig(vec, sig_figs=6):
 #define function to calculate A matrix for LaplaceTransform
 def calc_A(t, Tau, eps, logk0):
 	'''
-	Calculates the Laplace transform (A) matrix.
+	Instance method to calculate the Laplace transform (A) matrix.
+	Called by ``LaplaceTransform.__init__()``.
+
+	Args:
+		t (np.ndarray): Array of timepoints.
+
+		Tau (np.ndarray): Array of temperature points.
+
+		eps (np.ndarray): Array of Ea values.
+
+		logk0 (int, float, or lambda): Arrhenius pre-exponential factor,
+			either a constant value or a lambda function of Ea.
+
+	Returns:
+		A (np.ndarray): Laplace Transform matrix of shape [nT x nE].
+
+	Examples:
+		Calculating an A matrix for given input data::
+
+			#t and Tau from RealData object rd
+			eps = np.arange(50,350) #Ea range to calculate over
+			logk0 = 10 #pre-exponential (Arrhenius) factor
+
+			A = rp.LaplaceTransform(rd.t, rd.Tau, eps, logk0)
+
+	References:
+		R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction kinetics
+			using a distribution of activation energies and simpler models.
+			*Energy & Fuels*, **1**, 153-161.
+
+		\B. Cramer et al. (1998) Modeling isotope fractionation during primary
+			cracking of natural gas: A reaction kinetic approach. *Chemical
+			Geology*, **149**, 235-250.
+
+		D.C. Forney and D.H. Rothman (2012) Common structure in the
+			heterogeneity of plant-matter decay. *Journal of the Royal Society
+			Interface*, rsif.2012.0122.
+
+		D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+			respiration rates from decay time series. *Biogeosciences*, **9**,
+			3601-3612.
 	'''
 
 	#set constants
@@ -99,7 +187,49 @@ def calc_A(t, Tau, eps, logk0):
 #define function to calculate L curve
 def calc_L_curve(A, g, log_om_min=-3, log_om_max=2, nOm=100):
 	'''
-	Calculates the L curve for a given A and g
+	Instance method to calculate the L curve for a given matrix A and
+	thermogram data g.
+	Called by ``LaplaceTransform.calc_EC_inv()`` if omega is 'auto'.
+	Called by ``LaplaceTransform.plot_L_curve()``.
+
+	Args:
+		A (np.ndarray): Laplace Transform matrix of shape [nT x nE].
+
+		g (np.ndarray): Array of fraction of carbon remaining.
+
+		log_om_min (int): Log10 of minimum omega value to search.
+			Defaults to -3.
+
+		log_om_max (int): Log10 of maximum omega value to search.
+			Defaults to 2.
+
+		nOm (int): Number of omega values to consider. Defaults to 100.
+
+	Returns:
+		om_best (float): Omega value that minimizes resididual RMSE and
+			roughness RMSE.
+
+		resid_vec (np.ndarray): Array of log10 of the residual RMSE.
+		
+		rgh_vec (np.ndarray): Array of the log10 of the roughness RMSE.
+		
+		omega_vec (np.ndarray): Array of the omega values considered.
+
+	Examples:
+		Basic implementation::
+
+			#assuming A calculated as above and g from RealData object rd.
+			om_best,resid_vec,rgh_vec,omega_vec = rp.calc_L_curve(A,g)
+
+	References:
+		D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+			respiration rates from decay time series. *Biogeosciences*, **9**,
+			3601-3612.
+
+		P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
+			Numerical aspects of linear inversion (monographs on mathematical
+			modeling and computation). *Society for Industrial and Applied
+			Mathematics*.
 	'''
 
 	#shape of A is nT x nE
@@ -162,12 +292,60 @@ def calc_L_curve(A, g, log_om_min=-3, log_om_max=2, nOm=100):
 class LaplaceTransform(object):
 	'''
 	Class for storing the A matrix and calculating forward/inverse results.
+
+	Args:
+		t (np.ndarray): Array of timepoints.
+
+		Tau (np.ndarray): Array of temperature points.
+
+		eps (np.ndarray): Array of Ea values.
+
+		logk0 (int, float, or lambda): Arrhenius pre-exponential factor,
+			either a constant value or a lambda function of Ea.
+
+	Returns:
+		lt (rp.LaplaceTransform): ``LaplaceTransform`` object.
+
+	Raises:
+		ValueError: If logk0 is not scalar, lambda function, or array of length nE.
+
+	Examples:
+		Calculating the Laplace Transform object and plotting the L-curve::
+
+			#load modules
+			import numpy as np
+			import matplotlib.pyplot as plt
+
+			eps = np.arange(50,350) #Ea range to calculate over
+			logk0 = 10 #pre-exponential (Arrhenius) factor
+			lt = rp.LaplaceTransform(rd.t,rd.Tau,eps,logk0)
+			omega,ax = lt.plot_L_curve(rd)
+	
+	References:
+
+		R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction kinetics
+			using a distribution of activation energies and simpler models.
+			*Energy & Fuels*, **1**, 153-161.
+
+		\B. Cramer et al. (1998) Modeling isotope fractionation during primary
+			cracking of natural gas: A reaction kinetic approach. *Chemical
+			Geology*, **149**, 235-250.
+
+		D.C. Forney and D.H. Rothman (2012) Common structure in the
+			heterogeneity of plant-matter decay. *Journal of the Royal Society
+			Interface*, rsif.2012.0122.
+
+		D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+			respiration rates from decay time series. *Biogeosciences*, **9**,
+			3601-3612.
+
+		P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
+			Numerical aspects of linear inversion (monographs on mathematical
+			modeling and computation). *Society for Industrial and Applied
+			Mathematics*.
 	'''
 
 	def __init__(self, t, Tau, eps, logk0):
-		'''
-		Initializes the LaplaceTransform object.
-		'''
 
 		#convert logk0 to array
 		if hasattr(logk0,'__call__'):
@@ -192,6 +370,33 @@ class LaplaceTransform(object):
 	def calc_EC_inv(self, tg, omega='auto'):
 		'''
 		Calculates the Energy Complex for a given Thermogram (inverse model).
+
+		Args:
+			tg (rp.RealData): ``RealData`` object containing the data to use
+				for the inverse model.
+
+			omega (int or str): Omega value for Tikhonov regularization, either
+				an integer or 'auto'. Defaults to 'auto'.
+
+		Returns:
+			phi (np.ndarray): Array of the pdf of the distribution of Ea.
+
+			resid_err (float): Residual RMSE between true and modeled thermogram.
+
+			rgh_err (float): Roughness RMSE from Tikhonov Regularization.
+
+			om_best (float): Best-fit omega value (assuming inputted omega='auto').
+
+		Raises:
+			ValueError: If the size of the A matrix does not match that of the 
+				data in tg.
+			ValueError: If inputted omega is not int, float, or 'auto'.
+
+		Examples:
+			Basic implementation::
+
+				#assuming LaplaceTransform object lt and RealData object rd
+				phi,resid_err,rgh_err,omega = lt.calc_EC_inv(rd,omega='auto')
 		'''
 
 		#extract thermogram data
@@ -213,43 +418,66 @@ class LaplaceTransform(object):
 
 		phi, resid_err, rgh_err = _calc_phi(self.A, g, omega)
 
-		return phi, resid_err, rgh_err, omega
+		return phi, resid_err, rgh_err, om_best
 
 	def calc_TG_fwd(self, ec):
 		'''
-		Calculates the Thermogram for a given Energy Complex (forward model).
+		Calculates the Thermogram for a given EnergyComplex (forward model).
+
+		Args:
+			ec (rp.EnergyComplex): ``EnergyComplex`` object containing the 
+				invsersion model results.
+
+		Returns:
+			md (rp.ModeledData): ``ModeledData`` object containing the estimated
+				thermogram using the inversion model results.
+
+		Examples:
+			Basic implementation::
+
+				#assuming LaplaceTransform object lt and EnergyComplex object ec
+				rd = lt.calc_TG_fwd(ec)
 		'''
 
-		#_,nPeak = np.shape(ec.peaks)
-
-		#calculate the estimated g, gdot_t, and gdot_Tau
-		#Taudot_t = np.gradient(self.Tau)/np.gradient(self.t) #Kelvin/second
+		#calculate the estimated g
 		g_hat = np.inner(self.A,ec.phi_hat) #fraction
-		#gdot_t_hat = np.gradient(g_hat)/np.gradient(self.t) #second-1
-		#gdot_Tau_hat = gdot_t_hat/Taudot_t #Kelvin-1
 
-		#calculate g, gdot_t, and gdot_Tau for each peak
+		#calculate g for each peak
 		gp = np.inner(self.A,ec.peaks.T) #fractions
-		#dt_mat = np.gradient(np.outer(self.t,np.ones(nPeak)),axis=0)
-		#dTau_mat = np.outer(Taudot_t,np.ones(nPeak))
-		#gpdot_t = np.gradient(gp,axis=0)/dt_mat #second-1
-		#gpdot_Tau = gpdot_t/dTau_mat #Kelvin-1
-
-		#store results in a dictionary
-		# fwd_res = {'g_hat':g_hat,
-		# 	'gdot_t_hat':gdot_t_hat,
-		# 	'dgot_Tau_hat':gdot_Tau_hat,
-		# 	'gp':gp,
-		# 	'gpdot_t':gpdot_t,
-		# 	'gpdot_Tau':gpdot_Tau}
-
-		#return fwd_res
+		
+		#pass into a ModeledData object and return
 		return ModeledData(self.t, self.Tau, g_hat, gp)
 
 
 	def plot_L_curve(self, tg, ax=None, log_om_min=-3, log_om_max=2, nOm=100):
 		'''
-		Calculates the L curve w.r.t. a given thermogram and plots
+		Calculates the L curve w.r.t. a given thermogram and plots.
+
+		Args:
+			tg (rp.RealData): ``RealData`` object containing the data to use
+				for the inverse model.
+
+			ax (None or matplotlib.axis): Axis to plot on. If None, 
+				creates an axis object to return. Defaults to None.
+
+			log_om_min (int): Log10 of minimum omega value to search.
+				Defaults to -3.
+
+			log_om_max (int): Log10 of maximum omega value to search.
+				Defaults to 2.
+
+			nOm (int): Number of omega values to consider. Defaults to 100.
+
+		Returns:
+			om_best (float): Best-fit omega value.
+
+			ax (matplotlib.axis): Updated axis with plotted data.
+
+		Examples:
+			Basic implemenation::
+				
+				#assuming LaplaceTransform object lt and RealData object rd
+				omega,ax = lt.plot_L_curve(rd)
 		'''
 
 		#calculate L curve

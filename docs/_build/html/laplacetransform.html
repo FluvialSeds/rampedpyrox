@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>&lt;no title&gt; &#8212; rampedpyrox 0.1 documentation</title>
+    <title>Laplace Transform &#8212; rampedpyrox 0.1 documentation</title>
     
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -24,6 +24,8 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="rampedpyrox 0.1 documentation" href="index.html" />
+    <link rel="next" title="Energy Complex" href="EnergyComplex.html" />
+    <link rel="prev" title="Thermograms" href="Thermogram.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -39,23 +41,377 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  
+  <div class="section" id="laplace-transform">
+<h1>Laplace Transform<a class="headerlink" href="#laplace-transform" title="Permalink to this headline">¶</a></h1>
+<p>This module creates <code class="docutils literal"><span class="pre">LaplaceTransform</span></code> objects to store the A matrix for calculating
+inverse/forward model results, calculates, and plots the Tikhonov regularization
+L-curve.</p>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<p>Calculating the Laplace Transform object and plotting the L-curve:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#load modules</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span><span class="mi">350</span><span class="p">)</span> <span class="c1">#Ea range to calculate over</span>
+<span class="n">logk0</span> <span class="o">=</span> <span class="mi">10</span> <span class="c1">#pre-exponential (Arrhenius) factor</span>
+<span class="n">lt</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">LaplaceTransform</span><span class="p">(</span><span class="n">rd</span><span class="o">.</span><span class="n">t</span><span class="p">,</span><span class="n">rd</span><span class="o">.</span><span class="n">Tau</span><span class="p">,</span><span class="n">eps</span><span class="p">,</span><span class="n">logk0</span><span class="p">)</span>
+<span class="n">omega</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">plot_L_curve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="technical-documentation">
+<h2>Technical documentation<a class="headerlink" href="#technical-documentation" title="Permalink to this headline">¶</a></h2>
+<p>(insert math here)</p>
+<div class="section" id="references">
+<h3>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h3>
+<p>Distributed activation energy model references:</p>
+<p>1. R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction kinetics
+using a distribution of activation energies and simpler models.
+<em>Energy &amp; Fuels</em>, <strong>1</strong>, 153-161.</p>
+<p>2. B. Cramer et al. (1998) Modeling isotope fractionation during primary
+cracking of natural gas: A reaction kinetic approach. <em>Chemical
+Geology</em>, <strong>149</strong>, 235-250.</p>
+<p>Inversion references:</p>
+<p>1. D.C. Forney and D.H. Rothman (2012) Common structure in the
+heterogeneity of plant-matter decay. <em>Journal of the Royal Society
+Interface</em>, rsif.2012.0122.</p>
+<p>2. D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+respiration rates from decay time series. <em>Biogeosciences</em>, <strong>9</strong>, 3601-3612.</p>
+<p>3. P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
+Numerical aspects of linear inversion (monographs on mathematical modeling and
+computation). <em>Society for Industrial and Applied Mathematics</em>.</p>
+</div>
+</div>
+<div class="section" id="module-rampedpyrox.core.laplacetransform">
+<span id="module-reference"></span><h2>Module Reference<a class="headerlink" href="#module-rampedpyrox.core.laplacetransform" title="Permalink to this headline">¶</a></h2>
+<p>Laplacetransform module for calculating the Laplace Transform for a given model
+and performing the inverse/forward transformation. Stores information in a
+LaplaceTransform object.</p>
+<ul class="simple">
+<li>TODO: update calc_L_curve to be more pythonic.</li>
+<li>TODO: Add summary method.</li>
+</ul>
+<dl class="class">
+<dt id="rampedpyrox.core.laplacetransform.LaplaceTransform">
+<em class="property">class </em><code class="descclassname">rampedpyrox.core.laplacetransform.</code><code class="descname">LaplaceTransform</code><span class="sig-paren">(</span><em>t</em>, <em>Tau</em>, <em>eps</em>, <em>logk0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/laplacetransform.html#LaplaceTransform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.laplacetransform.LaplaceTransform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for storing the A matrix and calculating forward/inverse results.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>t</strong> (<em>np.ndarray</em>) &#8211; Array of timepoints.</li>
+<li><strong>Tau</strong> (<em>np.ndarray</em>) &#8211; Array of temperature points.</li>
+<li><strong>eps</strong> (<em>np.ndarray</em>) &#8211; Array of Ea values.</li>
+<li><strong>logk0</strong> (<em>int, float, or lambda</em>) &#8211; Arrhenius pre-exponential factor,
+either a constant value or a lambda function of Ea.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>lt</strong> &#8211; <code class="docutils literal"><span class="pre">LaplaceTransform</span></code> object.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">rp.LaplaceTransform</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If logk0 is not scalar, lambda function, or array of length nE.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>Calculating the Laplace Transform object and plotting the L-curve:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#load modules</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span><span class="mi">350</span><span class="p">)</span> <span class="c1">#Ea range to calculate over</span>
+<span class="n">logk0</span> <span class="o">=</span> <span class="mi">10</span> <span class="c1">#pre-exponential (Arrhenius) factor</span>
+<span class="n">lt</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">LaplaceTransform</span><span class="p">(</span><span class="n">rd</span><span class="o">.</span><span class="n">t</span><span class="p">,</span><span class="n">rd</span><span class="o">.</span><span class="n">Tau</span><span class="p">,</span><span class="n">eps</span><span class="p">,</span><span class="n">logk0</span><span class="p">)</span>
+<span class="n">omega</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">plot_L_curve</span><span class="p">(</span><span class="n">rd</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="rubric">References</p>
+<dl class="docutils">
+<dt>R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction kinetics</dt>
+<dd>using a distribution of activation energies and simpler models.
+<em>Energy &amp; Fuels</em>, <strong>1</strong>, 153-161.</dd>
+<dt>B. Cramer et al. (1998) Modeling isotope fractionation during primary</dt>
+<dd>cracking of natural gas: A reaction kinetic approach. <em>Chemical
+Geology</em>, <strong>149</strong>, 235-250.</dd>
+<dt>D.C. Forney and D.H. Rothman (2012) Common structure in the</dt>
+<dd>heterogeneity of plant-matter decay. <em>Journal of the Royal Society
+Interface</em>, rsif.2012.0122.</dd>
+<dt>D.C. Forney and D.H. Rothman (2012) Inverse method for calculating</dt>
+<dd>respiration rates from decay time series. <em>Biogeosciences</em>, <strong>9</strong>,
+3601-3612.</dd>
+<dt>P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:</dt>
+<dd>Numerical aspects of linear inversion (monographs on mathematical
+modeling and computation). <em>Society for Industrial and Applied
+Mathematics</em>.</dd>
+</dl>
+<dl class="method">
+<dt id="rampedpyrox.core.laplacetransform.LaplaceTransform.calc_EC_inv">
+<code class="descname">calc_EC_inv</code><span class="sig-paren">(</span><em>tg</em>, <em>omega='auto'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/laplacetransform.html#LaplaceTransform.calc_EC_inv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.laplacetransform.LaplaceTransform.calc_EC_inv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the Energy Complex for a given Thermogram (inverse model).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>tg</strong> (<em>rp.RealData</em>) &#8211; <code class="docutils literal"><span class="pre">RealData</span></code> object containing the data to use
+for the inverse model.</li>
+<li><strong>omega</strong> (<em>int or str</em>) &#8211; Omega value for Tikhonov regularization, either
+an integer or &#8216;auto&#8217;. Defaults to &#8216;auto&#8217;.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><p><strong>phi</strong> &#8211; Array of the pdf of the distribution of Ea.</p>
+<p>resid_err (float): Residual RMSE between true and modeled thermogram.</p>
+<p>rgh_err (float): Roughness RMSE from Tikhonov Regularization.</p>
+<p>om_best (float): Best-fit omega value (assuming inputted omega=&#8217;auto&#8217;).</p>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">np.ndarray</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If the size of the A matrix does not match that of the
+data in tg.</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If inputted omega is not int, float, or &#8216;auto&#8217;.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>Basic implementation:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#assuming LaplaceTransform object lt and RealData object rd</span>
+<span class="n">phi</span><span class="p">,</span><span class="n">resid_err</span><span class="p">,</span><span class="n">rgh_err</span><span class="p">,</span><span class="n">omega</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">calc_EC_inv</span><span class="p">(</span><span class="n">rd</span><span class="p">,</span><span class="n">omega</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="rampedpyrox.core.laplacetransform.LaplaceTransform.calc_TG_fwd">
+<code class="descname">calc_TG_fwd</code><span class="sig-paren">(</span><em>ec</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/laplacetransform.html#LaplaceTransform.calc_TG_fwd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.laplacetransform.LaplaceTransform.calc_TG_fwd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the Thermogram for a given EnergyComplex (forward model).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ec</strong> (<em>rp.EnergyComplex</em>) &#8211; <code class="docutils literal"><span class="pre">EnergyComplex</span></code> object containing the
+invsersion model results.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>md</strong> &#8211;<dl class="docutils">
+<dt><code class="docutils literal"><span class="pre">ModeledData</span></code> object containing the estimated</dt>
+<dd>thermogram using the inversion model results.</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">rp.ModeledData</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>Basic implementation:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#assuming LaplaceTransform object lt and EnergyComplex object ec</span>
+<span class="n">rd</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">calc_TG_fwd</span><span class="p">(</span><span class="n">ec</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="rampedpyrox.core.laplacetransform.LaplaceTransform.plot_L_curve">
+<code class="descname">plot_L_curve</code><span class="sig-paren">(</span><em>tg</em>, <em>ax=None</em>, <em>log_om_min=-3</em>, <em>log_om_max=2</em>, <em>nOm=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/laplacetransform.html#LaplaceTransform.plot_L_curve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.laplacetransform.LaplaceTransform.plot_L_curve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the L curve w.r.t. a given thermogram and plots.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>tg</strong> (<em>rp.RealData</em>) &#8211; <code class="docutils literal"><span class="pre">RealData</span></code> object containing the data to use
+for the inverse model.</li>
+<li><strong>ax</strong> (<em>None or matplotlib.axis</em>) &#8211; Axis to plot on. If None,
+creates an axis object to return. Defaults to None.</li>
+<li><strong>log_om_min</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Log10 of minimum omega value to search.
+Defaults to -3.</li>
+<li><strong>log_om_max</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Log10 of maximum omega value to search.
+Defaults to 2.</li>
+<li><strong>nOm</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Number of omega values to consider. Defaults to 100.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><p><strong>om_best</strong> &#8211; Best-fit omega value.</p>
+<p>ax (matplotlib.axis): Updated axis with plotted data.</p>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)">float</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>Basic implemenation:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#assuming LaplaceTransform object lt and RealData object rd</span>
+<span class="n">omega</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">plot_L_curve</span><span class="p">(</span><span class="n">rd</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="rampedpyrox.core.laplacetransform.LaplaceTransform.summary">
+<code class="descname">summary</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/laplacetransform.html#LaplaceTransform.summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.laplacetransform.LaplaceTransform.summary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints a summary of the LaplaceTransform object.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="rampedpyrox.core.laplacetransform.calc_A">
+<code class="descclassname">rampedpyrox.core.laplacetransform.</code><code class="descname">calc_A</code><span class="sig-paren">(</span><em>t</em>, <em>Tau</em>, <em>eps</em>, <em>logk0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/laplacetransform.html#calc_A"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.laplacetransform.calc_A" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instance method to calculate the Laplace transform (A) matrix.
+Called by <code class="docutils literal"><span class="pre">LaplaceTransform.__init__()</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>t</strong> (<em>np.ndarray</em>) &#8211; Array of timepoints.</li>
+<li><strong>Tau</strong> (<em>np.ndarray</em>) &#8211; Array of temperature points.</li>
+<li><strong>eps</strong> (<em>np.ndarray</em>) &#8211; Array of Ea values.</li>
+<li><strong>logk0</strong> (<em>int, float, or lambda</em>) &#8211; Arrhenius pre-exponential factor,
+either a constant value or a lambda function of Ea.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>A</strong> &#8211; Laplace Transform matrix of shape [nT x nE].</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>Calculating an A matrix for given input data:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#t and Tau from RealData object rd</span>
+<span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span><span class="mi">350</span><span class="p">)</span> <span class="c1">#Ea range to calculate over</span>
+<span class="n">logk0</span> <span class="o">=</span> <span class="mi">10</span> <span class="c1">#pre-exponential (Arrhenius) factor</span>
+
+<span class="n">A</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">LaplaceTransform</span><span class="p">(</span><span class="n">rd</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">rd</span><span class="o">.</span><span class="n">Tau</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">logk0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="rubric">References</p>
+<dl class="docutils">
+<dt>R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction kinetics</dt>
+<dd>using a distribution of activation energies and simpler models.
+<em>Energy &amp; Fuels</em>, <strong>1</strong>, 153-161.</dd>
+<dt>B. Cramer et al. (1998) Modeling isotope fractionation during primary</dt>
+<dd>cracking of natural gas: A reaction kinetic approach. <em>Chemical
+Geology</em>, <strong>149</strong>, 235-250.</dd>
+<dt>D.C. Forney and D.H. Rothman (2012) Common structure in the</dt>
+<dd>heterogeneity of plant-matter decay. <em>Journal of the Royal Society
+Interface</em>, rsif.2012.0122.</dd>
+<dt>D.C. Forney and D.H. Rothman (2012) Inverse method for calculating</dt>
+<dd>respiration rates from decay time series. <em>Biogeosciences</em>, <strong>9</strong>,
+3601-3612.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="rampedpyrox.core.laplacetransform.calc_L_curve">
+<code class="descclassname">rampedpyrox.core.laplacetransform.</code><code class="descname">calc_L_curve</code><span class="sig-paren">(</span><em>A</em>, <em>g</em>, <em>log_om_min=-3</em>, <em>log_om_max=2</em>, <em>nOm=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/laplacetransform.html#calc_L_curve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.laplacetransform.calc_L_curve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instance method to calculate the L curve for a given matrix A and
+thermogram data g.
+Called by <code class="docutils literal"><span class="pre">LaplaceTransform.calc_EC_inv()</span></code> if omega is &#8216;auto&#8217;.
+Called by <code class="docutils literal"><span class="pre">LaplaceTransform.plot_L_curve()</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>A</strong> (<em>np.ndarray</em>) &#8211; Laplace Transform matrix of shape [nT x nE].</li>
+<li><strong>g</strong> (<em>np.ndarray</em>) &#8211; Array of fraction of carbon remaining.</li>
+<li><strong>log_om_min</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Log10 of minimum omega value to search.
+Defaults to -3.</li>
+<li><strong>log_om_max</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Log10 of maximum omega value to search.
+Defaults to 2.</li>
+<li><strong>nOm</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Number of omega values to consider. Defaults to 100.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><p><strong>om_best</strong> &#8211;</p>
+<dl class="docutils">
+<dt>Omega value that minimizes resididual RMSE and</dt>
+<dd><p class="first last">roughness RMSE.</p>
+</dd>
+</dl>
+<p>resid_vec (np.ndarray): Array of log10 of the residual RMSE.</p>
+<p>rgh_vec (np.ndarray): Array of the log10 of the roughness RMSE.</p>
+<p>omega_vec (np.ndarray): Array of the omega values considered.</p>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)">float</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>Basic implementation:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#assuming A calculated as above and g from RealData object rd.</span>
+<span class="n">om_best</span><span class="p">,</span><span class="n">resid_vec</span><span class="p">,</span><span class="n">rgh_vec</span><span class="p">,</span><span class="n">omega_vec</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">calc_L_curve</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">g</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="rubric">References</p>
+<dl class="docutils">
+<dt>D.C. Forney and D.H. Rothman (2012) Inverse method for calculating</dt>
+<dd>respiration rates from decay time series. <em>Biogeosciences</em>, <strong>9</strong>,
+3601-3612.</dd>
+<dt>P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:</dt>
+<dd>Numerical aspects of linear inversion (monographs on mathematical
+modeling and computation). <em>Society for Industrial and Applied
+Mathematics</em>.</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
 
           </div>
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Laplace Transform</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+<li><a class="reference internal" href="#technical-documentation">Technical documentation</a><ul>
+<li><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-rampedpyrox.core.laplacetransform">Module Reference</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="Thermogram.html" title="previous chapter">Thermograms</a></li>
+      <li>Next: <a href="EnergyComplex.html" title="next chapter">Energy Complex</a></li>
   </ul></li>
 </ul>
 </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/laplacetransform.txt"
+      <li><a href="_sources/LaplaceTransform.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
@@ -81,7 +437,7 @@
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
       
       |
-      <a href="_sources/laplacetransform.txt"
+      <a href="_sources/LaplaceTransform.txt"
           rel="nofollow">Page source</a>
     </div>
 
