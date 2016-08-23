@@ -110,7 +110,7 @@
 	<span class="k">return</span> <span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">g</span>
 
 
-<div class="viewcode-block" id="Thermogram"><a class="viewcode-back" href="../../../index.html#rampedpyrox.core.thermogram.Thermogram">[docs]</a><span class="k">class</span> <span class="nc">Thermogram</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Thermogram"><a class="viewcode-back" href="../../../thermogram.html#rampedpyrox.core.thermogram.Thermogram">[docs]</a><span class="k">class</span> <span class="nc">Thermogram</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Base class for thermogram objects.</span>
 
@@ -169,7 +169,7 @@
 <span class="sd">		&#39;&#39;&#39;</span></div>
 
 
-<div class="viewcode-block" id="RealData"><a class="viewcode-back" href="../../../index.html#rampedpyrox.core.thermogram.RealData">[docs]</a><span class="k">class</span> <span class="nc">RealData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
+<div class="viewcode-block" id="RealData"><a class="viewcode-back" href="../../../core.html#rampedpyrox.core.thermogram.RealData">[docs]</a><span class="k">class</span> <span class="nc">RealData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Subclass for real data thermograms (i.e. actual dirt burner data).</span>
 <span class="sd">	&#39;&#39;&#39;</span>
@@ -194,7 +194,7 @@
 		<span class="c1">#define private parameters</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_nT</span> <span class="o">=</span> <span class="n">nT</span>
 
-<div class="viewcode-block" id="RealData.plot"><a class="viewcode-back" href="../../../index.html#rampedpyrox.core.thermogram.RealData.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="RealData.plot"><a class="viewcode-back" href="../../../core.html#rampedpyrox.core.thermogram.RealData.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Plots the true thermogram and peaks against time or temp.</span>
 
@@ -225,7 +225,7 @@
 		<span class="k">return</span> <span class="n">ax</span></div></div>
 
 
-<div class="viewcode-block" id="ModeledData"><a class="viewcode-back" href="../../../index.html#rampedpyrox.core.thermogram.ModeledData">[docs]</a><span class="k">class</span> <span class="nc">ModeledData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
+<div class="viewcode-block" id="ModeledData"><a class="viewcode-back" href="../../../core.html#rampedpyrox.core.thermogram.ModeledData">[docs]</a><span class="k">class</span> <span class="nc">ModeledData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Subclass for thermograms generated using an f(Ea) distribution.</span>
 <span class="sd">	&#39;&#39;&#39;</span>
@@ -259,7 +259,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_nT</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_nPeak</span> <span class="o">=</span> <span class="n">nPeak</span>
 
-<div class="viewcode-block" id="ModeledData.plot"><a class="viewcode-back" href="../../../index.html#rampedpyrox.core.thermogram.ModeledData.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="ModeledData.plot"><a class="viewcode-back" href="../../../core.html#rampedpyrox.core.thermogram.ModeledData.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Plots the modeled thermogram and peaks against time or temp.</span>
 

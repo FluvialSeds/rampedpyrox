@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Documentation for RampedPyrox &#8212; rampedpyrox 0.1 documentation</title>
+    <title>Welcome to the RampedPyrox documentation &#8212; rampedpyrox 0.1 documentation</title>
     
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -24,6 +24,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="rampedpyrox 0.1 documentation" href="#" />
+    <link rel="next" title="Documentation for the core program" href="core.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -39,59 +40,69 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="documentation-for-rampedpyrox">
-<h1>Documentation for RampedPyrox<a class="headerlink" href="#documentation-for-rampedpyrox" title="Permalink to this headline">¶</a></h1>
-<p>Contents:</p>
+  <div class="section" id="welcome-to-the-rampedpyrox-documentation">
+<h1>Welcome to the RampedPyrox documentation<a class="headerlink" href="#welcome-to-the-rampedpyrox-documentation" title="Permalink to this headline">¶</a></h1>
+<p><code class="docutils literal"><span class="pre">rampedpyrox</span></code> is a Python package for analyzing the results from ramped-
+temperature instruments such as RampedPyrox, RockEval, pyrolysis gc (pyGC),
+thermogravimitry (TGA), etc. Rampedpyrox deconvolves Gaussian activiation energy
+peaks within a given sample using a Distributed Activation Energy Model (DAEM) and
+calculates the corresponding stable-carbon and radiocarbon isotope values for each peak.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Authors:</th><td class="field-body">Jordon D. Hemingway &lt;<a class="reference external" href="mailto:jordonhemingway&#37;&#52;&#48;gmail&#46;com">jordonhemingway<span>&#64;</span>gmail<span>&#46;</span>com</a>&gt;</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Version:</th><td class="field-body">0.1 (as of 23 August 2016)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">License:</th><td class="field-body">MIT License</td>
+</tr>
+</tbody>
+</table>
+<p>When using <code class="docutils literal"><span class="pre">rampedpyrox</span></code>, please cite the following peer-reviewed publications:</p>
+<p>(insert papers here once published)</p>
+<div class="section" id="minimal-examples">
+<h2>Minimal examples<a class="headerlink" href="#minimal-examples" title="Permalink to this headline">¶</a></h2>
+<p>The following examples should guide you through setting up a thermogram,
+calculating activation energy (Ea) distributions, deconvolving into Gaussians,
+and calculating isotope values.</p>
+<p>Importing data into a thermogram object and plotting:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rampedpyrox</span> <span class="k">as</span> <span class="nn">rp</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;/path_to_folder_containing_data/data.csv&#39;</span>
+<span class="n">nT</span> <span class="o">=</span> <span class="mi">250</span> <span class="c1">#number of timepoints</span>
+<span class="n">tg</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">RealData</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">nT</span><span class="o">=</span><span class="n">nT</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">tg</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that <code class="docutils literal"><span class="pre">data</span></code> can also be inputted as a <code class="docutils literal"><span class="pre">pandas.Dataframe</span></code> and must contain
+&#8216;date_time&#8217;, &#8216;CO2_scaled&#8217;, and &#8216;temp&#8217; columns.</p>
+<p>Calculating the Laplace Transform object and plotting the L-curve:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span><span class="mi">350</span><span class="p">)</span> <span class="c1">#Ea range to calculate over</span>
+<span class="n">logk0</span> <span class="o">=</span> <span class="mi">10</span> <span class="c1">#pre-exponential (Arrhenius) factor</span>
+<span class="n">lt</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">LaplaceTransform</span><span class="p">(</span><span class="n">tg</span><span class="o">.</span><span class="n">t</span><span class="p">,</span><span class="n">tg</span><span class="o">.</span><span class="n">Tau</span><span class="p">,</span><span class="n">eps</span><span class="p">,</span><span class="n">logk0</span><span class="p">)</span>
+<span class="n">omega</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">plot_L_curve</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Running a thermogram through the inverse model and deconvolving Ea distribution:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">phi</span><span class="p">,</span><span class="n">resid_err</span><span class="p">,</span><span class="n">rgh_err</span><span class="p">,</span><span class="n">omega</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">calc_fE_inv</span><span class="p">(</span><span class="n">tg</span><span class="p">,</span><span class="n">omega</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">)</span>
+<span class="n">ec</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">EnergyComplex</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span><span class="n">phi</span><span class="p">,</span><span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span><span class="n">combine_last</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">ec</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="contents">
+<h2>Contents:<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core.html">Documentation for the core program</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermogram.html">Documentation for the thermogram module</a></li>
+</ul>
 </div>
-<span class="target" id="module-rampedpyrox.core.thermogram"></span><span class="target" id="module-thermogram"></span><dl class="class">
-<dt id="rampedpyrox.core.thermogram.Thermogram">
-<em class="property">class </em><code class="descclassname">rampedpyrox.core.thermogram.</code><code class="descname">Thermogram</code><span class="sig-paren">(</span><em>t</em>, <em>Tau</em>, <em>g</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#Thermogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.thermogram.Thermogram" title="Permalink to this definition">¶</a></dt>
-<dd><p>Base class for thermogram objects.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">This class is intended for subclassing and should never be called directly</p>
 </div>
-</dd></dl>
-
-<dl class="class">
-<dt id="rampedpyrox.RealData">
-<em class="property">class </em><code class="descclassname">rampedpyrox.</code><code class="descname">RealData</code><span class="sig-paren">(</span><em>all_data</em>, <em>nT=250</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#RealData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.RealData" title="Permalink to this definition">¶</a></dt>
-<dd><p>Subclass for real data thermograms (i.e. actual dirt burner data).</p>
-<dl class="method">
-<dt id="rampedpyrox.RealData.plot">
-<code class="descname">plot</code><span class="sig-paren">(</span><em>ax=None</em>, <em>xaxis='time'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#RealData.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.RealData.plot" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plots the true thermogram and peaks against time or temp.</p>
-<dl class="docutils">
-<dt>Kwargs:</dt>
-<dd>ax (plt axis handle): Axis to plot on or None
-xaxis (str): Sets the x axis units: either &#8216;time&#8217; or &#8216;temp&#8217;</dd>
-<dt>Returns:</dt>
-<dd>ax (plt axis handle): Updated axis with plotted data</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="rampedpyrox.ModeledData">
-<em class="property">class </em><code class="descclassname">rampedpyrox.</code><code class="descname">ModeledData</code><span class="sig-paren">(</span><em>t</em>, <em>Tau</em>, <em>g_hat</em>, <em>gp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#ModeledData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.ModeledData" title="Permalink to this definition">¶</a></dt>
-<dd><p>Subclass for thermograms generated using an f(Ea) distribution.</p>
-<dl class="method">
-<dt id="rampedpyrox.ModeledData.plot">
-<code class="descname">plot</code><span class="sig-paren">(</span><em>ax=None</em>, <em>xaxis='time'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#ModeledData.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.ModeledData.plot" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plots the modeled thermogram and peaks against time or temp.</p>
-<dl class="docutils">
-<dt>Kwargs:</dt>
-<dd>ax (plt axis handle): Axis to plot on or None
-xaxis (str): Sets the x axis units: either &#8216;time&#8217; or &#8216;temp&#8217;</dd>
-<dt>Returns:</dt>
-<dd>ax (plt axis handle): Updated axis with plotted data</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
 </div>
 <div class="section" id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
@@ -110,13 +121,18 @@ xaxis (str): Sets the x axis units: either &#8216;time&#8217; or &#8216;temp&#82
         <div class="sphinxsidebarwrapper">
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Documentation for RampedPyrox</a></li>
+<li><a class="reference internal" href="#">Welcome to the RampedPyrox documentation</a><ul>
+<li><a class="reference internal" href="#minimal-examples">Minimal examples</a></li>
+<li><a class="reference internal" href="#contents">Contents:</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="core.html" title="next chapter">Documentation for the core program</a></li>
   </ul></li>
 </ul>
 </div>

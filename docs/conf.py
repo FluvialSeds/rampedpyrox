@@ -35,6 +35,8 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
+    'sphinx.ext.napoleon',
+    'rst2pdf.pdfbuilder'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

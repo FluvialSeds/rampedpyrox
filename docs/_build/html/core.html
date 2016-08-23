@@ -1,0 +1,153 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Documentation for the core program &#8212; rampedpyrox 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="rampedpyrox 0.1 documentation" href="index.html" />
+    <link rel="next" title="Documentation for the thermogram module" href="thermogram.html" />
+    <link rel="prev" title="Documentation for RampedPyrox" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="documentation-for-the-core-program">
+<h1>Documentation for the core program<a class="headerlink" href="#documentation-for-the-core-program" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="rampedpyrox.RealData">
+<em class="property">class </em><code class="descclassname">rampedpyrox.</code><code class="descname">RealData</code><span class="sig-paren">(</span><em>all_data</em>, <em>nT=250</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#RealData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.RealData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subclass for real data thermograms (i.e. actual dirt burner data).</p>
+<dl class="method">
+<dt id="rampedpyrox.RealData.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>ax=None</em>, <em>xaxis='time'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#RealData.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.RealData.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the true thermogram and peaks against time or temp.</p>
+<dl class="docutils">
+<dt>Kwargs:</dt>
+<dd>ax (plt axis handle): Axis to plot on or None
+xaxis (str): Sets the x axis units: either &#8216;time&#8217; or &#8216;temp&#8217;</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>ax</strong> &#8211; Updated axis with plotted data</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">plt axis handle</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rampedpyrox.ModeledData">
+<em class="property">class </em><code class="descclassname">rampedpyrox.</code><code class="descname">ModeledData</code><span class="sig-paren">(</span><em>t</em>, <em>Tau</em>, <em>g_hat</em>, <em>gp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#ModeledData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.ModeledData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subclass for thermograms generated using an f(Ea) distribution.</p>
+<dl class="method">
+<dt id="rampedpyrox.ModeledData.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>ax=None</em>, <em>xaxis='time'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/thermogram.html#ModeledData.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.ModeledData.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the modeled thermogram and peaks against time or temp.</p>
+<dl class="docutils">
+<dt>Kwargs:</dt>
+<dd>ax (plt axis handle): Axis to plot on or None
+xaxis (str): Sets the x axis units: either &#8216;time&#8217; or &#8216;temp&#8217;</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>ax</strong> &#8211; Updated axis with plotted data</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">plt axis handle</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Documentation for RampedPyrox</a></li>
+      <li>Next: <a href="thermogram.html" title="next chapter">Documentation for the thermogram module</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/core.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Jordon D. Hemingway.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="_sources/core.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
