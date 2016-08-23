@@ -411,8 +411,11 @@ class LaplaceTransform(object):
 		#check omega input and calculate best-fit value if 'auto'
 		if omega is 'auto':
 			#calculate omega if auto
-			omega,_,_,_ = calc_L_curve(self.A, g)
-		elif not isinstance(omega,(int,float)):
+			om_best,_,_,_ = calc_L_curve(self.A, g)
+		elif isinstance(omega,(int,float)):
+			#simply pass inputted omega value
+			om_best = omega
+		else:
 			#raise error
 			raise ValueError('omega must be int, float, or "auto"')
 
