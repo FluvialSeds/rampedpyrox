@@ -419,7 +419,7 @@ class LaplaceTransform(object):
 			#raise error
 			raise ValueError('omega must be int, float, or "auto"')
 
-		phi, resid_err, rgh_err = _calc_phi(self.A, g, omega)
+		phi, resid_err, rgh_err = _calc_phi(self.A, g, om_best)
 
 		return phi, resid_err, rgh_err, om_best
 
