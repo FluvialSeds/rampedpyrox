@@ -61,8 +61,8 @@ Running a thermogram through the inverse model and deconvolving Ea distribution:
 	ec = rp.EnergyComplex(eps,phi,nPeaks='auto',combine_last=None)
 	ax = ec.plot()
 
-Table of contents:
-------------------
+Table of contents
+=================
 
 .. toctree::
    :maxdepth: 2
