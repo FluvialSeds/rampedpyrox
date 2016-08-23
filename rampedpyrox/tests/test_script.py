@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 #plt.close('all')
 
-rd = rp.RealData('test_data/VBC10.csv')
+rd = rp.RealData('test_data/TS1.csv')
 eps = np.arange(50,350)
 lt = rp.LaplaceTransform(rd.t,rd.Tau,eps,10)
 phi,resid_err,rgh_err,omega = lt.calc_EC_inv(rd,omega=1)
