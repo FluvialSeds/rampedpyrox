@@ -157,7 +157,7 @@
 <span class="sd">		&#39;&#39;&#39;</span>
 
 
-<div class="viewcode-block" id="RealData"><a class="viewcode-back" href="../../../core.html#rampedpyrox.core.thermogram.RealData">[docs]</a><span class="k">class</span> <span class="nc">RealData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
+<div class="viewcode-block" id="RealData"><a class="viewcode-back" href="../../../thermogram.html#rampedpyrox.core.thermogram.RealData">[docs]</a><span class="k">class</span> <span class="nc">RealData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Class for real data thermograms (e.g. data from RampedPyrox experiment).</span>
 
@@ -197,7 +197,7 @@
 		<span class="c1">#define private parameters</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_nT</span> <span class="o">=</span> <span class="n">nT</span>
 
-<div class="viewcode-block" id="RealData.plot"><a class="viewcode-back" href="../../../core.html#rampedpyrox.core.thermogram.RealData.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="RealData.plot"><a class="viewcode-back" href="../../../thermogram.html#rampedpyrox.core.thermogram.RealData.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Plots the true thermogram against time or temp.</span>
 
@@ -242,7 +242,7 @@
 		<span class="k">return</span> <span class="n">ax</span></div></div>
 
 
-<div class="viewcode-block" id="ModeledData"><a class="viewcode-back" href="../../../core.html#rampedpyrox.core.thermogram.ModeledData">[docs]</a><span class="k">class</span> <span class="nc">ModeledData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
+<div class="viewcode-block" id="ModeledData"><a class="viewcode-back" href="../../../thermogram.html#rampedpyrox.core.thermogram.ModeledData">[docs]</a><span class="k">class</span> <span class="nc">ModeledData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Subclass for thermograms generated using an f(Ea) distribution.</span>
 
@@ -296,7 +296,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_nT</span> <span class="o">=</span> <span class="n">nT</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_nPeak</span> <span class="o">=</span> <span class="n">nPeak</span>
 
-<div class="viewcode-block" id="ModeledData.plot"><a class="viewcode-back" href="../../../core.html#rampedpyrox.core.thermogram.ModeledData.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="ModeledData.plot"><a class="viewcode-back" href="../../../thermogram.html#rampedpyrox.core.thermogram.ModeledData.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Plots the modeled thermogram and individual peaks against time or temp.</span>
 

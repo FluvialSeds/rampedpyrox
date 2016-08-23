@@ -9,3 +9,8 @@
 
 #test thermogram data
 *.csv
+
+#doc builds
+_build
+_static
+_templates

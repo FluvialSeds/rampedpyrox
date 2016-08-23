@@ -67,9 +67,9 @@ Table of contents
 .. toctree::
    :maxdepth: 2
 
-   Thermogram
-   LaplaceTransform
-   EnergyComplex
+   thermogram
+   laplacetransform
+   energycomplex
 
 Indices and tables
 ==================
