@@ -196,7 +196,7 @@ class IsotopeResult(object):
 		t,R13,Fm = _extract_isotopes(sum_data)
 
 		#calculate peak contribution to each fraction
-		cont_ptf = _calc_cont_ptf(mod_tg.t, mod_tg.gpdot_t,t)
+		cont_ptf = _calc_cont_ptf(mod_tg, t)
 
 		#define public parameters
 		self.t = t
