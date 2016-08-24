@@ -3,21 +3,66 @@ This module contains the IsotopeResult class for calculating the isotope
 composition of individual Ea peaks within a sample, as well as supporting
 functions.
 
-* TODO: Everything...
+* TODO: update _calc_cont_ptf to handle fractions of timepoints
 '''
 
 import numpy as np
 import pandas as pd
+
+from scipy.optimize import nnls
 
 def _blank_correct():
 	'''
 	Performs blank correction (NOSAMS RPO instrument) on raw isotope values.
 	'''
 
-def _calc_cont_ptf():
+def _calc_cont_ptf(mod_tg,t):
 	'''
 	Calculates the contribution of each peak to each fraction.
+	Called by ``_fit()``.
+
+	Args:
+		mod_tg (rp.ModeledData): ``ModeledData`` object containing peaks
+			of interest for isotope deconvolution. 
+
+		t (np.ndarray): 2d array of the t0 and tf (in seconds) for each
+			fraction, with shape [nFrac x 2].
+
+	Returns:
+		cont_ptf(np.ndarray): 2d array of the contribution by each peak to
+			each measured CO2 fraction with shape [nFrac x nPeak].
+
+	Raises:
+		ValueError: If nPeaks >  nFrac, the problem is underconstrained.
 	'''
+
+	#extract data from modeled thermogram
+	md_t = mod_tg.t
+	md_p = mod_tg.gpdot_t
+	md_tot = mod_tg.gdot_t
+
+	nF,_ = np.shape(t)
+	_,nP = np.shape(md_p)
+
+	if nP > nF:
+		raise ValueError('Under constrained problem! nPeaks > nFractions!!')
+
+	#calculate areas by multiplying by time gradient (for variable timesetep)
+	tot = md_tot*np.gradient(md_t)
+	grad_mat = np.outer(np.gradient(md_t),np.ones(nP))
+	peaks = md_p*grad_mat
+
+	#pre-allocate cont_ptf matrix
+	cont_ptf = np.zeros([nF,nP])
+
+	#loop through and calculate contributions
+	for i,row in enumerate(t):
+		#extract indices for each fraction
+		ind = np.where((md_t >= row[0]) & (md_t <= row[1]))
+		ptf_i = np.sum(peaks[ind],axis=0)/np.sum(tot[ind])
+
+		#store in row i
+		cont_ptf[i] = ptf_i
 
 	return cont_ptf
 
@@ -101,16 +146,57 @@ def _extract_isotopes(sum_data):
 	
 	return t, R13, Fm
 
+def _fit(mod_tg, R13, Fm, t):
+	'''
+	Performs the fit to calculate peak isotope values.
+	Called by ``IsotopeResult.__init__()``.
+	'''
+	
+	A = _calc_cont_ptf(mod_tg,t)
+
+	#calculate Fm values
+	Fm_peak = nnls(A,Fm[:,0])[0]
+
+	#calculate d13C values
+	R13_peak = nnls(A,R13[:,0])[0]
+	d13C_peak = _13R_to_d13C(R13_peak)
+
+	return d13C_peak, Fm_peak
+
+
+def _13R_to_d13C(R13):
+	'''
+	Converts 13R values to d13C values using VPDB standard.
+
+	Args:
+		R13 (np.ndarray): d13C values converted to 13C ratios.
+		R13_std (np.ndarray): d13C stdev. values converted to 13C ratios.
+
+	Returns:
+		d13C (np.ndarray): Inputted d13C values.
+		d13C_std (np.ndarray): Inputted d13C stdev.
+	'''
+
+	Rpdb = 0.011237 #13C/12C ratio VPDB
+
+	d13C = (R13/Rpdb - 1)*1000
+	#d13C_std = 1000*R13_std/Rpdb
+
+	return d13C
+
 
 class IsotopeResult(object):
 	'''
 	Class for performing isotope deconvolution
 	'''
 
-	def __init__(self, sum_data, mod_tg, blank_correct=True, DEa=None):
+	def __init__(self, sum_data, mod_tg, blank_correct=False, DEa=None):
 
 		#extract isotopes and time
 		t,R13,Fm = _extract_isotopes(sum_data)
+
+		#calculate peak contribution to each fraction
+		cont_ptf = _calc_cont_ptf(mod_tg.t, mod_tg.gpdot_t,t)
 
 		#define public parameters
 		self.t = t
@@ -118,8 +204,12 @@ class IsotopeResult(object):
 		self.Fm_frac = Fm
 
 		#perform regression
+		d13C_peak,Fm_peak = _fit(mod_tg, R13, Fm, t)
 
-		#
+		#store variables
+		self.Fm_peak = Fm_peak
+		self.d13C_peak = d13C_peak
+		
 
 
 	def summary():

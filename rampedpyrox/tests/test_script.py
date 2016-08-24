@@ -12,6 +12,9 @@ phi,resid_err,rgh_err,omega = lt.calc_EC_inv(rd,omega=1)
 ec = rp.EnergyComplex(eps,phi,nPeaks='auto',thres=0.03,combine_last=2)
 md = lt.calc_TG_fwd(ec)
 
+
+ir = rp.IsotopeResult('test_data/5C_min_sum.csv',md)
+
 ec.plot()
 ax = md.plot()
 rd.plot(ax=ax)
