@@ -19,7 +19,7 @@ def _extract_tg(all_data, nT):
 	Called by Thermogram during __init__.
 
 	Args:
-		all_data (str. or pd.DataFrame): File containing thermogram data,
+		all_data (str or pd.DataFrame): File containing thermogram data,
 			either as a path string or pandas.DataFrame object.
 
 		nT (int): The number of time points to use.
