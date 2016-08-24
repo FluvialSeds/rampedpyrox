@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 
 plt.close('all')
 
-rd = rp.RealData('test_data/TS1.csv')
-eps = np.arange(50,350)
+rd = rp.RealData('test_data/SZR_culture_1.csv')
+eps = np.arange(50,350,.5)
 lt = rp.LaplaceTransform(rd.t,rd.Tau,eps,10)
-phi,resid_err,rgh_err,omega = lt.calc_EC_inv(rd,omega=2)
-ec = rp.EnergyComplex(eps,phi,nPeaks='auto',thres=0.01,combine_last=2)
+phi,resid_err,rgh_err,omega = lt.calc_EC_inv(rd,omega='auto')
+ec = rp.EnergyComplex(eps,phi,nPeaks='auto',thres=0.02,combine_last=None)
 md = lt.calc_TG_fwd(ec)
 
 

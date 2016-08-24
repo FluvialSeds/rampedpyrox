@@ -5,6 +5,7 @@ Gaussian peaks.
 * TODO: Make legend more pythonic.
 * TODO: Fix how _peak_indices sorts to select first nPeaks.
 * TODO: Include references for finding peak indices.
+* TODO: Add relative area function!
 '''
 
 import matplotlib.pyplot as plt
@@ -298,6 +299,30 @@ def _phi_hat_diff(params, eps, phi):
 
 	return phi_hat - phi
 
+def _rel_area(eps, y_scaled):
+	'''
+	Calculates the relative areas of each Ea Gaussian peak.
+
+	Args:
+		eps (np.ndarray): Array of Ea values.
+
+		y_scaled (np.ndarray): Array of individual estimated Ea Gaussian peaks.
+			Shape is [len(eps) x len(mu)].
+
+	Returns:
+		rel_area (np.ndarray): Array of relative areas of each peak.
+	'''
+
+	#extract gradient and mulitply to get areas
+	_,nPeaks = np.shape(y_scaled)
+	grad_mat = np.outer(np.gradient(eps),np.ones(nPeaks))
+	y_scaled_area = y_scaled*grad_mat
+
+	#calculate relative area
+	rel_area = np.sum(y_scaled_area,axis=0)/np.sum(y_scaled_area)
+
+	return rel_area
+
 
 class EnergyComplex(object):
 	'''
@@ -358,6 +383,7 @@ class EnergyComplex(object):
 		mu,sigma,height = _deconvolve(eps, phi, nPeaks=nPeaks, thres=thres)
 		phi_hat,y_scaled = _phi_hat(eps, mu, sigma, height)
 		phi_err = norm(phi-phi_hat)/nE
+		rel_area = _rel_area(eps, y_scaled)
 
 		#define public parameters
 		self.phi = phi
@@ -367,6 +393,7 @@ class EnergyComplex(object):
 		self.height = height
 		self.phi_hat = phi_hat
 		self.phi_err = phi_err
+		self.rel_area = rel_area
 
 		#combine last peaks if necessary
 		if combine_last:
