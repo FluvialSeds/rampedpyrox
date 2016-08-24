@@ -61,6 +61,24 @@ Running a thermogram through the inverse model and deconvolving Ea distribution:
 	ec = rp.EnergyComplex(eps,phi,nPeaks='auto',combine_last=None)
 	ax = ec.plot()
 
+Forward-modeling the resulting Ea distribution::
+	
+	#store in ModeledData object
+	md = lt.calc_TG_fwd(ec)
+	md.plot()
+
+Calculating the isotope composition of each peak::
+
+	#save string pointing to isotope data
+	iso_data = '/path_to_folder_containing_data/isotope_data.csv'
+
+	#create IsotopeResult object using data and ModeledResult object md
+	ir = rp.IsotopeResult(iso_data,md)
+
+	#view results
+	print(ir.Fm_peak)
+	print(ir.d13C_peak)
+
 Table of contents
 =================
 
