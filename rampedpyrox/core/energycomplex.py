@@ -5,7 +5,6 @@ Gaussian peaks.
 * TODO: Make legend more pythonic.
 * TODO: Fix how _peak_indices sorts to select first nPeaks.
 * TODO: Include references for finding peak indices.
-* TODO: Add relative area function!
 '''
 
 import matplotlib.pyplot as plt
