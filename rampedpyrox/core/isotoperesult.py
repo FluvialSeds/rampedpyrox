@@ -5,6 +5,7 @@ functions.
 
 * TODO: update _calc_cont_ptf to handle fractions of timepoints
 * TODO: fix blank correction d13C stdev.
+* TODO: fix _fir_R13_peak to handle combined peaks.
 '''
 
 import numpy as np
@@ -138,12 +139,9 @@ def _fit_R13_peak(R13_frac, frac_ind, DEa, ec, lt):
 			``scipy.optimize.least_squares()``.
 
 	'''
-
-	#calculate mass-weighted mean indices for each fraction
-	frac_ind = _calc_frac_ind()
 	
 	#make initial guess of 0‰
-	r0 = 0.011237*np.ones(len(R13_peak))
+	r0 = 0.011237*np.ones(len(ec.mu))
 
 	#perform fit
 	res = least_squares(_R13_diff,r0,
@@ -283,7 +281,10 @@ def _calc_cont_ptf(mod_tg, t):
 
 		#calculate mass-weighted fraction index
 		av_t = np.average(md_t[ind],weights=md_tot[ind])
-		frac_ind[i] = np.argmax(md_t >= av_t) #calculates first instance above
+		frac_ind[i] = np.where(md_t >= av_t)[0][0] #calculates first instance above
+
+	#convert frac_ind to int
+	frac_ind = frac_ind.astype(int)
 
 	return cont_ptf, frac_ind
 
