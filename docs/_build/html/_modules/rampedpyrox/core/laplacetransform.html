@@ -47,6 +47,7 @@
 <span class="sd">LaplaceTransform object.</span>
 
 <span class="sd">* TODO: update calc_L_curve to be more pythonic.</span>
+<span class="sd">* TODO: Keep testing &quot;Wabha&quot; function and developing best-fit omega</span>
 <span class="sd">* TODO: Add summary method.</span>
 <span class="sd">&#39;&#39;&#39;</span>
 
@@ -55,6 +56,7 @@
 
 <span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="k">import</span> <span class="n">nnls</span>
 <span class="kn">from</span> <span class="nn">numpy.linalg</span> <span class="k">import</span> <span class="n">norm</span>
+<span class="kn">from</span> <span class="nn">numpy.linalg</span> <span class="k">import</span> <span class="n">inv</span>
 
 <span class="kn">from</span> <span class="nn">rampedpyrox.core.thermogram</span> <span class="k">import</span> <span class="n">ModeledData</span>
 
@@ -331,6 +333,29 @@
 
 	<span class="k">return</span> <span class="n">om_best</span><span class="p">,</span> <span class="n">resid_vec</span><span class="p">,</span> <span class="n">rgh_vec</span><span class="p">,</span> <span class="n">omega_vec</span> </div>
 
+<div class="viewcode-block" id="Wabha"><a class="viewcode-back" href="../../../laplacetransform.html#rampedpyrox.core.laplacetransform.Wabha">[docs]</a><span class="k">def</span> <span class="nf">Wabha</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">omega</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Currently unused. Testing alternate methods of choosing best-fit omega.</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+
+	<span class="c1">#extract shape</span>
+	<span class="n">nT</span><span class="p">,</span><span class="n">nE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+
+	<span class="c1">#calculate phi and g_hat</span>
+	<span class="n">phi</span><span class="p">,</span><span class="n">_</span><span class="p">,</span><span class="n">_</span> <span class="o">=</span> <span class="n">_calc_phi</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">g</span><span class="p">,</span><span class="n">omega</span><span class="p">)</span>
+	<span class="n">g_hat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">phi</span><span class="p">)</span>
+
+	<span class="c1">#calculate RSS</span>
+	<span class="n">RSS</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">g</span><span class="o">-</span><span class="n">g_hat</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+
+	<span class="c1">#calculate d.o.f., tau</span>
+	<span class="n">x</span> <span class="o">=</span> <span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="p">,</span><span class="n">A</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">omega</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">nE</span><span class="p">))</span>
+	<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">x</span><span class="p">),</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+	<span class="n">tau</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">nT</span><span class="p">)</span> <span class="o">-</span> <span class="n">X</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+
+	<span class="k">return</span> <span class="n">RSS</span><span class="o">/</span><span class="n">tau</span></div>
+	
 
 <div class="viewcode-block" id="LaplaceTransform"><a class="viewcode-back" href="../../../laplacetransform.html#rampedpyrox.core.laplacetransform.LaplaceTransform">[docs]</a><span class="k">class</span> <span class="nc">LaplaceTransform</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
@@ -454,12 +479,15 @@
 		<span class="c1">#check omega input and calculate best-fit value if &#39;auto&#39;</span>
 		<span class="k">if</span> <span class="n">omega</span> <span class="ow">is</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
 			<span class="c1">#calculate omega if auto</span>
-			<span class="n">omega</span><span class="p">,</span><span class="n">_</span><span class="p">,</span><span class="n">_</span><span class="p">,</span><span class="n">_</span> <span class="o">=</span> <span class="n">calc_L_curve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
-		<span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">omega</span><span class="p">,(</span><span class="nb">int</span><span class="p">,</span><span class="nb">float</span><span class="p">)):</span>
+			<span class="n">om_best</span><span class="p">,</span><span class="n">_</span><span class="p">,</span><span class="n">_</span><span class="p">,</span><span class="n">_</span> <span class="o">=</span> <span class="n">calc_L_curve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">omega</span><span class="p">,(</span><span class="nb">int</span><span class="p">,</span><span class="nb">float</span><span class="p">)):</span>
+			<span class="c1">#simply pass inputted omega value</span>
+			<span class="n">om_best</span> <span class="o">=</span> <span class="n">omega</span>
+		<span class="k">else</span><span class="p">:</span>
 			<span class="c1">#raise error</span>
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;omega must be int, float, or &quot;auto&quot;&#39;</span><span class="p">)</span>
 
-		<span class="n">phi</span><span class="p">,</span> <span class="n">resid_err</span><span class="p">,</span> <span class="n">rgh_err</span> <span class="o">=</span> <span class="n">_calc_phi</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">omega</span><span class="p">)</span>
+		<span class="n">phi</span><span class="p">,</span> <span class="n">resid_err</span><span class="p">,</span> <span class="n">rgh_err</span> <span class="o">=</span> <span class="n">_calc_phi</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">om_best</span><span class="p">)</span>
 
 		<span class="k">return</span> <span class="n">phi</span><span class="p">,</span> <span class="n">resid_err</span><span class="p">,</span> <span class="n">rgh_err</span><span class="p">,</span> <span class="n">om_best</span></div>
 

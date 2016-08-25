@@ -62,7 +62,7 @@
 <span class="sd">	Called by Thermogram during __init__.</span>
 
 <span class="sd">	Args:</span>
-<span class="sd">		all_data (str. or pd.DataFrame): File containing thermogram data,</span>
+<span class="sd">		all_data (str or pd.DataFrame): File containing thermogram data,</span>
 <span class="sd">			either as a path string or pandas.DataFrame object.</span>
 
 <span class="sd">		nT (int): The number of time points to use.</span>
@@ -125,8 +125,8 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">g</span> <span class="o">=</span> <span class="n">g</span> <span class="c1">#fraction</span>
 
 		<span class="bp">self</span><span class="o">.</span><span class="n">Taudot_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">Tau</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="c1">#Kelvin/second</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">gdot_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">g</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="c1">#second-1</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">gdot_Tau</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gdot_t</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">Taudot_t</span> <span class="c1">#Kelvin-1</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">gdot_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">g</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="c1">#fraction/second</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">gdot_Tau</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gdot_t</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">Taudot_t</span> <span class="c1">#fraction/Kelvin</span>
 
 	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
@@ -143,11 +143,11 @@
 		<span class="k">if</span> <span class="n">xaxis</span> <span class="o">==</span> <span class="s1">&#39;time&#39;</span><span class="p">:</span>
 			<span class="n">tg_line</span><span class="p">,</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">gdot_t</span><span class="p">)</span>
 			<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;time (seconds)&#39;</span><span class="p">)</span>
-			<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">r&#39;rate constant ($s^{-1}$)&#39;</span><span class="p">)</span>
+			<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">r&#39;normalized carbon loss rate (fraction/second)&#39;</span><span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="n">tg_line</span><span class="p">,</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Tau</span><span class="p">,</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">gdot_Tau</span><span class="p">)</span>
 			<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Temp. (Kelvin)&#39;</span><span class="p">)</span>
-			<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">r&#39;rate constant ($K^{-1}$)&#39;</span><span class="p">)</span>
+			<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">r&#39;normalized carbon loss rate (fraction/K)&#39;</span><span class="p">)</span>
 
 		<span class="k">return</span> <span class="n">ax</span><span class="p">,</span> <span class="n">tg_line</span>
 

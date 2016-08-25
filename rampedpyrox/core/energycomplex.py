@@ -343,7 +343,7 @@ class EnergyComplex(object):
 			high temperature range, as is often the case with real data).
 			Defaults to None.
 
-		DEa (int, float, or np.ndarray): ∆Ea values, either a scalar or vector
+		DEa (int, float, or np.ndarray): DEa values, either a scalar or vector
 			of length nPeaks (in units of kJ!). If using nPeaks = 'auto', leave
 			DEa as a scalar to avoid issues with array length. Defaults to 0.
 

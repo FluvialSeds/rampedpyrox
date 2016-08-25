@@ -95,6 +95,24 @@ and calculating isotope values.</p>
 <span class="n">ax</span> <span class="o">=</span> <span class="n">ec</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
 </pre></div>
 </div>
+<p>Forward-modeling the resulting Ea distribution:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#store in ModeledData object</span>
+<span class="n">md</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">calc_TG_fwd</span><span class="p">(</span><span class="n">ec</span><span class="p">)</span>
+<span class="n">md</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Calculating the isotope composition of each peak:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#save string pointing to isotope data</span>
+<span class="n">iso_data</span> <span class="o">=</span> <span class="s1">&#39;/path_to_folder_containing_data/isotope_data.csv&#39;</span>
+
+<span class="c1">#create IsotopeResult object using data and ModeledResult object md</span>
+<span class="n">ir</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">IsotopeResult</span><span class="p">(</span><span class="n">iso_data</span><span class="p">,</span><span class="n">md</span><span class="p">)</span>
+
+<span class="c1">#view results</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ir</span><span class="o">.</span><span class="n">Fm_peak</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ir</span><span class="o">.</span><span class="n">d13C_peak</span><span class="p">)</span>
+</pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="table-of-contents">
@@ -117,6 +135,12 @@ and calculating isotope values.</p>
 <li class="toctree-l2"><a class="reference internal" href="energycomplex.html#examples">Examples</a></li>
 <li class="toctree-l2"><a class="reference internal" href="energycomplex.html#technical-documentation">Technical documentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="energycomplex.html#module-rampedpyrox.core.energycomplex">Module Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="isotoperesult.html">Isotope Result</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="isotoperesult.html#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="isotoperesult.html#technical-documentation">Technical documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="isotoperesult.html#module-rampedpyrox.core.isotoperesult">Module Reference</a></li>
 </ul>
 </li>
 </ul>

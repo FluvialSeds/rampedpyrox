@@ -24,6 +24,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="rampedpyrox 0.1 documentation" href="index.html" />
+    <link rel="next" title="Isotope Result" href="isotoperesult.html" />
     <link rel="prev" title="Laplace Transform" href="laplacetransform.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
@@ -76,7 +77,7 @@ Gaussian peaks.</p>
 </ul>
 <dl class="class">
 <dt id="rampedpyrox.core.energycomplex.EnergyComplex">
-<em class="property">class </em><code class="descclassname">rampedpyrox.core.energycomplex.</code><code class="descname">EnergyComplex</code><span class="sig-paren">(</span><em>eps</em>, <em>phi</em>, <em>nPeaks='auto'</em>, <em>combine_last=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/energycomplex.html#EnergyComplex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rampedpyrox.core.energycomplex.</code><code class="descname">EnergyComplex</code><span class="sig-paren">(</span><em>eps</em>, <em>phi</em>, <em>nPeaks='auto'</em>, <em>thres=0.05</em>, <em>combine_last=None</em>, <em>DEa=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/energycomplex.html#EnergyComplex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class for storing Ea distribution and calculating peak deconvolution.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -87,10 +88,15 @@ Gaussian peaks.</p>
 <li><strong>phi</strong> (<em>np.ndarray</em>) &#8211; Array of the pdf of the distribution of Ea.</li>
 <li><strong>nPeaks</strong> (<em>int or str</em>) &#8211; Number of Gaussians to use in deconvolution,
 either an integer or &#8216;auto&#8217;. Defaults to &#8216;auto&#8217;.</li>
+<li><strong>thres</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Threshold for peak detection cutoff. Thres is the relative
+height of the global maximum under which no peaks will be detected.</li>
 <li><strong>combine_last</strong> (<em>int or None</em>) &#8211; Number of peaks to combine at the end of
 the run (necessary if there is not enough isotope resolution at the
 high temperature range, as is often the case with real data).
 Defaults to None.</li>
+<li><strong>DEa</strong> (<em>int, float, or np.ndarray</em>) &#8211; DEa values, either a scalar or vector
+of length nPeaks (in units of kJ!). If using nPeaks = &#8216;auto&#8217;, leave
+DEa as a scalar to avoid issues with array length. Defaults to 0.</li>
 </ul>
 </td>
 </tr>
@@ -104,6 +110,7 @@ Defaults to None.</li>
 <li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If phi and eps vectors are not the same length.</li>
 <li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <code class="docutils literal"><span class="pre">nPeaks</span></code> is greater than the total number of peaks detected.</li>
 <li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <code class="docutils literal"><span class="pre">nPeaks</span></code> is not &#8216;auto&#8217; or int.</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <code class="docutils literal"><span class="pre">DEa</span></code> is not int, float, or np.ndarray of length nPeaks.</li>
 </ul>
 </td>
 </tr>
@@ -188,6 +195,7 @@ parameters much better than the Levenberg-Marquardt algorithm.</p>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
       <li>Previous: <a href="laplacetransform.html" title="previous chapter">Laplace Transform</a></li>
+      <li>Next: <a href="isotoperesult.html" title="next chapter">Isotope Result</a></li>
   </ul></li>
 </ul>
 </div>

@@ -58,7 +58,7 @@
 <span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="k">import</span> <span class="n">least_squares</span>
 
 
-<span class="k">def</span> <span class="nf">_deconvolve</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_deconvolve</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">thres</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Performs Gaussian peak deconvolution.</span>
 <span class="sd">	Called by ``EnergyComplex.__init__()``.</span>
@@ -71,6 +71,9 @@
 <span class="sd">		nPeaks (int or str): Number of Gaussians to use in deconvolution,</span>
 <span class="sd">			either an integer or &#39;auto&#39;. Defaults to &#39;auto&#39;.</span>
 
+<span class="sd">		thres (float): Threshold for peak detection cutoff. Thres is the relative</span>
+<span class="sd">			height of the global maximum under which no peaks will be detected.</span>
+
 <span class="sd">	Returns:</span>
 <span class="sd">		mu (np.ndarray): Array of resulting Gaussian peak means.</span>
 
@@ -81,7 +84,7 @@
 <span class="sd">	&#39;&#39;&#39;</span>
 
 	<span class="c1">#find peak indices and bounds</span>
-	<span class="n">ind</span><span class="p">,</span><span class="n">lb_ind</span><span class="p">,</span><span class="n">ub_ind</span> <span class="o">=</span> <span class="n">_peak_indices</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span><span class="n">nPeaks</span><span class="o">=</span><span class="n">nPeaks</span><span class="p">)</span>
+	<span class="n">ind</span><span class="p">,</span><span class="n">lb_ind</span><span class="p">,</span><span class="n">ub_ind</span> <span class="o">=</span> <span class="n">_peak_indices</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span><span class="n">nPeaks</span><span class="o">=</span><span class="n">nPeaks</span><span class="p">,</span><span class="n">thres</span><span class="o">=</span><span class="n">thres</span><span class="p">)</span>
 
 	<span class="c1">#calculate initial guess parameters</span>
 	<span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span>
@@ -172,7 +175,7 @@
 
 	<span class="k">return</span> <span class="n">y</span>
 
-<span class="k">def</span> <span class="nf">_peak_indices</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_peak_indices</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">thres</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Finds the indices and the bounded range of the mu values for peaks in phi.</span>
 <span class="sd">	Called by ``_deconvolve()``.</span>
@@ -182,6 +185,9 @@
 
 <span class="sd">		nPeaks (int or str): Number of Gaussians to use in deconvolution,</span>
 <span class="sd">			either an integer or &#39;auto&#39;. Defaults to &#39;auto&#39;.</span>
+
+<span class="sd">		thres (float): Threshold for peak detection cutoff. Thres is the relative</span>
+<span class="sd">			height of the global maximum under which no peaks will be detected.</span>
 
 <span class="sd">	Returns:</span>
 <span class="sd">		ind (np.ndarray): Array of indices in phi containing peak mu values.</span>
@@ -200,6 +206,9 @@
 <span class="sd">		ValueError: If ``nPeaks`` is not &#39;auto&#39; or int.</span>
 
 <span class="sd">	&#39;&#39;&#39;</span>
+
+	<span class="c1">#convert thres to absolute value</span>
+	<span class="n">thres</span> <span class="o">=</span> <span class="n">thres</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">phi</span><span class="p">))</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
 
 	<span class="c1">#calculate derivatives</span>
 	<span class="n">dphi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
@@ -227,15 +236,31 @@
 	<span class="c1">#convert ind to ndarray</span>
 	<span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span>
 
+	<span class="c1">#remove peaks below threshold</span>
+	<span class="n">ab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">phi</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">thres</span><span class="p">)</span>
+	<span class="n">ind</span> <span class="o">=</span> <span class="n">ind</span><span class="p">[</span><span class="n">ab</span><span class="p">];</span> <span class="n">lb_ind</span> <span class="o">=</span> <span class="n">lb_ind</span><span class="p">[</span><span class="n">ab</span><span class="p">];</span> <span class="n">ub_ind</span> <span class="o">=</span> <span class="n">ub_ind</span><span class="p">[</span><span class="n">ab</span><span class="p">]</span>
+
 	<span class="c1">#retain first nPeaks according to increasing d2phi</span>
+	<span class="c1"># if isinstance(nPeaks,int):</span>
+	<span class="c1"># 	#check if nPeaks is greater than the total amount of peaks</span>
+	<span class="c1"># 	if len(ind) &lt; nPeaks:</span>
+	<span class="c1"># 		raise ValueError(&#39;nPeaks greater than total detected peaks&#39;)</span>
+
+	<span class="c1"># 	#sort according to increasing d2phi, keep first nPeaks, and re-sort</span>
+	<span class="c1"># 	i = np.argsort(d2phi[ind])[:nPeaks]</span>
+	<span class="c1"># 	i = np.sort(i)</span>
+
+	<span class="c1"># 	ind = ind[i]; lb_ind = lb_ind[i]; ub_ind = ub_ind[i]</span>
+
+	<span class="c1">#retain first nPeaks according to decreasing phi[mu]</span>
 	<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nPeaks</span><span class="p">,</span><span class="nb">int</span><span class="p">):</span>
 		<span class="c1">#check if nPeaks is greater than the total amount of peaks</span>
 		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">nPeaks</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;nPeaks greater than total detected peaks&#39;</span><span class="p">)</span>
 
-		<span class="c1">#sort according to increasing d2phi, keep first nPeaks, and re-sort</span>
-		<span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">d2phi</span><span class="p">[</span><span class="n">ind</span><span class="p">])[:</span><span class="n">nPeaks</span><span class="p">]</span>
-		<span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+		<span class="c1">#sort according to decreasing phi, keep first nPeaks, and re-sort</span>
+		<span class="n">ind_sorted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">phi</span><span class="p">[</span><span class="n">ind</span><span class="p">])[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+		<span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">ind_sorted</span><span class="p">[:</span><span class="n">nPeaks</span><span class="p">])</span>
 
 		<span class="n">ind</span> <span class="o">=</span> <span class="n">ind</span><span class="p">[</span><span class="n">i</span><span class="p">];</span> <span class="n">lb_ind</span> <span class="o">=</span> <span class="n">lb_ind</span><span class="p">[</span><span class="n">i</span><span class="p">];</span> <span class="n">ub_ind</span> <span class="o">=</span> <span class="n">ub_ind</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 
@@ -316,6 +341,30 @@
 
 	<span class="k">return</span> <span class="n">phi_hat</span> <span class="o">-</span> <span class="n">phi</span>
 
+<span class="k">def</span> <span class="nf">_rel_area</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">y_scaled</span><span class="p">):</span>
+	<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Calculates the relative areas of each Ea Gaussian peak.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		eps (np.ndarray): Array of Ea values.</span>
+
+<span class="sd">		y_scaled (np.ndarray): Array of individual estimated Ea Gaussian peaks.</span>
+<span class="sd">			Shape is [len(eps) x len(mu)].</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		rel_area (np.ndarray): Array of relative areas of each peak.</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+	<span class="c1">#extract gradient and mulitply to get areas</span>
+	<span class="n">_</span><span class="p">,</span><span class="n">nPeaks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">y_scaled</span><span class="p">)</span>
+	<span class="n">grad_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">eps</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nPeaks</span><span class="p">))</span>
+	<span class="n">y_scaled_area</span> <span class="o">=</span> <span class="n">y_scaled</span><span class="o">*</span><span class="n">grad_mat</span>
+
+	<span class="c1">#calculate relative area</span>
+	<span class="n">rel_area</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y_scaled_area</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y_scaled_area</span><span class="p">)</span>
+
+	<span class="k">return</span> <span class="n">rel_area</span>
+
 
 <div class="viewcode-block" id="EnergyComplex"><a class="viewcode-back" href="../../../energycomplex.html#rampedpyrox.core.energycomplex.EnergyComplex">[docs]</a><span class="k">class</span> <span class="nc">EnergyComplex</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
@@ -329,10 +378,17 @@
 <span class="sd">		nPeaks (int or str): Number of Gaussians to use in deconvolution,</span>
 <span class="sd">			either an integer or &#39;auto&#39;. Defaults to &#39;auto&#39;.</span>
 
+<span class="sd">		thres (float): Threshold for peak detection cutoff. Thres is the relative</span>
+<span class="sd">			height of the global maximum under which no peaks will be detected.</span>
+
 <span class="sd">		combine_last (int or None): Number of peaks to combine at the end of</span>
 <span class="sd">			the run (necessary if there is not enough isotope resolution at the</span>
 <span class="sd">			high temperature range, as is often the case with real data).</span>
 <span class="sd">			Defaults to None.</span>
+
+<span class="sd">		DEa (int, float, or np.ndarray): DEa values, either a scalar or vector</span>
+<span class="sd">			of length nPeaks (in units of kJ!). If using nPeaks = &#39;auto&#39;, leave</span>
+<span class="sd">			DEa as a scalar to avoid issues with array length. Defaults to 0.</span>
 
 <span class="sd">	Returns:</span>
 <span class="sd">		ec (rp.EnergyComplex): ``EnergyComplex`` object.</span>
@@ -343,6 +399,8 @@
 <span class="sd">		ValueError: If ``nPeaks`` is greater than the total number of peaks detected.</span>
 <span class="sd">		</span>
 <span class="sd">		ValueError: If ``nPeaks`` is not &#39;auto&#39; or int.</span>
+
+<span class="sd">		ValueError: If ``DEa`` is not int, float, or np.ndarray of length nPeaks.</span>
 
 <span class="sd">	Examples:</span>
 <span class="sd">		Running a thermogram through the inverse model and deconvolving::</span>
@@ -362,17 +420,23 @@
 <span class="sd">		parameters much better than the Levenberg-Marquardt algorithm.</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 
-	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">combine_last</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">thres</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">combine_last</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">DEa</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 
 		<span class="c1">#assert phi and eps are same length</span>
 		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">eps</span><span class="p">):</span>
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;phi and eps vectors must have same length&#39;</span><span class="p">)</span>
 		<span class="n">nE</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
 
-		<span class="c1">#perform deconvolution</span>
-		<span class="n">mu</span><span class="p">,</span><span class="n">sigma</span><span class="p">,</span><span class="n">height</span> <span class="o">=</span> <span class="n">_deconvolve</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="n">nPeaks</span><span class="p">)</span>
+		<span class="c1">#assert DEa is int, float, or np.ndarray of the right length</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">DEa</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span><span class="nb">int</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;DEa must be float, int, or np.ndarray of length nPeaks&#39;</span><span class="p">)</span>
+
+		<span class="c1">#perform deconvolution, including 13C f(Ea)</span>
+		<span class="n">mu</span><span class="p">,</span><span class="n">sigma</span><span class="p">,</span><span class="n">height</span> <span class="o">=</span> <span class="n">_deconvolve</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="n">nPeaks</span><span class="p">,</span> <span class="n">thres</span><span class="o">=</span><span class="n">thres</span><span class="p">)</span>
 		<span class="n">phi_hat</span><span class="p">,</span><span class="n">y_scaled</span> <span class="o">=</span> <span class="n">_phi_hat</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
+		<span class="n">phi_hat_13</span><span class="p">,</span><span class="n">y_scaled_13</span> <span class="o">=</span> <span class="n">_phi_hat</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">mu</span><span class="o">+</span><span class="n">DEa</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
 		<span class="n">phi_err</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">phi</span><span class="o">-</span><span class="n">phi_hat</span><span class="p">)</span><span class="o">/</span><span class="n">nE</span>
+		<span class="n">rel_area</span> <span class="o">=</span> <span class="n">_rel_area</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">y_scaled</span><span class="p">)</span>
 
 		<span class="c1">#define public parameters</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">phi</span> <span class="o">=</span> <span class="n">phi</span>
@@ -381,15 +445,20 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">height</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">phi_hat</span> <span class="o">=</span> <span class="n">phi_hat</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">phi_hat_13</span> <span class="o">=</span> <span class="n">phi_hat_13</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">phi_err</span> <span class="o">=</span> <span class="n">phi_err</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">rel_area</span> <span class="o">=</span> <span class="n">rel_area</span>
 
 		<span class="c1">#combine last peaks if necessary</span>
 		<span class="k">if</span> <span class="n">combine_last</span><span class="p">:</span>
 			<span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span><span class="o">-</span><span class="n">combine_last</span>
 			<span class="n">combined</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y_scaled</span><span class="p">[:,</span><span class="n">n</span><span class="p">:],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+			<span class="n">combined_13</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y_scaled_13</span><span class="p">[:,</span><span class="n">n</span><span class="p">:],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">peaks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">y_scaled</span><span class="p">[:,:</span><span class="n">n</span><span class="p">],</span><span class="n">combined</span><span class="p">))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">peaks_13</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">y_scaled_13</span><span class="p">[:,:</span><span class="n">n</span><span class="p">],</span><span class="n">combined_13</span><span class="p">))</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">peaks</span> <span class="o">=</span> <span class="n">y_scaled</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">peaks_13</span> <span class="o">=</span> <span class="n">y_scaled_13</span>
 
 <div class="viewcode-block" id="EnergyComplex.plot"><a class="viewcode-back" href="../../../energycomplex.html#rampedpyrox.core.energycomplex.EnergyComplex.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>

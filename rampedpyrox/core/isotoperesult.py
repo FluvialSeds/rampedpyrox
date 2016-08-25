@@ -18,13 +18,13 @@ from rampedpyrox.core.energycomplex import _phi_hat
 
 def _calc_R13_CO2(R13_peak, DEa, ec, lt):
 	'''
-	Performs a best-fit for 13C ratios, including ∆Ea values.
+	Performs a best-fit for 13C ratios, including DEa values.
 	
 	Args:
 		R13_peak (np.ndarray): 13C/12C ratio for each peak.
 
-		DEa (int, float, or np.ndarray): ∆Ea values, either a scalar or vector
-			of length ec.mu. ∆Ea in units of kJ!
+		DEa (int, float, or np.ndarray): DEa values, either a scalar or vector
+			of length ec.mu. DEa in units of kJ!
 
 		ec (rp.EnergyComplex): Energy complex object containing peaks.
 
@@ -97,8 +97,8 @@ def _R13_diff(R13_peak, R13_frac, frac_ind, DEa, ec, lt):
 		frac_ind (np.ndarray): Index of mass-weighted mean for each fraction.
 			Length nFrac.
 
-		DEa (int, float, or np.ndarray): ∆Ea values, either a scalar or vector
-			of length ec.mu. ∆Ea in units of kJ!
+		DEa (int, float, or np.ndarray): DEa values, either a scalar or vector
+			of length ec.mu. DEa in units of kJ!
 
 		ec (rp.EnergyComplex): Energy complex object containing peaks.
 
@@ -118,7 +118,7 @@ def _R13_diff(R13_peak, R13_frac, frac_ind, DEa, ec, lt):
 
 def _fit_R13_peak(R13_frac, frac_ind, DEa, ec, lt):
 	'''
-	Fits the 13C/12C of each peak using inputted ∆Ea values for each peak.
+	Fits the 13C/12C of each peak using inputted DEa values for each peak.
 	
 	Args:
 		R13_frac (np.ndarray): 13C/12C ratio for each fraction. Length nFrac.
@@ -126,8 +126,8 @@ def _fit_R13_peak(R13_frac, frac_ind, DEa, ec, lt):
 		frac_ind (np.ndarray): Index of mass-weighted mean for each fraction.
 			Length nFrac.
 
-		DEa (int, float, or np.ndarray): ∆Ea values, either a scalar or vector
-			of length ec.mu. ∆Ea in units of kJ!
+		DEa (int, float, or np.ndarray): DEa values, either a scalar or vector
+			of length ec.mu. DEa in units of kJ!
 
 		ec (rp.EnergyComplex): Energy complex object containing peaks.
 
@@ -140,7 +140,7 @@ def _fit_R13_peak(R13_frac, frac_ind, DEa, ec, lt):
 
 	'''
 	
-	#make initial guess of 0‰
+	#make initial guess of 0 per mille
 	r0 = 0.011237*np.ones(len(ec.mu))
 
 	#perform fit
@@ -436,7 +436,7 @@ class IsotopeResult(object):
 		Fm_pred = np.inner(cont_ptf,self.Fm_peak)
 		self.Fm_pred_meas = Fm_pred - self.Fm_frac
 
-		#calculate predicted 13C/12C ratio including ∆Ea
+		#calculate predicted 13C/12C ratio including DEa
 		R13_peak = _fit_R13_peak(R13[:,0], frac_ind, DEa, ec, lt)
 
 		#convert to d13C and store
@@ -447,7 +447,7 @@ class IsotopeResult(object):
 
 		# #perform 13R regression
 		# if DEa is None:
-		# 	#no ∆Ea, perform nnls on raw data
+		# 	#no DEa, perform nnls on raw data
 		# 	R13_peak = nnls(cont_ptf,R13[:,0])[0]
 		# 	d13C_peak,_ = _13R_to_d13C(R13_peak, 0)
 		# 	self.d13C_peak = d13C_peak
