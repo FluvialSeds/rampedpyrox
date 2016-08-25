@@ -417,12 +417,15 @@ class IsotopeResult(object):
 	def __init__(self, sum_data, mod_tg, ec, lt, 
 		blank_correct=False, DEa=0, mass_rsd=0.01):
 
-		#extract isotopes and time
-		t, R13, Fm, mass = _extract_isotopes(sum_data, mass_rsd=mass_rsd)
+		#extract isotopes and time for each fraction
+		t_frac, R13_frac, Fm_frac, mass_frac = _extract_isotopes(
+			sum_data, 
+			mass_rsd=mass_rsd)
 
 		#blank correct if necessary
 		if blank_correct:
-			R13,Fm,mass = _blank_correct(R13, Fm, t, mass)
+			R13_frac, Fm_frac, mass_frac = _blank_correct(
+				R13_frac, Fm_frac, t_frac, mass_frac)
 
 		d13C, d13C_std = _13R_to_d13C(R13[:,0], R13[:,1])
 

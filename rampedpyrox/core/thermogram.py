@@ -11,6 +11,7 @@ import pandas as pd
 
 from scipy.interpolate import interp1d
 
+__docformat__ = 'restructuredtext en'
 
 #define function to extract Thermogram variables from 'real_data'
 def _extract_tg(all_data, nT):
@@ -115,7 +116,7 @@ class Thermogram(object):
 
 
 class RealData(Thermogram):
-	'''
+	__doc__ = '''
 	Class for real data thermograms (e.g. data from RampedPyrox experiment).
 
 	Args:
