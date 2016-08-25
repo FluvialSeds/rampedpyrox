@@ -291,6 +291,10 @@ def calc_L_curve(A, g, log_om_min=-3, log_om_max=2, nOm=100):
 	return om_best, resid_vec, rgh_vec, omega_vec 
 
 def Wabha(A, g, omega):
+	'''
+	Currently unused. Testing alternate methods of choosing best-fit omega.
+	'''
+
 
 	#extract shape
 	nT,nE = np.shape(A)

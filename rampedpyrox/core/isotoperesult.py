@@ -12,6 +12,73 @@ import pandas as pd
 
 from scipy.optimize import nnls
 
+#for _R13_fit
+from rampedpyrox.core.energycomplex import _phi_hat
+
+def _R13_fit(R13_peak, DEa, ec, lt):
+	'''
+	Performs a best-fit for 13C ratios, including ∆Ea values.
+	
+	Args:
+		R13_peak (np.ndarray): 13C/12C ratio for each peak.
+
+		DEa (int, float, or np.ndarray): ∆Ea values, either a scalar or vector
+			of length ec.mu.
+
+		ec (rp.EnergyComplex): Energy complex object containing peaks.
+
+		lt (np.LaplaceTransform): Laplace transform to forward-model 
+			isotope-specific thermograms.
+
+	Returns:
+
+	Raises:
+		ValueError: If DEa is not int, float, or np.ndarray.
+
+		ValueError: If DEa is np.ndarray and is of different length than ec.mu
+
+		ValueError: If R13C_peak is of different length than ec.mu
+
+	'''
+
+	#check DEa
+	if not isinstance(DEa, (float,int,np.ndarray)):
+		raise ValueError('DEa must be float, int, or np.ndarray')
+	elif isinstance(DEa, np.ndarray) and len(DEa) is not len(ec.mu):
+		raise ValueError('If array, DEa must have same length as ec.mu')
+
+	#check R13_peak
+	if not isinstance(R13_peak, np.ndarray) or len(R13_peak) is not len(ec.mu):
+		raise ValueError('R13_peak must be np.ndarray with same length as ec.mu')
+
+	eps = ec.eps
+	
+	#extract 12C data
+	mu = ec.mu
+	sigma = ec.sigma
+	height = ec.height*(1-R13_peak) #convert total height to 12C
+
+	#calculate 13C data
+	mu_13 = mu + DEa
+	sigma_13 = sigma
+	height_13 = ec.height*R13_peak
+
+	#generate 13C and 12C f(Ea) distributions
+	phi_hat_12,_ = _phi_hat(eps, mu, sigma, height)
+	phi_hat_13,_ = _phi_hat(eps, mu_13, sigma_13, height_13)
+
+	#forward-model 13C and 12C g_hat
+	g_hat_12 = np.inner(lt.A,ec.phi_hat_12)
+	g_hat_13 = np.inner(lt.A,ec.phi_hat_13)
+
+	#convert to 13C and 12C thermograms
+
+
+
+	return g_hat_12, g_hat_13
+
+
+
 def _blank_correct(R13, Fm, t, mass):
 	'''
 	Performs blank correction (NOSAMS RPO instrument) on raw isotope values.
@@ -88,7 +155,7 @@ def _blank_correct(R13, Fm, t, mass):
 def _calc_cont_ptf(mod_tg,t):
 	'''
 	Calculates the contribution of each peak to each fraction.
-	Called by ``_fit()``.
+	Called by ``IsotopeResult.__init__()``.
 
 	Args:
 		mod_tg (rp.ModeledData): ``ModeledData`` object containing peaks
