@@ -4,6 +4,7 @@ composition of individual Ea peaks within a sample, as well as supporting
 functions.
 
 * TODO: update _calc_cont_ptf to handle fractions of timepoints
+* TODO: fix blank correction d13C stdev.
 '''
 
 import numpy as np
@@ -67,7 +68,7 @@ def _blank_correct(R13, Fm, t, mass):
 	mass_corr = np.column_stack((sam_mass,sam_mass_std))
 
 	#perform R13 blank correction
-	sam_R13 = (mass[:,0]*R13[0,:] - bl_mass*bl_R13)/sam_mass
+	sam_R13 = (mass[:,0]*R13[:,0] - bl_mass*bl_R13)/sam_mass
 	sam_R13_std = (R13[:,1]**2 + \
 		(bl_mass_std*bl_R13/sam_mass)**2 + \
 		(bl_mass*bl_R13_std/sam_mass)**2 + \
@@ -75,7 +76,7 @@ def _blank_correct(R13, Fm, t, mass):
 	R13_corr = np.column_stack((sam_R13, sam_R13_std))
 
 	#perform Fm blank correction
-	sam_Fm = (mass[:,0]*Rm[0,:] - bl_mass*bl_Fm)/sam_mass
+	sam_Fm = (mass[:,0]*Fm[:,0] - bl_mass*bl_Fm)/sam_mass
 	sam_Fm_std = (Fm[:,1]**2 + \
 		(bl_mass_std*bl_Fm/sam_mass)**2 + \
 		(bl_mass*bl_Fm_std/sam_mass)**2 + \
@@ -151,7 +152,7 @@ def _d13C_to_13R(d13C, d13C_std):
 
 	Rpdb = 0.011237 #13C/12C ratio VPDB
 
-	R13 = ((d13C/1000)+1)*Rpdb
+	R13 = (d13C/1000 + 1)*Rpdb
 	R13_std = Rpdb*d13C_std/1000
 
 	return R13, R13_std
@@ -230,7 +231,7 @@ def _extract_isotopes(sum_data, mass_rsd=0.01):
 	mass_std = mass_rsd*mass_mean
 	mass = np.column_stack((mass_mean,mass_std))
 	
-	return t, R13, Fm
+	return t, R13, Fm, mass
 
 def _fit(mod_tg, R13, Fm, t):
 	'''
@@ -285,11 +286,11 @@ class IsotopeResult(object):
 	def __init__(self, sum_data, mod_tg, blank_correct=False, DEa=None, mass_rsd=0.01):
 
 		#extract isotopes and time
-		t,R13,Fm,mass = _extract_isotopes(sum_data, mass_rsd=mass_rsd)
+		t, R13, Fm, mass = _extract_isotopes(sum_data, mass_rsd=mass_rsd)
 
 		#blank correct if necessary
 		if blank_correct:
-			R13,Fm,mass = _blank_correct(R13,Fm, mass)
+			R13,Fm,mass = _blank_correct(R13, Fm, t, mass)
 
 		d13C, d13C_std = _13R_to_d13C(R13[:,0], R13[:,1])
 
@@ -300,25 +301,25 @@ class IsotopeResult(object):
 		self.t = t
 		self.d13C_frac = d13C
 		self.d13C_frac_std = d13C_std
-		self.Fm_frac = Fm[0,:]
-		self.Fm_frac_std = Fm[1,:]
-		self.mass_frac = mass[0,:]
-		self.mass_std = mass[1,:]
+		self.Fm_frac = Fm[:,0]
+		self.Fm_frac_std = Fm[:,1]
+		self.mass_frac = mass[:,0]
+		self.mass_std = mass[:,1]
 
 		#perform Fm regression and store data
 		self.Fm_peak = nnls(cont_ptf,self.Fm_frac)[0]
 
 		#calculate predicted Fm for each fraction and store difference
 		Fm_pred = np.inner(cont_ptf,self.Fm_peak)
-		self.Fm_pred_meas = Fm_pred - Fm_frac[0:]
+		self.Fm_pred_meas = Fm_pred - self.Fm_frac
 
 		#perform 13R regression
 
 
 
-		d13C_peak,Fm_peak = _fit(mod_tg, R13, Fm, t)
+		#d13C_peak,Fm_peak = _fit(mod_tg, R13, Fm, t)
 
-		self.d13C_peak = d13C_peak
+		#self.d13C_peak = d13C_peak
 		
 
 
