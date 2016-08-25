@@ -15,7 +15,7 @@ from scipy.optimize import nnls
 #for _R13_fit
 from rampedpyrox.core.energycomplex import _phi_hat
 
-def _R13_fit(R13_peak, DEa, ec, lt):
+def _calc_R13_CO2(R13_peak, DEa, ec, lt):
 	'''
 	Performs a best-fit for 13C ratios, including ∆Ea values.
 	
@@ -23,7 +23,7 @@ def _R13_fit(R13_peak, DEa, ec, lt):
 		R13_peak (np.ndarray): 13C/12C ratio for each peak.
 
 		DEa (int, float, or np.ndarray): ∆Ea values, either a scalar or vector
-			of length ec.mu.
+			of length ec.mu. ∆Ea in units of kJ!
 
 		ec (rp.EnergyComplex): Energy complex object containing peaks.
 
@@ -31,6 +31,8 @@ def _R13_fit(R13_peak, DEa, ec, lt):
 			isotope-specific thermograms.
 
 	Returns:
+		R13_CO2 (np.ndarray): Array of 13C/12C ratio of instantaneously eluted
+			CO2 at each timepoints with length nT.
 
 	Raises:
 		ValueError: If DEa is not int, float, or np.ndarray.
@@ -68,14 +70,17 @@ def _R13_fit(R13_peak, DEa, ec, lt):
 	phi_hat_13,_ = _phi_hat(eps, mu_13, sigma_13, height_13)
 
 	#forward-model 13C and 12C g_hat
-	g_hat_12 = np.inner(lt.A,ec.phi_hat_12)
-	g_hat_13 = np.inner(lt.A,ec.phi_hat_13)
+	g_hat_12 = np.inner(lt.A,phi_hat_12)
+	g_hat_13 = np.inner(lt.A,phi_hat_13)
 
-	#convert to 13C and 12C thermograms
+	#convert to 13C and 12C thermograms, and calculate R13_CO2
+	grad_t = np.gradient(lt.t)
+	gdot_hat_12 = -np.gradient(g_hat_12)/grad_t
+	gdot_hat_13 = -np.gradient(g_hat_13)/grad_t
 
+	R13_CO2 = gdot_hat_13/gdot_hat_12
 
-
-	return g_hat_12, g_hat_13
+	return R13_CO2
 
 
 

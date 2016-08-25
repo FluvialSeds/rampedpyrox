@@ -82,8 +82,8 @@ class Thermogram(object):
 		self.g = g #fraction
 
 		self.Taudot_t = np.gradient(Tau)/np.gradient(t) #Kelvin/second
-		self.gdot_t = np.gradient(g)/np.gradient(t) #second-1
-		self.gdot_Tau = self.gdot_t/self.Taudot_t #Kelvin-1
+		self.gdot_t = np.gradient(g)/np.gradient(t) #fraction/second
+		self.gdot_Tau = self.gdot_t/self.Taudot_t #fraction/Kelvin
 
 	def plot(self, ax=None, xaxis='time'):
 		'''
@@ -100,11 +100,11 @@ class Thermogram(object):
 		if xaxis == 'time':
 			tg_line, = ax.plot(self.t,-self.gdot_t)
 			ax.set_xlabel('time (seconds)')
-			ax.set_ylabel(r'rate constant ($s^{-1}$)')
+			ax.set_ylabel(r'normalized carbon loss rate (fraction/second)')
 		else:
 			tg_line, = ax.plot(self.Tau,-self.gdot_Tau)
 			ax.set_xlabel('Temp. (Kelvin)')
-			ax.set_ylabel(r'rate constant ($K^{-1}$)')
+			ax.set_ylabel(r'normalized carbon loss rate (fraction/K)')
 
 		return ax, tg_line
 
