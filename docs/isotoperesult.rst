@@ -1,23 +1,22 @@
 Isotope Result
 ==============
 
-This
 
-This module creates ``EnergyComplex`` objects that contain the inversion model results,
-deconvolves them into individual Gaussian peaks (with n either inputted by the user or
-calculated automatically), and plots resulting Ea distribution.
 
 Examples
 --------
 
-Running a thermogram through the inverse model and deconvolving Ea distribution::
+Calculating the isotope composition of each peak::
 
-	#load modules
-	import matplotlib.pyplot as plt
+	#save string pointing to isotope data
+	iso_data = '/path_to_folder_containing_data/isotope_data.csv'
 
-	phi,resid_err,rgh_err,omega = lt.calc_fE_inv(tg,omega='auto')
-	ec = rp.EnergyComplex(eps,phi,nPeaks='auto',combine_last=None)
-	ax = ec.plot()
+	#create IsotopeResult object using data and ModeledResult object md
+	ir = rp.IsotopeResult(iso_data,md)
+
+	#view results
+	print(ir.Fm_peak)
+	print(ir.d13C_peak)
 
 Technical documentation
 -----------------------
@@ -31,5 +30,5 @@ References
 
 Module Reference
 ----------------
-.. automodule:: rampedpyrox.core.energycomplex
+.. automodule:: rampedpyrox.core.isotoperesult
 	:members:

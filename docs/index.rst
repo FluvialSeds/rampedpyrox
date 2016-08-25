@@ -88,6 +88,7 @@ Table of contents
    thermogram
    laplacetransform
    energycomplex
+   isotoperesult
 
 Indices and tables
 ==================
