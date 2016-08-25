@@ -12,7 +12,6 @@ import pandas as pd
 
 from scipy.optimize import nnls
 
-#for _R13_fit
 from rampedpyrox.core.energycomplex import _phi_hat
 
 def _calc_R13_CO2(R13_peak, DEa, ec, lt):
@@ -58,12 +57,12 @@ def _calc_R13_CO2(R13_peak, DEa, ec, lt):
 	#extract 12C data
 	mu = ec.mu
 	sigma = ec.sigma
-	height = ec.height*(1-R13_peak) #convert total height to 12C
+	height = ec.height/(1+R13_peak) #convert total height to 12C
 
 	#calculate 13C data
 	mu_13 = mu + DEa
 	sigma_13 = sigma
-	height_13 = ec.height*R13_peak
+	height_13 = height*R13_peak
 
 	#generate 13C and 12C f(Ea) distributions
 	phi_hat_12,_ = _phi_hat(eps, mu, sigma, height)
