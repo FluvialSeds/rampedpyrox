@@ -343,6 +343,10 @@ class EnergyComplex(object):
 			high temperature range, as is often the case with real data).
 			Defaults to None.
 
+		DEa (int, float, or np.ndarray): ∆Ea values, either a scalar or vector
+			of length nPeaks (in units of kJ!). If using nPeaks = 'auto', leave
+			DEa as a scalar to avoid issues with array length. Defaults to 0.
+
 	Returns:
 		ec (rp.EnergyComplex): ``EnergyComplex`` object.
 
@@ -352,6 +356,8 @@ class EnergyComplex(object):
 		ValueError: If ``nPeaks`` is greater than the total number of peaks detected.
 		
 		ValueError: If ``nPeaks`` is not 'auto' or int.
+
+		ValueError: If ``DEa`` is not int, float, or np.ndarray of length nPeaks.
 
 	Examples:
 		Running a thermogram through the inverse model and deconvolving::
@@ -371,16 +377,21 @@ class EnergyComplex(object):
 		parameters much better than the Levenberg-Marquardt algorithm.
 	'''
 
-	def __init__(self, eps, phi, nPeaks='auto', thres=0.05, combine_last=None):
+	def __init__(self, eps, phi, nPeaks='auto', thres=0.05, combine_last=None, DEa=0):
 
 		#assert phi and eps are same length
 		if len(phi) != len(eps):
 			raise ValueError('phi and eps vectors must have same length')
 		nE = len(phi)
 
-		#perform deconvolution
+		#assert DEa is int, float, or np.ndarray of the right length
+		if not isinstance(DEa, (float,int,np.ndarray)):
+			raise ValueError('DEa must be float, int, or np.ndarray of length nPeaks')
+
+		#perform deconvolution, including 13C f(Ea)
 		mu,sigma,height = _deconvolve(eps, phi, nPeaks=nPeaks, thres=thres)
 		phi_hat,y_scaled = _phi_hat(eps, mu, sigma, height)
+		phi_hat_13,y_scaled_13 = _phi_hat(eps, mu+DEa, sigma, height)
 		phi_err = norm(phi-phi_hat)/nE
 		rel_area = _rel_area(eps, y_scaled)
 
@@ -391,6 +402,7 @@ class EnergyComplex(object):
 		self.sigma = sigma
 		self.height = height
 		self.phi_hat = phi_hat
+		self.phi_hat_13 = phi_hat_13
 		self.phi_err = phi_err
 		self.rel_area = rel_area
 
@@ -398,9 +410,12 @@ class EnergyComplex(object):
 		if combine_last:
 			n = len(mu)-combine_last
 			combined = np.sum(y_scaled[:,n:],axis=1)
+			combined_13 = np.sum(y_scaled_13[:,n:],axis=1)
 			self.peaks = np.column_stack((y_scaled[:,:n],combined))
+			self.peaks_13 = np.column_stack((y_scaled_13[:,:n],combined_13))
 		else:
 			self.peaks = y_scaled
+			self.peaks_13 = y_scaled_13
 
 	def plot(self, ax=None):
 		'''

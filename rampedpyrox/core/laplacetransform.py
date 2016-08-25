@@ -312,9 +312,7 @@ def Wabha(A, g, omega):
 	tau = np.trace(np.eye(nT) - X)**2
 
 	return RSS/tau
-
-
-
+	
 
 class LaplaceTransform(object):
 	'''
