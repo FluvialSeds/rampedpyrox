@@ -152,32 +152,33 @@ def _fit_R13_peak(R13_frac, frac_ind, DEa, ec, lt):
 
 	return R13_peak
 
-def _blank_correct(R13, Fm, t, mass):
+#updated
+def _blank_correct(t0_frac, tf_frac, mass_frac, R13_frac, Fm_frac):
 	'''
 	Performs blank correction (NOSAMS RPO instrument) on raw isotope values.
 
 	Args:
-		R13 (np.ndarray): 2d array of 13R values, 1st column is mean, 2nd
-			column is stdev.
+		t0_frac (np.ndarray): Array of t0 for each fraction, length nF.
 
-		Fm (np.ndarray): 2d array of Fm values, 1st column is mean, 2nd
-			column is stdev.
+		tf_frac (np.ndarray): Array of tf for each fraction, length nF.
 
-		t (np.ndarray): 2d array of the t0 and tf (in seconds) for each
-			fraction, with shape [nFrac x 2].
-
-		mass (np.ndarray): 2d array of masses (ugC), 1st column is mean, 2nd
-			column is stdev.
+		mass_frac (np.ndarray): Array of masses (ugC) for each fraction, 
+			length nF.
+		
+		R13_frac (np.ndarray): Array of 13R values for each fraction, 
+			length nF.
+		
+		Fm_frac (np.ndarray): Array of Fm values for each fraction, length nF.
 
 	Returns:
-		R13_corr (np.ndarray): 2d array of corrected 13R values, 1st column 
-			is mean, 2nd column is stdev.
-
-		Fm_corr (np.ndarray): 2d array of corrected Fm values, 1st column is 
-			mean, 2nd column is stdev.
-
-		mass_corr (np.ndarray): 2d array of corrected masses (ugC), 1st 
-			column is mean, 2nd column is stdev.
+		mass_frac_corr (np.ndarray): Array of masses (ugC) for each fraction, 
+			length nF. Corrected for blank contribution.
+		
+		R13_frac_corr (np.ndarray): Array of 13R values for each fraction, 
+			length nF. Corrected for blank contribution.
+		
+		Fm_frac_corr (np.ndarray): Array of Fm values for each fraction, 
+			length nF. Corrected for blank contribution.
 	
 	References:
 		J.D. Hemingway et al. (2016) Assessing the blank carbon contribution,
@@ -188,42 +189,20 @@ def _blank_correct(R13, Fm, t, mass):
 
 	#define constants
 	bl_flux = 0.375/1000 #ug/s
-	bl_flux_std = 0.058/1000 #ug/s
 	bl_Fm = 0.555
-	bl_Fm_std = 0.042
 	bl_d13C = -29.0
-	bl_d13C_std = 0.1
-
-	#convert d13C to ratios
-	bl_R13, bl_R13_std = _d13C_to_13R(bl_d13C, bl_d13C_std)
+	bl_R13 = _d13C_to_R13(bl_d13C) #converted to 13C/12C ratio
 
 	#calculate blank mass for each fraction
-	dt = t[:,1]-t[:,0]
+	dt = tf_frac - t0_frac
 	bl_mass = bl_flux*dt #ug
-	bl_mass_std = bl_flux_std*dt #ug
 
-	#perform mass blank correction
-	sam_mass = mass[:,0] - bl_mass
-	sam_mass_std = (mass[:,1]**2 + bl_mass_std**2)**0.5
-	mass_corr = np.column_stack((sam_mass,sam_mass_std))
+	#perform blank correction
+	mass_frac_corr = mass_frac - bl_mass
+	R13_frac_corr = (mass_frac*R13_frac - bl_mass*bl_R13)/mass_frac_corr
+	Fm_frac_corr = (mass_frac*Fm_frac - bl_mass*bl_Fm)/mass_frac_corr
 
-	#perform R13 blank correction
-	sam_R13 = (mass[:,0]*R13[:,0] - bl_mass*bl_R13)/sam_mass
-	sam_R13_std = (R13[:,1]**2 + \
-		(bl_mass_std*bl_R13/sam_mass)**2 + \
-		(bl_mass*bl_R13_std/sam_mass)**2 + \
-		(bl_mass*bl_R13*sam_mass_std/(sam_mass**2))**2)**0.5
-	R13_corr = np.column_stack((sam_R13, sam_R13_std))
-
-	#perform Fm blank correction
-	sam_Fm = (mass[:,0]*Fm[:,0] - bl_mass*bl_Fm)/sam_mass
-	sam_Fm_std = (Fm[:,1]**2 + \
-		(bl_mass_std*bl_Fm/sam_mass)**2 + \
-		(bl_mass*bl_Fm_std/sam_mass)**2 + \
-		(bl_mass*bl_Fm*sam_mass_std/(sam_mass**2))**2)**0.5
-	Fm_corr = np.column_stack((sam_Fm, sam_Fm_std))
-
-	return R13_corr, Fm_corr, mass_corr
+	return mass_frac_corr, R13_frac_corr, Fm_frac_corr
 
 def _calc_cont_ptf(mod_tg, t):
 	'''
@@ -288,29 +267,26 @@ def _calc_cont_ptf(mod_tg, t):
 
 	return cont_ptf, frac_ind
 
-def _d13C_to_13R(d13C, d13C_std):
+#updated
+def _d13C_to_R13(d13C):
 	'''
 	Converts d13C values to 13R values using VPDB standard.
 
 	Args:
 		d13C (np.ndarray): Inputted d13C values.
 
-		d13C_std (np.ndarray): Inputted d13C stdev.
-
 	Returns:
 		R13 (np.ndarray): d13C values converted to 13C ratios.
-
-		R13_std (np.ndarray): d13C stdev. values converted to 13C ratios.
 	'''
 
 	Rpdb = 0.011237 #13C/12C ratio VPDB
 
 	R13 = (d13C/1000 + 1)*Rpdb
-	R13_std = Rpdb*d13C_std/1000
 
-	return R13, R13_std
+	return R13
 
-def _extract_isotopes(sum_data, mass_rsd=0.01):
+#updated
+def _extract_isotopes(sum_data, mass_rsd=0, add_noise=False):
 	'''
 	Extracts isotope data from the "sum_data" file.
 
@@ -321,17 +297,23 @@ def _extract_isotopes(sum_data, mass_rsd=0.01):
 		mass_rsd (float): Relative standard deviation on fraction masses.
 			Defaults to 0.01 (i.e. 1%).
 
-	Returns:
-		t (np.ndarray): 2d array of times, 1st column is t0, 2nd column is tf
-		
-		R13 (np.ndarray): 2d array of 13R values, 1st column is mean, 2nd
-			column is stdev.
-		
-		Fm (np.ndarray): 2d array of Fm values, 1st column is mean, 2nd
-			column is stdev.
+		add_noise (boolean): Tells the program whether or not to add Gaussian
+			noise to isotope and mass values. To be used for Monte Carlo
+			uncertainty calculations. Defaults to False.
 
-		mass (np.ndarray): 2d array of carbon mass (ug), 1st column is mean,
-			2nd column is stdev.
+	Returns:
+		t0_frac (np.ndarray): Array of t0 for each fraction, length nF.
+
+		tf_frac (np.ndarray): Array of tf for each fraction, length nF.
+
+		mass_frac (np.ndarray): Array of masses (ugC) for each fraction, 
+			length nF.
+		
+		R13_frac (np.ndarray): Array of 13R values for each fraction, 
+			length nF.
+		
+		Fm_frac (np.ndarray): Array of Fm values for each fraction, length nF.
+
 
 	Raises:
 		ValueError: If `sum_data` is not str or pd.DataFrame.
@@ -348,11 +330,12 @@ def _extract_isotopes(sum_data, mass_rsd=0.01):
 	#that it is in the right format
 	if isinstance(sum_data,str):
 		sum_data = pd.DataFrame.from_csv(sum_data)
+
 	elif not isinstance(sum_data,pd.DataFrame):
 		raise ValueError('sum_data must be pd.DataFrame or path string')
 
-	if 'fraction' and 'd13C' and 'd13C_std' and 'Fm' and 'Fm_std' and 'ug_frac' \
-		not in sum_data.columns:
+	if 'fraction' and 'd13C' and 'd13C_std' and 'Fm' and 'Fm_std' and \
+		'ug_frac' not in sum_data.columns:
 		raise ValueError('sum_data must have "fraction", "d13C", "d13C_std",'\
 			' "Fm", "Fm_std", and "ug_frac" columns')
 
@@ -364,49 +347,53 @@ def _extract_isotopes(sum_data, mass_rsd=0.01):
 
 	#extract time data
 	secs = (sum_data.index - sum_data.index[0]).seconds
-	t0 = secs[1:-1]
-	tf = secs[2:]
-	t = np.column_stack((t0,tf))
+	t0_frac = secs[1:-1]
+	tf_frac = secs[2:]
+	nF = len(t0_frac)
 
-	#extract d13C data and convert to ratio
-	d13C_mean = sum_data.d13C[2:]
-	d13C_std = sum_data.d13C_std[2:]
-	R13_mean,R13_std = _d13C_to_13R(d13C_mean, d13C_std)
-	R13 = np.column_stack((R13_mean,R13_std))
+	#extract mass and isotope data
+	mass_frac = sum_data.ug_frac[2:].values
+	d13C_frac = sum_data.d13C[2:].values
+	Fm_frac = sum_data.Fm[2:].values
 
-	#extract Fm data
-	Fm_mean = sum_data.Fm[2:]
-	Fm_std = sum_data.Fm_std[2:]
-	Fm = np.column_stack((Fm_mean,Fm_std))
+	#extract standard deviations
+	if add_noise:
+		mass_frac_std = mass_frac*mass_rsd
+		d13C_frac_std = sum_data.d13C_std[2:].values
+		Fm_frac_std = sum_data.Fm_std[2:].values
+		sigs = np.column_stack((mass_frac_std,d13C_frac_std,Fm_frac_std))
+	else:
+		sigs = np.zeros([nF,3])
 
-	#extract mass of each fraction, assume 1% rsd
-	mass_mean = sum_data.ug_frac[2:]
-	mass_std = mass_rsd*mass_mean
-	mass = np.column_stack((mass_mean,mass_std))
+	#generate noise and add to data
+	np.random.seed()
+	err = np.random.randn(nF,3)*sigs
+	mass_frac = mass_frac + err[:,0]
+	d13C_frac = d13C_frac + err[:,1]
+	Fm_frac = Fm_frac + err[:,2]
+
+	#convert d13C to 13C/12C ratio
+	R13_frac = _d13C_to_R13(d13C_frac)
 	
-	return t, R13, Fm, mass
+	return t0_frac, tf_frac, mass_frac, R13_frac, Fm_frac
 
-def _13R_to_d13C(R13, R13_std):
+#updated
+def _R13_to_d13C(R13, R13_std):
 	'''
 	Converts 13R values to d13C values using VPDB standard.
 
 	Args:
 		R13 (np.ndarray): d13C values converted to 13C ratios.
-		
-		R13_std (np.ndarray): d13C stdev. values converted to 13C ratios.
 
 	Returns:
 		d13C (np.ndarray): Inputted d13C values.
-		
-		d13C_std (np.ndarray): Inputted d13C stdev.
 	'''
 
 	Rpdb = 0.011237 #13C/12C ratio VPDB
 
 	d13C = (R13/Rpdb - 1)*1000
-	d13C_std = 1000*R13_std/Rpdb
 
-	return d13C, d13C_std
+	return d13C
 
 
 class IsotopeResult(object):
@@ -415,22 +402,23 @@ class IsotopeResult(object):
 	'''
 
 	def __init__(self, sum_data, mod_tg, ec, lt, 
-		blank_correct=False, DEa=0, mass_rsd=0.01):
+		blank_correct=False, mass_rsd=0, add_noise=False):
 
 		#extract isotopes and time for each fraction
-		t_frac, R13_frac, Fm_frac, mass_frac = _extract_isotopes(
+		t_frac, mass_frac, R13_frac, Fm_frac = _extract_isotopes(
 			sum_data, 
-			mass_rsd=mass_rsd)
+			mass_rsd=mass_rsd,
+			add_noise=False)
 
 		#blank correct if necessary
 		if blank_correct:
-			R13_frac, Fm_frac, mass_frac = _blank_correct(
-				R13_frac, Fm_frac, t_frac, mass_frac)
+			mass_frac, R13_frac, Fm_frac = _blank_correct(
+				mass_frac, R13_frac, Fm_frac, t_frac)
 
-		d13C, d13C_std = _13R_to_d13C(R13[:,0], R13[:,1])
+		
 
-		#calculate peak contribution to each fraction
-		cont_ptf, frac_ind = _calc_cont_ptf(mod_tg, t)
+		#calculate peak contribution and mass-weighted index of each fraction
+		cont_ptf, ind_frac = _calc_cont_ptf(mod_tg, t_frac)
 
 		#define public parameters
 		self.t = t
