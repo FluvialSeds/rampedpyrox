@@ -283,7 +283,8 @@ class IsotopeResult(object):
 	Class for performing isotope deconvolution
 	'''
 
-	def __init__(self, sum_data, mod_tg, blank_correct=False, DEa=None, mass_rsd=0.01):
+	def __init__(self, sum_data, mod_tg, blank_correct=False, DEa=None, 
+		mass_rsd=0.01):
 
 		#extract isotopes and time
 		t, R13, Fm, mass = _extract_isotopes(sum_data, mass_rsd=mass_rsd)
@@ -314,7 +315,16 @@ class IsotopeResult(object):
 		self.Fm_pred_meas = Fm_pred - self.Fm_frac
 
 		#perform 13R regression
+		if DEa is None:
+			#no ∆Ea, perform nnls on raw data
+			R13_peak = nnls(cont_ptf,R13[:,0])[0]
+			d13C_peak,_ = _13R_to_d13C(R13_peak, 0)
+			self.d13C_peak = d13C_peak
 
+			#calculate difference and store
+			R13_pred = np.inner(cont_ptf,R13_peak)
+			d13C_pred,_ = _13R_to_d13C(R13_pred,0)
+			self.d13C_pred_meas = d13C_pred - self.d13C_frac
 
 
 		#d13C_peak,Fm_peak = _fit(mod_tg, R13, Fm, t)
