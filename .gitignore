@@ -11,6 +11,6 @@
 *.csv
 
 #doc builds
-_build
-_static
-_templates
+/docs/_build/
+/docs/_static/
+/docs/_templates/

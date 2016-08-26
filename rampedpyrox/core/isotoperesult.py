@@ -11,6 +11,7 @@ functions.
 import numpy as np
 import pandas as pd
 
+from numpy.linalg import norm
 from scipy.optimize import least_squares
 from scipy.optimize import nnls
 
@@ -152,7 +153,7 @@ def _fit_R13_peak(R13_frac, frac_ind, DEa, ec, lt):
 
 	return R13_peak
 
-#updated
+#GOOD
 def _blank_correct(t0_frac, tf_frac, mass_frac, R13_frac, Fm_frac):
 	'''
 	Performs blank correction (NOSAMS RPO instrument) on raw isotope values.
@@ -267,7 +268,7 @@ def _calc_cont_ptf(mod_tg, t):
 
 	return cont_ptf, frac_ind
 
-#updated
+#GOOD
 def _d13C_to_R13(d13C):
 	'''
 	Converts d13C values to 13R values using VPDB standard.
@@ -285,7 +286,7 @@ def _d13C_to_R13(d13C):
 
 	return R13
 
-#updated
+#GOOD
 def _extract_isotopes(sum_data, mass_rsd=0, add_noise=False):
 	'''
 	Extracts isotope data from the "sum_data" file.
@@ -377,8 +378,8 @@ def _extract_isotopes(sum_data, mass_rsd=0, add_noise=False):
 	
 	return t0_frac, tf_frac, mass_frac, R13_frac, Fm_frac
 
-#updated
-def _R13_to_d13C(R13, R13_std):
+#GOOD
+def _R13_to_d13C(R13):
 	'''
 	Converts 13R values to d13C values using VPDB standard.
 
@@ -401,47 +402,70 @@ class IsotopeResult(object):
 	Class for performing isotope deconvolution
 	'''
 
-	def __init__(self, sum_data, mod_tg, ec, lt, 
+	def __init__(self, sum_data, lt, ec, 
 		blank_correct=False, mass_rsd=0, add_noise=False):
 
 		#extract isotopes and time for each fraction
-		t_frac, mass_frac, R13_frac, Fm_frac = _extract_isotopes(
+		t0_frac, tf_frac, mass_frac, R13_frac, Fm_frac = _extract_isotopes(
 			sum_data, 
 			mass_rsd=mass_rsd,
-			add_noise=False)
+			add_noise=add_noise)
 
 		#blank correct if necessary
 		if blank_correct:
 			mass_frac, R13_frac, Fm_frac = _blank_correct(
-				mass_frac, R13_frac, Fm_frac, t_frac)
+				t0_frac, tf_frac, mass_frac, R13_frac, Fm_frac)
 
 		
+		#combine into pd.DataFrame and save as attribute
+		nFrac = len(t0_frac)
+		d13C_frac = _R13_to_d13C(R13_frac) #convert to d13C for storing
+		frac_info = pd.DataFrame(np.column_stack((t0_frac, tf_frac, mass_frac,
+			d13C_frac, Fm_frac)), columns=['t0','tf','mass (ugC)','d13C','Fm'],
+			index=np.arange(1,nFrac+1))
+
+		self.fraction_info = frac_info
 
 		#calculate peak contribution and mass-weighted index of each fraction
-		cont_ptf, ind_frac = _calc_cont_ptf(mod_tg, t_frac)
+		cont_ptf, ind_frac = _calc_cont_ptf(md, t_frac)
 
-		#define public parameters
-		# self.t = t
-		# self.d13C_frac = d13C
-		# self.d13C_frac_std = d13C_std
-		# self.Fm_frac = Fm[:,0]
-		# self.Fm_frac_std = Fm[:,1]
-		# self.mass_frac = mass[:,0]
-		# self.mass_std = mass[:,1]
+		#calculate peak masses, predicted fraction masses, and rmse
+		mass_peak = ec.rel_area*np.sum(mass_frac)
+		mass_frac_pred = 
+		mass_rmse = norm(mass_frac_pred - mass_frac)/(nFrac**0.5)
 
-		#perform Fm regression and store data
-		self.Fm_peak = nnls(cont_ptf,self.Fm_frac)[0]
+		#perform R13 regression
 
-		#calculate predicted Fm for each fraction and store difference
-		Fm_pred = np.inner(cont_ptf,self.Fm_peak)
-		self.Fm_pred_meas = Fm_pred - self.Fm_frac
 
-		#calculate predicted 13C/12C ratio including DEa
-		R13_peak = _fit_R13_peak(R13[:,0], frac_ind, DEa, ec, lt)
+		#perform Fm regression
+		res = nnls(cont_ptf,Fm_frac)
+		Fm_peak = res[0]
+		Fm_rmse = res[1]/(nFrac**0.5)
 
-		#convert to d13C and store
-		d13C_peak,_ = _13R_to_d13C(R13_peak,0)
-		self.d13C_peak = d13C_peak
+		#combine into pd.DataFrame and save as attribute
+		nPeak = len(mass_peak)
+		d13C_peak = _R13_to_d13C(R13_peak) #convert to d13C for storing
+		peak_info = pd.DataFrame(np.column_stack((mass_peak, d13C_peak,
+			Fm_peak)), columns=['mass (ugC)','d13C','Fm'],
+			index=np.arange(1,nPeak+1))
+
+		self.peak_info = peak_info
+
+		#store pd.Series of rmse values
+		rmses = pd.Series([mass_rmse,d13C_rmse,Fm_rmse],
+			index=['mass','d13c','Fm'])
+		self.RMSEs = rmses
+
+		# #calculate predicted Fm for each fraction and store difference
+		# Fm_pred = np.inner(cont_ptf,self.Fm_peak)
+		# self.Fm_pred_meas = Fm_pred - self.Fm_frac
+
+		# #calculate predicted 13C/12C ratio including DEa
+		# R13_peak = _fit_R13_peak(R13[:,0], frac_ind, DEa, ec, lt)
+
+		# #convert to d13C and store
+		# d13C_peak,_ = _13R_to_d13C(R13_peak,0)
+		# self.d13C_peak = d13C_peak
 
 
 
@@ -452,10 +476,10 @@ class IsotopeResult(object):
 		# 	d13C_peak,_ = _13R_to_d13C(R13_peak, 0)
 		# 	self.d13C_peak = d13C_peak
 
-		#calculate difference and store
-		R13_pred = np.inner(cont_ptf,R13_peak)
-		d13C_pred,_ = _13R_to_d13C(R13_pred,0)
-		self.d13C_pred_meas = d13C_pred - self.d13C_frac
+		# #calculate difference and store
+		# R13_pred = np.inner(cont_ptf,R13_peak)
+		# d13C_pred,_ = _13R_to_d13C(R13_pred,0)
+		# self.d13C_pred_meas = d13C_pred - self.d13C_frac
 		
 
 

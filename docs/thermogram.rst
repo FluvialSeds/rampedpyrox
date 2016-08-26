@@ -1,3 +1,5 @@
+
+
 Thermogram
 ==========
 
@@ -37,5 +39,8 @@ Geosystems*, **9(4)**, Q04005.
 
 Module Reference
 ----------------
-.. automodule:: rampedpyrox.core.thermogram
-	:members: RealData, ModeledData
+.. autosummary::
+	:toctree: _generated/
+
+	rampedpyrox.core.thermogram.RealData
+	rampedpyrox.core.thermogram.ModeledData
