@@ -3,13 +3,6 @@ This module contains the IsotopeResult class for calculating the isotope
 composition of individual Ea peaks within a sample, as well as supporting
 functions.
 
-Note:
-	mass RMSE is probably a combination of the fact that true masses are
-	measured offline as well as error from discretizing -- thermograms
-	appear to over-predict manometrically-calculated masses. Increasing nT 
-	lowers mass RMSE, but never to zero.
-
-
 * TODO: fix _fir_R13_peak to handle combined peaks.
 '''
 
@@ -20,145 +13,8 @@ from numpy.linalg import norm
 from scipy.optimize import least_squares
 from scipy.optimize import nnls
 
-from rampedpyrox.core.energycomplex import _phi_hat
+__docformat__ = 'restructuredtext en'
 
-def _calc_R13_CO2(R13_peak, DEa, ec, lt):
-	'''
-	Performs a best-fit for 13C ratios, including DEa values.
-	
-	Args:
-		R13_peak (np.ndarray): 13C/12C ratio for each peak.
-
-		DEa (int, float, or np.ndarray): DEa values, either a scalar or vector
-			of length ec.mu. DEa in units of kJ!
-
-		ec (rp.EnergyComplex): Energy complex object containing peaks.
-
-		lt (np.LaplaceTransform): Laplace transform to forward-model 
-			isotope-specific thermograms.
-
-	Returns:
-		R13_CO2 (np.ndarray): Array of 13C/12C ratio of instantaneously eluted
-			CO2 at each timepoints with length nT.
-
-	Raises:
-		ValueError: If DEa is not int, float, or np.ndarray.
-
-		ValueError: If DEa is np.ndarray and is of different length than ec.mu
-
-		ValueError: If R13C_peak is of different length than ec.mu
-
-	'''
-
-	#check DEa
-	if not isinstance(DEa, (float,int,np.ndarray)):
-		raise ValueError('DEa must be float, int, or np.ndarray')
-	elif isinstance(DEa, np.ndarray) and len(DEa) is not len(ec.mu):
-		raise ValueError('If array, DEa must have same length as ec.mu')
-
-	#check R13_peak
-	if not isinstance(R13_peak, np.ndarray) or len(R13_peak) is not len(ec.mu):
-		raise ValueError('R13_peak must be np.ndarray with same length as ec.mu')
-
-	eps = ec.eps
-	
-	#extract 12C data
-	mu = ec.mu
-	sigma = ec.sigma
-	height = ec.height/(1+R13_peak) #convert total height to 12C
-
-	#calculate 13C data
-	mu_13 = mu + DEa
-	sigma_13 = sigma
-	height_13 = height*R13_peak
-
-	#generate 13C and 12C f(Ea) distributions
-	phi_hat_12,_ = _phi_hat(eps, mu, sigma, height)
-	phi_hat_13,_ = _phi_hat(eps, mu_13, sigma_13, height_13)
-
-	#forward-model 13C and 12C g_hat
-	g_hat_12 = np.inner(lt.A,phi_hat_12)
-	g_hat_13 = np.inner(lt.A,phi_hat_13)
-
-	#convert to 13C and 12C thermograms, and calculate R13_CO2
-	grad_t = np.gradient(lt.t)
-	gdot_hat_12 = -np.gradient(g_hat_12)/grad_t
-	gdot_hat_13 = -np.gradient(g_hat_13)/grad_t
-
-	R13_CO2 = gdot_hat_13/gdot_hat_12
-
-	return R13_CO2
-
-def _R13_diff(R13_peak, R13_frac, frac_ind, DEa, ec, lt):
-	'''
-	Function to calculate the difference between measured and predicted 13C/12C
-	ratio. To be used by ``scipy.optimize.least_squares``.
-	Called by ``_fit_R13_peak``.
-
-	Args:
-		R13_peak (np.ndarray): 13C/12C ratio for each peak. Length nPeaks.
-
-		R13_frac (np.ndarray): 13C/12C ratio for each fraction. Length nFrac.
-
-		frac_ind (np.ndarray): Index of mass-weighted mean for each fraction.
-			Length nFrac.
-
-		DEa (int, float, or np.ndarray): DEa values, either a scalar or vector
-			of length ec.mu. DEa in units of kJ!
-
-		ec (rp.EnergyComplex): Energy complex object containing peaks.
-
-		lt (np.LaplaceTransform): Laplace transform to forward-model 
-			isotope-specific thermograms.
-
-	Returns:
-		R13_diff (np.ndarray): Difference between measured and predicted 13C/12C
-			ratio for each fraction. Length nFrac.
-	'''
-
-	R13_CO2 = _calc_R13_CO2(R13_peak, DEa, ec, lt)
-
-	R13_diff = R13_CO2[frac_ind] - R13_frac
-
-	return R13_diff
-
-def _fit_R13_peak(R13_frac, frac_ind, DEa, ec, lt):
-	'''
-	Fits the 13C/12C of each peak using inputted DEa values for each peak.
-	
-	Args:
-		R13_frac (np.ndarray): 13C/12C ratio for each fraction. Length nFrac.
-
-		frac_ind (np.ndarray): Index of mass-weighted mean for each fraction.
-			Length nFrac.
-
-		DEa (int, float, or np.ndarray): DEa values, either a scalar or vector
-			of length ec.mu. DEa in units of kJ!
-
-		ec (rp.EnergyComplex): Energy complex object containing peaks.
-
-		lt (rp.LaplaceTransform): Laplace transform to forward-model 
-			isotope-specific thermograms.
-
-	Returns:
-		R13_peak (np.ndarray): Best-fit peak 13C/12C ratios as determined by
-			``scipy.optimize.least_squares()``.
-
-	'''
-	
-	#make initial guess of 0 per mille
-	r0 = 0.011237*np.ones(len(ec.mu))
-
-	#perform fit
-	res = least_squares(_R13_diff,r0,
-		bounds=(0,np.inf),
-		args=(R13_frac,frac_ind,DEa,ec,lt))
-
-	R13_peak = res.x
-
-	return R13_peak
-
-#GOOD
 def _blank_correct(t0_frac, tf_frac, mass_frac, R13_frac, Fm_frac):
 	'''
 	Performs blank correction (NOSAMS RPO instrument) on raw isotope values.
@@ -210,7 +66,6 @@ def _blank_correct(t0_frac, tf_frac, mass_frac, R13_frac, Fm_frac):
 
 	return mass_frac_corr, R13_frac_corr, Fm_frac_corr
 
-#GOOD
 def _calc_cont_ptf(lt, ec, t0_frac, tf_frac):
 	'''
 	Calculates the contribution of each peak to each fraction.
@@ -297,7 +152,56 @@ def _calc_cont_ptf(lt, ec, t0_frac, tf_frac):
 
 	return cont_ptf, ind_min, ind_max, ind_wgh
 
-#GOOD
+def _calc_R13_CO2(R13_peak, lt, ec):
+	'''
+	Performs a best-fit for 13C ratios, including DEa values.
+	Called by ``_R13_diff()``.
+	
+	Args:
+		R13_peak (np.ndarray): 13C/12C ratio for each peak. Length nPeaks.
+
+		lt (rp.LaplaceTransform): Laplace transform to forward-model 
+			isotope-specific thermograms.
+		
+		ec (rp.EnergyComplex): Energy complex object containing peaks.
+
+	Returns:
+		R13_CO2 (np.ndarray): Array of 13C/12C ratio of instantaneously eluted
+			CO2 at each timepoints with length nT.
+
+	Raises:
+		ValueError: If R13C_peak is of different length than nPeak (combined).
+	'''
+
+	#check R13_peak
+	_,nPeak = np.shape(ec.peaks)
+
+	if not isinstance(R13_peak, np.ndarray) or len(R13_peak) != nPeak:
+		raise ValueError('R13_peak must be array with len. nPeak (combined)')
+
+	eps = ec.eps
+	
+	#extract 12C and 13C Ea Gaussian peaks and scale to correct heights
+	C12_peaks_scl = ec.peaks
+	C13_peaks_scl = ec.peaks_13*R13_peak
+
+	#sum to create scaled phi_hat arrays
+	phi_hat_12_scl = np.sum(C12_peaks_scl,axis=1)
+	phi_hat_13_scl = np.sum(C13_peaks_scl,axis=1)
+
+	#forward-model 13C and 12C g_hat
+	g_hat_12 = np.inner(lt.A,phi_hat_12_scl)
+	g_hat_13 = np.inner(lt.A,phi_hat_13_scl)
+
+	#convert to 13C and 12C thermograms, and calculate R13_CO2
+	grad_t = np.gradient(lt.t)
+	gdot_hat_12 = -np.gradient(g_hat_12)/grad_t
+	gdot_hat_13 = -np.gradient(g_hat_13)/grad_t
+
+	R13_CO2 = gdot_hat_13/gdot_hat_12
+
+	return R13_CO2
+
 def _d13C_to_R13(d13C):
 	'''
 	Converts d13C values to 13R values using VPDB standard.
@@ -315,7 +219,6 @@ def _d13C_to_R13(d13C):
 
 	return R13
 
-#GOOD
 def _extract_isotopes(sum_data, mass_rsd=0, add_noise=False):
 	'''
 	Extracts isotope data from the "sum_data" file.
@@ -407,7 +310,94 @@ def _extract_isotopes(sum_data, mass_rsd=0, add_noise=False):
 	
 	return t0_frac, tf_frac, mass_frac, R13_frac, Fm_frac
 
-#GOOD
+def _fit_R13_peak(R13_frac, ind_wgh, lt, ec):
+	'''
+	Fits the 13C/12C of each peak using inputted DEa values for each peak.
+	Called by ``IsotopeResult.__init__()``.
+	
+	Args:
+		R13_frac (np.ndarray): 13C/12C ratio for each fraction. Length nFrac.
+
+		ind_wgh (np.ndarray): Index of mass-weighted mean for each fraction.
+			Length nFrac.
+
+		lt (rp.LaplaceTransform): Laplace transform to forward-model 
+			isotope-specific thermograms.
+		
+		ec (rp.EnergyComplex): Energy complex object containing peaks.
+
+	Returns:
+		d13C_peak (np.ndarray): Best-fit peak 13C/12C ratios as determined by
+			``scipy.optimize.least_squares()`` and converted to d13C scale.
+
+		d13C_rmse (float): Fitting RMSE determined as 
+			``norm(Ax-b)/sqrt(nFrac)``, and converted to d13C scale.
+
+	Warnings:
+		If _fit_R13_peak cannot converge on a best-fit solution when calling
+			``scipy.optimize.least_squares``.
+	'''
+	
+	#make initial guess of 0 per mille
+	_,nPeak = np.shape(ec.peaks)
+	nFrac = len(R13_frac)
+	
+	Rpdb = 0.011237
+	r0 = Rpdb*np.ones(nPeak)
+
+	#perform fit
+	res = least_squares(_R13_diff,r0,
+		bounds=(0,np.inf),
+		args=(R13_frac, ind_wgh, lt, ec))
+
+	#ensure success
+	if not res.success:
+		warnings.warn('R13 peak calc. could not converge on a successful fit')
+
+	#best-fit result
+	R13_peak = res.x
+	d13C_peak = _R13_to_d13C(R13_peak)
+
+	#calculate predicted R13 of each fraction and convert to d13C
+	R13_frac_pred = res.fun + R13_frac
+	d13C_frac = _R13_to_d13C(R13_frac)
+	d13C_frac_pred = _R13_to_d13C(R13_frac_pred)
+
+	#calculate RMSE
+	d13C_rmse = norm(d13C_frac - d13C_frac_pred)/(nFrac**0.5)
+
+	return (d13C_peak, d13C_rmse)
+
+def _R13_diff(R13_peak, R13_frac, ind_wgh, lt, ec):
+	'''
+	Function to calculate the difference between measured and predicted 13C/12C
+	ratio. To be used by ``scipy.optimize.least_squares``.
+	Called by ``_fit_R13_peak``.
+
+	Args:
+		R13_peak (np.ndarray): 13C/12C ratio for each peak. Length nPeaks.
+
+		R13_frac (np.ndarray): 13C/12C ratio for each fraction. Length nFrac.
+
+		ind_wgh (np.ndarray): Index of mass-weighted mean for each fraction.
+			Length nFrac.
+
+		lt (rp.LaplaceTransform): Laplace transform to forward-model 
+			isotope-specific thermograms.
+		
+		ec (rp.EnergyComplex): Energy complex object containing peaks.
+
+	Returns:
+		R13_diff (np.ndarray): Difference between measured and predicted 13C/12C
+			ratio for each fraction. Length nFrac.
+	'''
+
+	R13_CO2 = _calc_R13_CO2(R13_peak, lt, ec)
+
+	R13_diff = R13_CO2[ind_wgh] - R13_frac
+
+	return R13_diff
+
 def _R13_to_d13C(R13):
 	'''
 	Converts 13R values to d13C values using VPDB standard.
@@ -427,8 +417,24 @@ def _R13_to_d13C(R13):
 
 
 class IsotopeResult(object):
-	'''
-	Class for performing isotope deconvolution
+	__doc__='''
+	Class for performing isotope deconvolution and storing results.
+
+	Args:
+
+	Returns:
+
+	Raises:
+
+	Examples:
+
+	References:
+
+	Notes:
+		mass RMSE is probably a combination of the fact that true masses are
+		measured offline as well as error from discretizing -- sum of
+		predicted fraction contributions is never perfectly equal to unity.
+		Increasing nT lowers mass RMSE, but never to zero.
 	'''
 
 	def __init__(self, sum_data, lt, ec, 
@@ -459,7 +465,6 @@ class IsotopeResult(object):
 			lt, ec, t0_frac, tf_frac)
 
 		#calculate peak masses, predicted fraction masses, and rmse
-
 		#generate modeled thermogram and extract total mass (ugC)
 		ugC = np.sum(mass_frac)
 		g = np.inner(lt.A,ec.phi_hat) #fraction
@@ -476,54 +481,36 @@ class IsotopeResult(object):
 		mass_frac_pred = np.array(mass_pred)
 		mass_rmse = norm(mass_frac_pred - mass_frac)/(nFrac**0.5)
 
-		#perform R13 regression
-		d13C_rmse = 0
+		#perform R13 regression to calculate peak R13 values
+		res_13 = _fit_R13_peak(R13_frac, ind_wgh, lt, ec)
+		d13C_peak = res_13[0]
+		d13C_rmse = res_13[1]
 
 		#perform Fm regression
-		res = nnls(cont_ptf,Fm_frac)
-		Fm_peak = res[0]
-		Fm_rmse = res[1]/(nFrac**0.5)
+		res_14 = nnls(cont_ptf,Fm_frac)
+		Fm_peak = res_14[0]
+		Fm_rmse = res_14[1]/(nFrac**0.5)
+
+		#repeat isotopes for combined peaks if necessary and append to arrays
+		# makes book-keeping easier later, since we'll recomine all peak info.
+		# for the summary tables
+		nP_tot = len(mass_peak)
+		_,nP_comb = np.shape(ec.peaks)
+		d13C_peak = np.append(d13C_peak, d13C_peak[-1]*
+			np.ones(nP_tot - nP_comb))
+		Fm_peak = np.append(Fm_peak, Fm_peak[-1]*np.ones(nP_tot - nP_comb))
 
 		#combine into pd.DataFrame and save as attribute
-		# nPeak = len(mass_peak)
-		# d13C_peak = _R13_to_d13C(R13_peak) #convert to d13C for storing
-		# peak_info = pd.DataFrame(np.column_stack((mass_peak, d13C_peak,
-		# 	Fm_peak)), columns=['mass (ugC)','d13C','Fm'],
-		# 	index=np.arange(1,nPeak+1))
+		peak_info = pd.DataFrame(np.column_stack((mass_peak, d13C_peak,
+			Fm_peak)), columns=['mass (ugC)','d13C','Fm'],
+			index=np.arange(1,nP_tot+1))
 
-		# self.peak_info = peak_info
+		self.peak_info = peak_info
 
 		#store pd.Series of rmse values
-		rmses = pd.Series([mass_rmse,d13C_rmse,Fm_rmse],
+		rmses = pd.Series([mass_rmse, d13C_rmse, Fm_rmse],
 			index=['mass','d13C','Fm'])
 		self.RMSEs = rmses
-
-		# #calculate predicted Fm for each fraction and store difference
-		# Fm_pred = np.inner(cont_ptf,self.Fm_peak)
-		# self.Fm_pred_meas = Fm_pred - self.Fm_frac
-
-		# #calculate predicted 13C/12C ratio including DEa
-		# R13_peak = _fit_R13_peak(R13[:,0], frac_ind, DEa, ec, lt)
-
-		# #convert to d13C and store
-		# d13C_peak,_ = _13R_to_d13C(R13_peak,0)
-		# self.d13C_peak = d13C_peak
-
-
-
-		# #perform 13R regression
-		# if DEa is None:
-		# 	#no DEa, perform nnls on raw data
-		# 	R13_peak = nnls(cont_ptf,R13[:,0])[0]
-		# 	d13C_peak,_ = _13R_to_d13C(R13_peak, 0)
-		# 	self.d13C_peak = d13C_peak
-
-		# #calculate difference and store
-		# R13_pred = np.inner(cont_ptf,R13_peak)
-		# d13C_pred,_ = _13R_to_d13C(R13_pred,0)
-		# self.d13C_pred_meas = d13C_pred - self.d13C_frac
-		
-
 
 	def summary():
 		'''

@@ -13,7 +13,7 @@ ec = rp.EnergyComplex(eps,phi,
 	nPeaks='auto',
 	thres=0.02,
 	combine_last=2,
-	DEa=0.01)
+	DEa=0.0018)
 md = lt.calc_TG_fwd(ec)
 
 
@@ -22,8 +22,8 @@ ir = rp.IsotopeResult('test_data/5C_min_sum.csv',lt, ec,
  	mass_rsd=0.01,
  	add_noise=False)
 
-#ec.plot()
-ax = md.plot()
-rd.plot(ax=ax)
+# ec.plot()
+# ax = md.plot()
+# rd.plot(ax=ax)
 
 plt.show()

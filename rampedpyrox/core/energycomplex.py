@@ -324,7 +324,7 @@ def _rel_area(eps, y_scaled):
 
 
 class EnergyComplex(object):
-	'''
+	__doc__='''
 	Class for storing Ea distribution and calculating peak deconvolution.
 
 	Args:

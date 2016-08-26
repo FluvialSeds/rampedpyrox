@@ -12,6 +12,8 @@ import pandas as pd
 from scipy.interpolate import interp1d
 
 __docformat__ = 'restructuredtext en'
+
+#exclude Thermogram superclass in __all__
 __all__ = ['RealData','ModeledData']
 
 #define function to extract Thermogram variables from 'real_data'
