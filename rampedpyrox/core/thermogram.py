@@ -232,11 +232,11 @@ class ModeledData(Thermogram):
 		#ensure equal array lengths
 		nT = len(t)
 
-		if len(Tau) is not nT:
+		if len(Tau) != nT:
 			raise ValueError('t and Tau arrays must have same length')
-		elif len(g_hat) is not nT:
+		elif len(g_hat) != nT:
 			raise ValueError('t and g_hat arrays must have same length')
-		elif len(gp) is not nT:
+		elif len(gp) != nT:
 			raise ValueError('t and gp arrays must have same length')
 
 		super(ModeledData,self).__init__(t, Tau-273.15, g_hat)

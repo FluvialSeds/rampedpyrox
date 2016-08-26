@@ -3,6 +3,13 @@ This module contains the IsotopeResult class for calculating the isotope
 composition of individual Ea peaks within a sample, as well as supporting
 functions.
 
+Note:
+	mass RMSE is probably a combination of the fact that true masses are
+	measured offline as well as error from discretizing -- thermograms
+	appear to over-predict manometrically-calculated masses. Increasing nT 
+	lowers mass RMSE, but never to zero.
+
+
 * TODO: fix _fir_R13_peak to handle combined peaks.
 '''
 
@@ -204,18 +211,18 @@ def _blank_correct(t0_frac, tf_frac, mass_frac, R13_frac, Fm_frac):
 	return mass_frac_corr, R13_frac_corr, Fm_frac_corr
 
 #GOOD
-def _calc_cont_ptf(ec, lt, t0_frac, tf_frac):
+def _calc_cont_ptf(lt, ec, t0_frac, tf_frac):
 	'''
 	Calculates the contribution of each peak to each fraction.
 	Called by ``IsotopeResult.__init__()``.
 
 	Args:
-		ec (rp.EnergyComplex): ``EnergyComplex`` object containing EC peaks
-			(both for 12C and 13C).
-
 		lt (rp.LapalceTransform): ``LaplaceTransform`` object containing the
 			Laplace transform matrix to convert EC peaks to carbon degradation
 			rates at each timepoint.
+
+		ec (rp.EnergyComplex): ``EnergyComplex`` object containing EC peaks
+			(both for 12C and 13C).
 
 		t0_frac (np.ndarray): Array of t0 for each fraction, length nF.
 
@@ -449,15 +456,28 @@ class IsotopeResult(object):
 
 		#calculate peak contribution and indices of each fraction
 		cont_ptf, ind_min, ind_max, ind_wgh = _calc_cont_ptf(
-			ec, lt, t0_frac, tf_frac)
+			lt, ec, t0_frac, tf_frac)
 
 		#calculate peak masses, predicted fraction masses, and rmse
-		mass_peak = ec.rel_area*np.sum(mass_frac)
-		#mass_frac_pred = 
+
+		#generate modeled thermogram and extract total mass (ugC)
+		ugC = np.sum(mass_frac)
+		g = np.inner(lt.A,ec.phi_hat) #fraction
+		tg = -np.gradient(g)
+
+		#calculate the mass of each peak in ugC
+		mass_peak = ec.rel_area*ugC
+
+		#calculate the predicted mass of each fraction in ugC
+		mass_pred = []
+		for imi,ima in zip(ind_min,ind_max):
+			mass_pred.append(np.sum(tg[imi:ima+1])*ugC)
+		
+		mass_frac_pred = np.array(mass_pred)
 		mass_rmse = norm(mass_frac_pred - mass_frac)/(nFrac**0.5)
 
 		#perform R13 regression
-
+		d13C_rmse = 0
 
 		#perform Fm regression
 		res = nnls(cont_ptf,Fm_frac)
@@ -465,17 +485,17 @@ class IsotopeResult(object):
 		Fm_rmse = res[1]/(nFrac**0.5)
 
 		#combine into pd.DataFrame and save as attribute
-		nPeak = len(mass_peak)
-		d13C_peak = _R13_to_d13C(R13_peak) #convert to d13C for storing
-		peak_info = pd.DataFrame(np.column_stack((mass_peak, d13C_peak,
-			Fm_peak)), columns=['mass (ugC)','d13C','Fm'],
-			index=np.arange(1,nPeak+1))
+		# nPeak = len(mass_peak)
+		# d13C_peak = _R13_to_d13C(R13_peak) #convert to d13C for storing
+		# peak_info = pd.DataFrame(np.column_stack((mass_peak, d13C_peak,
+		# 	Fm_peak)), columns=['mass (ugC)','d13C','Fm'],
+		# 	index=np.arange(1,nPeak+1))
 
-		self.peak_info = peak_info
+		# self.peak_info = peak_info
 
 		#store pd.Series of rmse values
 		rmses = pd.Series([mass_rmse,d13C_rmse,Fm_rmse],
-			index=['mass','d13c','Fm'])
+			index=['mass','d13C','Fm'])
 		self.RMSEs = rmses
 
 		# #calculate predicted Fm for each fraction and store difference
