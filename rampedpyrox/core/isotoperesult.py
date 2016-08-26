@@ -421,13 +421,13 @@ class IsotopeResult(object):
 		cont_ptf, ind_frac = _calc_cont_ptf(mod_tg, t_frac)
 
 		#define public parameters
-		self.t = t
-		self.d13C_frac = d13C
-		self.d13C_frac_std = d13C_std
-		self.Fm_frac = Fm[:,0]
-		self.Fm_frac_std = Fm[:,1]
-		self.mass_frac = mass[:,0]
-		self.mass_std = mass[:,1]
+		# self.t = t
+		# self.d13C_frac = d13C
+		# self.d13C_frac_std = d13C_std
+		# self.Fm_frac = Fm[:,0]
+		# self.Fm_frac_std = Fm[:,1]
+		# self.mass_frac = mass[:,0]
+		# self.mass_std = mass[:,1]
 
 		#perform Fm regression and store data
 		self.Fm_peak = nnls(cont_ptf,self.Fm_frac)[0]
