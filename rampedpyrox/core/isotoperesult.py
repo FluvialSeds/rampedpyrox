@@ -3,8 +3,6 @@ This module contains the IsotopeResult class for calculating the isotope
 composition of individual Ea peaks within a sample, as well as supporting
 functions.
 
-* TODO: update _calc_cont_ptf to handle fractions of timepoints
-* TODO: fix blank correction d13C stdev.
 * TODO: fix _fir_R13_peak to handle combined peaks.
 '''
 
@@ -205,53 +203,84 @@ def _blank_correct(t0_frac, tf_frac, mass_frac, R13_frac, Fm_frac):
 
 	return mass_frac_corr, R13_frac_corr, Fm_frac_corr
 
-def _calc_cont_ptf(mod_tg, t):
+#GOOD
+def _calc_cont_ptf(ec, lt, t0_frac, tf_frac):
 	'''
 	Calculates the contribution of each peak to each fraction.
 	Called by ``IsotopeResult.__init__()``.
 
 	Args:
-		mod_tg (rp.ModeledData): ``ModeledData`` object containing peaks
-			of interest for isotope deconvolution. 
+		ec (rp.EnergyComplex): ``EnergyComplex`` object containing EC peaks
+			(both for 12C and 13C).
 
-		t (np.ndarray): 2d array of the t0 and tf (in seconds) for each
-			fraction, with shape [nFrac x 2].
+		lt (rp.LapalceTransform): ``LaplaceTransform`` object containing the
+			Laplace transform matrix to convert EC peaks to carbon degradation
+			rates at each timepoint.
+
+		t0_frac (np.ndarray): Array of t0 for each fraction, length nF.
+
+		tf_frac (np.ndarray): Array of tf for each fraction, length nF.
 
 	Returns:
 		cont_ptf (np.ndarray): 2d array of the contribution by each peak to
 			each measured CO2 fraction with shape [nFrac x nPeak].
 
-		frac_ind (np.ndarray): Index of mass-weighted mean for each fraction.
+		ind_min (np.ndarray): Minimum index for each fraction. Length nFrac.
+
+		ind_max (np.ndarray): Maximum index for each fraction. Length nFrac.
+
+		ind_wgh (np.ndarray): Index of mass-weighted mean for each fraction.
 			Length nFrac.
 
 	Raises:
 		ValueError: If nPeaks >  nFrac, the problem is underconstrained.
+
+	Notes:
+		This function uses EC peaks **after** the "comnine_last" flag has been
+		implemented. That is, it treats combined peaks as a single peak when
+		calculating indices and contributions to each fraction.
 	'''
 
-	#extract data from modeled thermogram
-	md_t = mod_tg.t
-	md_p = mod_tg.gpdot_t
-	md_tot = mod_tg.gdot_t
+	#extract shapes
+	nT,nE = np.shape(lt.A)
+	nFrac = len(t0_frac)
+	_,nPeak = np.shape(ec.peaks) #AFTER PEAKS HAVE BEEN COMBINED!
 
-	nF,_ = np.shape(t)
-	_,nP = np.shape(md_p)
+	#combine t0 and tf
+	t = np.column_stack((t0_frac,tf_frac))
 
-	if nP > nF:
+	#raise errors
+	if nPeak > nFrac:
 		raise ValueError('Under constrained problem! nPeaks > nFractions!!')
 
-	#calculate areas by multiplying by time gradient (for variable timesetep)
-	tot = md_tot*np.gradient(md_t)
-	grad_mat = np.outer(np.gradient(md_t),np.ones(nP))
-	peaks = md_p*grad_mat
+	#calculate modeled g using lt and ec
+	t_tg = lt.t
+	g = np.inner(lt.A,ec.phi_hat) #fraction
+	g_peak = np.inner(lt.A,ec.peaks.T) #fraction (each peak)
 
-	#pre-allocate cont_ptf matrix and frac_ind array
-	cont_ptf = np.zeros([nF,nP])
-	frac_ind = np.zeros(nF)
+	#take the gradient to calculate the thermograms (per timestep!)
+	tot = -np.gradient(g) #fraction/timestep
+	peaks = -np.gradient(g_peak, axis=0) #fraction/timestep (each peak)
 
-	#loop through and calculate contributions
+	#pre-allocate cont_ptf matrix and index arrays
+	cont_ptf = np.zeros([nFrac,nPeak])
+	ind_min = []
+	ind_max = []
+	ind_wgh = []
+
+	#loop through and calculate contributions and indices
 	for i,row in enumerate(t):
+
 		#extract indices for each fraction
-		ind = np.where((md_t >= row[0]) & (md_t <= row[1]))
+		ind = np.where((t_tg > row[0]) & (t_tg <= row[1]))[0]
+
+		#store first and last indices
+		ind_min.append(ind[0])
+		ind_max.append(ind[-1])
+
+		#calculate mass-weighted average index
+		av = np.average(ind, weights=tot[ind])
+		ind_wgh.append(int(np.round(av)))
 
 		#calculate peak to fraction contribution
 		ptf_i = np.sum(peaks[ind],axis=0)/np.sum(tot[ind])
@@ -259,14 +288,7 @@ def _calc_cont_ptf(mod_tg, t):
 		#store in row i
 		cont_ptf[i] = ptf_i
 
-		#calculate mass-weighted fraction index
-		av_t = np.average(md_t[ind],weights=md_tot[ind])
-		frac_ind[i] = np.where(md_t >= av_t)[0][0] #calculates first instance above
-
-	#convert frac_ind to int
-	frac_ind = frac_ind.astype(int)
-
-	return cont_ptf, frac_ind
+	return cont_ptf, ind_min, ind_max, ind_wgh
 
 #GOOD
 def _d13C_to_R13(d13C):
@@ -416,7 +438,6 @@ class IsotopeResult(object):
 			mass_frac, R13_frac, Fm_frac = _blank_correct(
 				t0_frac, tf_frac, mass_frac, R13_frac, Fm_frac)
 
-		
 		#combine into pd.DataFrame and save as attribute
 		nFrac = len(t0_frac)
 		d13C_frac = _R13_to_d13C(R13_frac) #convert to d13C for storing
@@ -426,12 +447,13 @@ class IsotopeResult(object):
 
 		self.fraction_info = frac_info
 
-		#calculate peak contribution and mass-weighted index of each fraction
-		cont_ptf, ind_frac = _calc_cont_ptf(md, t_frac)
+		#calculate peak contribution and indices of each fraction
+		cont_ptf, ind_min, ind_max, ind_wgh = _calc_cont_ptf(
+			ec, lt, t0_frac, tf_frac)
 
 		#calculate peak masses, predicted fraction masses, and rmse
 		mass_peak = ec.rel_area*np.sum(mass_frac)
-		mass_frac_pred = 
+		#mass_frac_pred = 
 		mass_rmse = norm(mass_frac_pred - mass_frac)/(nFrac**0.5)
 
 		#perform R13 regression
