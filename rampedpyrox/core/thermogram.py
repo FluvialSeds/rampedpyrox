@@ -2,7 +2,7 @@
 Thermogram module for storing thermogram data, either RealData (i.e. collected
 from an actual instrument) or ModeledData (i.e. results from inverse model).
 
-* TODO: Add summary method.
+* TODO: Add summary method for ModeledData.
 '''
 
 import matplotlib.pyplot as plt

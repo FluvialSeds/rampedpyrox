@@ -7,13 +7,17 @@ Gaussian peaks.
 * TODO: Include references for finding peak indices.
 '''
 
+from __future__ import print_function
+
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import warnings
 
 from numpy.linalg import norm
 from scipy.optimize import least_squares
 
+__docformat__ = 'restructuredtext en'
 
 def _deconvolve(eps, phi, nPeaks='auto', thres=0.05):
 	'''
@@ -364,8 +368,16 @@ class EnergyComplex(object):
 
 			#assuming a LaplaceTransform object lt and RealData object rd
 			phi,resid_err,rgh_err,omega = lt.calc_fE_inv(rd,omega='auto')
-			ec = rp.EnergyComplex(eps,phi,nPeaks='auto',combine_last=None)
+			
+			ec = rp.EnergyComplex(eps,phi,
+				nPeaks='auto',
+				thres=0.02,
+				combine_last=3,
+				DEa=0.0018)
+			
+			#plot results and print summary
 			ax = ec.plot()
+			ec.summary()
 
 	References:
 
@@ -472,7 +484,24 @@ class EnergyComplex(object):
 
 		return ax
 
-	def summary():
+	def summary(self):
 		'''
 		Prints a summary of the EnergyComplex object.
 		'''
+
+		#make a pd.DataFrame object
+		data = np.column_stack((self.mu, self.sigma, self.height, 
+			self.rel_area))
+		col_name = ['means (kJ)','stdev. (kJ)','height', 'rel. area']
+		ind_name = np.arange(1,len(self.mu)+1)
+		df = pd.DataFrame(data,columns=col_name,index=ind_name)
+
+		#make strings
+		title = self.__class__.__name__ + ' summary table:'
+		line = '==========================================================='
+		pi = 'Peak information for each deconvolved peak:'
+		note = 'NOTE: Combined peaks are reported separately in this table!'
+
+		print(title + '\n\n' + line + '\n' + pi + '\n\n' + note + '\n')
+		print(df)
+		print('\n' + line)

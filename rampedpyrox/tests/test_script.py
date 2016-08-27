@@ -22,8 +22,8 @@ ir = rp.IsotopeResult('test_data/TS3_sum.csv',lt, ec,
  	mass_rsd=0.01,
  	add_noise=True)
 
-# ec.plot()
-# ax = md.plot()
-# rd.plot(ax=ax)
+ec.plot()
+ax = md.plot()
+rd.plot(ax=ax)
 
-# plt.show()
+plt.show()

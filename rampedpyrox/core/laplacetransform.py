@@ -5,7 +5,6 @@ LaplaceTransform object.
 
 * TODO: update calc_L_curve to be more pythonic.
 * TODO: Keep testing "Wabha" function and developing best-fit omega
-* TODO: Add summary method.
 '''
 
 import matplotlib.pyplot as plt
@@ -16,6 +15,8 @@ from numpy.linalg import norm
 from numpy.linalg import inv
 
 from rampedpyrox.core.thermogram import ModeledData
+
+__docformat__ = 'restructuredtext en'
 
 #define function to calculate phi
 def _calc_phi(A, g, omega):
@@ -315,7 +316,7 @@ def Wabha(A, g, omega):
 	
 
 class LaplaceTransform(object):
-	'''
+	__doc__='''
 	Class for storing the A matrix and calculating forward/inverse results.
 
 	Args:
