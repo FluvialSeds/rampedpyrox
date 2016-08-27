@@ -2,8 +2,6 @@
 This module contains the IsotopeResult class for calculating the isotope
 composition of individual Ea peaks within a sample, as well as supporting
 functions.
-
-* TODO: fix _fir_R13_peak to handle combined peaks.
 '''
 
 import numpy as np
@@ -18,6 +16,7 @@ __docformat__ = 'restructuredtext en'
 def _blank_correct(t0_frac, tf_frac, mass_frac, R13_frac, Fm_frac):
 	'''
 	Performs blank correction (NOSAMS RPO instrument) on raw isotope values.
+	Called by ``IsotopeResult.__init__()``.
 
 	Args:
 		t0_frac (np.ndarray): Array of t0 for each fraction, length nF.
@@ -205,6 +204,8 @@ def _calc_R13_CO2(R13_peak, lt, ec):
 def _d13C_to_R13(d13C):
 	'''
 	Converts d13C values to 13R values using VPDB standard.
+	Called by ``_blank_correct()``.
+	Called by ``_extract_isotopes()``.
 
 	Args:
 		d13C (np.ndarray): Inputted d13C values.
@@ -222,6 +223,7 @@ def _d13C_to_R13(d13C):
 def _extract_isotopes(sum_data, mass_rsd=0, add_noise=False):
 	'''
 	Extracts isotope data from the "sum_data" file.
+	Called by ``IsotopeResult.__init__()``.
 
 	Args:
 		sum_data (str or pd.DataFrame): File containing isotope data,
@@ -372,7 +374,7 @@ def _R13_diff(R13_peak, R13_frac, ind_wgh, lt, ec):
 	'''
 	Function to calculate the difference between measured and predicted 13C/12C
 	ratio. To be used by ``scipy.optimize.least_squares``.
-	Called by ``_fit_R13_peak``.
+	Called by ``_fit_R13_peak()``.
 
 	Args:
 		R13_peak (np.ndarray): 13C/12C ratio for each peak. Length nPeaks.
@@ -401,6 +403,8 @@ def _R13_diff(R13_peak, R13_frac, ind_wgh, lt, ec):
 def _R13_to_d13C(R13):
 	'''
 	Converts 13R values to d13C values using VPDB standard.
+	Called by ``IsotopeResult.__init__()``.
+	Called by ``_fit_R13_peak()``.
 
 	Args:
 		R13 (np.ndarray): d13C values converted to 13C ratios.
