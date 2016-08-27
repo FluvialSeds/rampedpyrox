@@ -455,13 +455,13 @@ class IsotopeResult(object):
 			resulting isotope information.
 
 	Raises:
-		ValueError: If nPeaks in the ``ec`` object *(after `combine_last` has
-		been applied!)* is greater than nFrac in `sum_data`. The problem is
-		underconstrained and cannot be solved. Increase `combine_last` or
-		`omega` within the ``ec`` object.
+		ValueError: If nPeaks in the ``ec`` object *(after `combine_last` has*
+			*been applied!)* is greater than nFrac in `sum_data`. The problem
+			is underconstrained and cannot be solved. Increase `combine_last` 
+			or `omega` within the ``ec`` object.
 
-		ValueError: If R13C_peak is of different length than nPeak *(after 
-		`combine_last` has been applied!)*.
+		ValueError: If R13C_peak is of different length than nPeak *(after* 
+			*`combine_last` has been applied!)*.
 
 		ValueError: If `sum_data` is not str or pd.DataFrame.
 		
@@ -473,12 +473,12 @@ class IsotopeResult(object):
 		ValueError: If first two rows are not fractions "-1" and "0"
 
 	Warnings:
-		If _fit_R13_peak cannot converge on a best-fit solution when calling
-			``scipy.optimize.least_squares``.
+		Raises warning if ``scipy.optimize.least_squares`` cannot converge on
+			a best-fit solution.
 
 	Examples:
 		Fitting isotopes to an ``rp.EnergyComplex`` object, ec, using a
-			``rp.LaplaceTransform`` object, lt::
+		``rp.LaplaceTransform`` object, lt::
 
 			#import data
 			data = '/path_to_folder_containing_data/data.csv'
@@ -523,8 +523,8 @@ class IsotopeResult(object):
 		nFrac = len(t0_frac)
 		d13C_frac = _R13_to_d13C(R13_frac) #convert to d13C for storing
 		frac_info = pd.DataFrame(np.column_stack((t0_frac, tf_frac, mass_frac,
-			d13C_frac, Fm_frac)), columns=['t0','tf','mass (ugC)','d13C','Fm'],
-			index=np.arange(1,nFrac+1))
+			d13C_frac, Fm_frac)), columns=['t0 (s)','tf (s)','mass (ugC)',\
+			'd13C','Fm'], index=np.arange(1,nFrac+1))
 
 		self.fraction_info = frac_info
 
@@ -585,6 +585,7 @@ class IsotopeResult(object):
 		Prints a summary of the IsotopeResult.
 		'''
 
+		#define strings
 		title = self.__class__.__name__ + ' summary table:'
 		line = '=========================================================='
 		fi = 'Isotopes and masses for each fraction:'

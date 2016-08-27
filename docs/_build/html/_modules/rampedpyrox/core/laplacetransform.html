@@ -48,7 +48,6 @@
 
 <span class="sd">* TODO: update calc_L_curve to be more pythonic.</span>
 <span class="sd">* TODO: Keep testing &quot;Wabha&quot; function and developing best-fit omega</span>
-<span class="sd">* TODO: Add summary method.</span>
 <span class="sd">&#39;&#39;&#39;</span>
 
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
@@ -59,6 +58,8 @@
 <span class="kn">from</span> <span class="nn">numpy.linalg</span> <span class="k">import</span> <span class="n">inv</span>
 
 <span class="kn">from</span> <span class="nn">rampedpyrox.core.thermogram</span> <span class="k">import</span> <span class="n">ModeledData</span>
+
+<span class="n">__docformat__</span> <span class="o">=</span> <span class="s1">&#39;restructuredtext en&#39;</span>
 
 <span class="c1">#define function to calculate phi</span>
 <span class="k">def</span> <span class="nf">_calc_phi</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">omega</span><span class="p">):</span>
@@ -358,60 +359,60 @@
 	
 
 <div class="viewcode-block" id="LaplaceTransform"><a class="viewcode-back" href="../../../laplacetransform.html#rampedpyrox.core.laplacetransform.LaplaceTransform">[docs]</a><span class="k">class</span> <span class="nc">LaplaceTransform</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-	<span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Class for storing the A matrix and calculating forward/inverse results.</span>
+	<span class="n">__doc__</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">	Class for storing the A matrix and calculating forward/inverse results.</span>
 
-<span class="sd">	Args:</span>
-<span class="sd">		t (np.ndarray): Array of timepoints.</span>
+<span class="s1">	Args:</span>
+<span class="s1">		t (np.ndarray): Array of timepoints.</span>
 
-<span class="sd">		Tau (np.ndarray): Array of temperature points.</span>
+<span class="s1">		Tau (np.ndarray): Array of temperature points.</span>
 
-<span class="sd">		eps (np.ndarray): Array of Ea values.</span>
+<span class="s1">		eps (np.ndarray): Array of Ea values.</span>
 
-<span class="sd">		logk0 (int, float, or lambda): Arrhenius pre-exponential factor,</span>
-<span class="sd">			either a constant value or a lambda function of Ea.</span>
+<span class="s1">		logk0 (int, float, or lambda): Arrhenius pre-exponential factor,</span>
+<span class="s1">			either a constant value or a lambda function of Ea.</span>
 
-<span class="sd">	Returns:</span>
-<span class="sd">		lt (rp.LaplaceTransform): ``LaplaceTransform`` object.</span>
+<span class="s1">	Returns:</span>
+<span class="s1">		lt (rp.LaplaceTransform): ``LaplaceTransform`` object.</span>
 
-<span class="sd">	Raises:</span>
-<span class="sd">		ValueError: If logk0 is not scalar, lambda function, or array of length nE.</span>
+<span class="s1">	Raises:</span>
+<span class="s1">		ValueError: If logk0 is not scalar, lambda function, or array of length nE.</span>
 
-<span class="sd">	Examples:</span>
-<span class="sd">		Calculating the Laplace Transform object and plotting the L-curve::</span>
+<span class="s1">	Examples:</span>
+<span class="s1">		Calculating the Laplace Transform object and plotting the L-curve::</span>
 
-<span class="sd">			#load modules</span>
-<span class="sd">			import numpy as np</span>
-<span class="sd">			import matplotlib.pyplot as plt</span>
+<span class="s1">			#load modules</span>
+<span class="s1">			import numpy as np</span>
+<span class="s1">			import matplotlib.pyplot as plt</span>
 
-<span class="sd">			eps = np.arange(50,350) #Ea range to calculate over</span>
-<span class="sd">			logk0 = 10 #pre-exponential (Arrhenius) factor</span>
-<span class="sd">			lt = rp.LaplaceTransform(rd.t,rd.Tau,eps,logk0)</span>
-<span class="sd">			omega,ax = lt.plot_L_curve(rd)</span>
-<span class="sd">	</span>
-<span class="sd">	References:</span>
+<span class="s1">			eps = np.arange(50,350) #Ea range to calculate over</span>
+<span class="s1">			logk0 = 10 #pre-exponential (Arrhenius) factor</span>
+<span class="s1">			lt = rp.LaplaceTransform(rd.t,rd.Tau,eps,logk0)</span>
+<span class="s1">			omega,ax = lt.plot_L_curve(rd)</span>
+<span class="s1">	</span>
+<span class="s1">	References:</span>
 
-<span class="sd">		R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction kinetics</span>
-<span class="sd">			using a distribution of activation energies and simpler models.</span>
-<span class="sd">			*Energy &amp; Fuels*, **1**, 153-161.</span>
+<span class="s1">		R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction kinetics</span>
+<span class="s1">			using a distribution of activation energies and simpler models.</span>
+<span class="s1">			*Energy &amp; Fuels*, **1**, 153-161.</span>
 
-<span class="sd">		\B. Cramer et al. (1998) Modeling isotope fractionation during primary</span>
-<span class="sd">			cracking of natural gas: A reaction kinetic approach. *Chemical</span>
-<span class="sd">			Geology*, **149**, 235-250.</span>
+<span class="s1">		\B. Cramer et al. (1998) Modeling isotope fractionation during primary</span>
+<span class="s1">			cracking of natural gas: A reaction kinetic approach. *Chemical</span>
+<span class="s1">			Geology*, **149**, 235-250.</span>
 
-<span class="sd">		D.C. Forney and D.H. Rothman (2012) Common structure in the</span>
-<span class="sd">			heterogeneity of plant-matter decay. *Journal of the Royal Society</span>
-<span class="sd">			Interface*, rsif.2012.0122.</span>
+<span class="s1">		D.C. Forney and D.H. Rothman (2012) Common structure in the</span>
+<span class="s1">			heterogeneity of plant-matter decay. *Journal of the Royal Society</span>
+<span class="s1">			Interface*, rsif.2012.0122.</span>
 
-<span class="sd">		D.C. Forney and D.H. Rothman (2012) Inverse method for calculating</span>
-<span class="sd">			respiration rates from decay time series. *Biogeosciences*, **9**,</span>
-<span class="sd">			3601-3612.</span>
+<span class="s1">		D.C. Forney and D.H. Rothman (2012) Inverse method for calculating</span>
+<span class="s1">			respiration rates from decay time series. *Biogeosciences*, **9**,</span>
+<span class="s1">			3601-3612.</span>
 
-<span class="sd">		P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:</span>
-<span class="sd">			Numerical aspects of linear inversion (monographs on mathematical</span>
-<span class="sd">			modeling and computation). *Society for Industrial and Applied</span>
-<span class="sd">			Mathematics*.</span>
-<span class="sd">	&#39;&#39;&#39;</span>
+<span class="s1">		P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:</span>
+<span class="s1">			Numerical aspects of linear inversion (monographs on mathematical</span>
+<span class="s1">			modeling and computation). *Society for Industrial and Applied</span>
+<span class="s1">			Mathematics*.</span>
+<span class="s1">	&#39;&#39;&#39;</span>
 
 	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">logk0</span><span class="p">):</span>
 

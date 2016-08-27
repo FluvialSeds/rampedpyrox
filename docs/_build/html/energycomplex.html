@@ -120,8 +120,16 @@ DEa as a scalar to avoid issues with array length. Defaults to 0.</li>
 <p>Running a thermogram through the inverse model and deconvolving:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#assuming a LaplaceTransform object lt and RealData object rd</span>
 <span class="n">phi</span><span class="p">,</span><span class="n">resid_err</span><span class="p">,</span><span class="n">rgh_err</span><span class="p">,</span><span class="n">omega</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">calc_fE_inv</span><span class="p">(</span><span class="n">rd</span><span class="p">,</span><span class="n">omega</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">)</span>
-<span class="n">ec</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">EnergyComplex</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span><span class="n">phi</span><span class="p">,</span><span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span><span class="n">combine_last</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+<span class="n">ec</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">EnergyComplex</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span><span class="n">phi</span><span class="p">,</span>
+        <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+        <span class="n">thres</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span>
+        <span class="n">combine_last</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">DEa</span><span class="o">=</span><span class="mf">0.0018</span><span class="p">)</span>
+
+<span class="c1">#plot results and print summary</span>
 <span class="n">ax</span> <span class="o">=</span> <span class="n">ec</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<span class="n">ec</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>References:</p>

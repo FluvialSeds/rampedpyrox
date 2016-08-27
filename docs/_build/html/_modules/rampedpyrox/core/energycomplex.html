@@ -50,13 +50,17 @@
 <span class="sd">* TODO: Include references for finding peak indices.</span>
 <span class="sd">&#39;&#39;&#39;</span>
 
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
 <span class="kn">from</span> <span class="nn">numpy.linalg</span> <span class="k">import</span> <span class="n">norm</span>
 <span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="k">import</span> <span class="n">least_squares</span>
 
+<span class="n">__docformat__</span> <span class="o">=</span> <span class="s1">&#39;restructuredtext en&#39;</span>
 
 <span class="k">def</span> <span class="nf">_deconvolve</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">thres</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
@@ -367,58 +371,66 @@
 
 
 <div class="viewcode-block" id="EnergyComplex"><a class="viewcode-back" href="../../../energycomplex.html#rampedpyrox.core.energycomplex.EnergyComplex">[docs]</a><span class="k">class</span> <span class="nc">EnergyComplex</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-	<span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Class for storing Ea distribution and calculating peak deconvolution.</span>
+	<span class="n">__doc__</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">	Class for storing Ea distribution and calculating peak deconvolution.</span>
 
-<span class="sd">	Args:</span>
-<span class="sd">		eps (np.ndarray): Array of Ea values.</span>
+<span class="s1">	Args:</span>
+<span class="s1">		eps (np.ndarray): Array of Ea values.</span>
 
-<span class="sd">		phi (np.ndarray): Array of the pdf of the distribution of Ea.</span>
+<span class="s1">		phi (np.ndarray): Array of the pdf of the distribution of Ea.</span>
 
-<span class="sd">		nPeaks (int or str): Number of Gaussians to use in deconvolution,</span>
-<span class="sd">			either an integer or &#39;auto&#39;. Defaults to &#39;auto&#39;.</span>
+<span class="s1">		nPeaks (int or str): Number of Gaussians to use in deconvolution,</span>
+<span class="s1">			either an integer or &#39;auto&#39;. Defaults to &#39;auto&#39;.</span>
 
-<span class="sd">		thres (float): Threshold for peak detection cutoff. Thres is the relative</span>
-<span class="sd">			height of the global maximum under which no peaks will be detected.</span>
+<span class="s1">		thres (float): Threshold for peak detection cutoff. Thres is the relative</span>
+<span class="s1">			height of the global maximum under which no peaks will be detected.</span>
 
-<span class="sd">		combine_last (int or None): Number of peaks to combine at the end of</span>
-<span class="sd">			the run (necessary if there is not enough isotope resolution at the</span>
-<span class="sd">			high temperature range, as is often the case with real data).</span>
-<span class="sd">			Defaults to None.</span>
+<span class="s1">		combine_last (int or None): Number of peaks to combine at the end of</span>
+<span class="s1">			the run (necessary if there is not enough isotope resolution at the</span>
+<span class="s1">			high temperature range, as is often the case with real data).</span>
+<span class="s1">			Defaults to None.</span>
 
-<span class="sd">		DEa (int, float, or np.ndarray): DEa values, either a scalar or vector</span>
-<span class="sd">			of length nPeaks (in units of kJ!). If using nPeaks = &#39;auto&#39;, leave</span>
-<span class="sd">			DEa as a scalar to avoid issues with array length. Defaults to 0.</span>
+<span class="s1">		DEa (int, float, or np.ndarray): DEa values, either a scalar or vector</span>
+<span class="s1">			of length nPeaks (in units of kJ!). If using nPeaks = &#39;auto&#39;, leave</span>
+<span class="s1">			DEa as a scalar to avoid issues with array length. Defaults to 0.</span>
 
-<span class="sd">	Returns:</span>
-<span class="sd">		ec (rp.EnergyComplex): ``EnergyComplex`` object.</span>
+<span class="s1">	Returns:</span>
+<span class="s1">		ec (rp.EnergyComplex): ``EnergyComplex`` object.</span>
 
-<span class="sd">	Raises:</span>
-<span class="sd">		ValueError: If phi and eps vectors are not the same length.</span>
+<span class="s1">	Raises:</span>
+<span class="s1">		ValueError: If phi and eps vectors are not the same length.</span>
 
-<span class="sd">		ValueError: If ``nPeaks`` is greater than the total number of peaks detected.</span>
-<span class="sd">		</span>
-<span class="sd">		ValueError: If ``nPeaks`` is not &#39;auto&#39; or int.</span>
+<span class="s1">		ValueError: If ``nPeaks`` is greater than the total number of peaks detected.</span>
+<span class="s1">		</span>
+<span class="s1">		ValueError: If ``nPeaks`` is not &#39;auto&#39; or int.</span>
 
-<span class="sd">		ValueError: If ``DEa`` is not int, float, or np.ndarray of length nPeaks.</span>
+<span class="s1">		ValueError: If ``DEa`` is not int, float, or np.ndarray of length nPeaks.</span>
 
-<span class="sd">	Examples:</span>
-<span class="sd">		Running a thermogram through the inverse model and deconvolving::</span>
+<span class="s1">	Examples:</span>
+<span class="s1">		Running a thermogram through the inverse model and deconvolving::</span>
 
-<span class="sd">			#assuming a LaplaceTransform object lt and RealData object rd</span>
-<span class="sd">			phi,resid_err,rgh_err,omega = lt.calc_fE_inv(rd,omega=&#39;auto&#39;)</span>
-<span class="sd">			ec = rp.EnergyComplex(eps,phi,nPeaks=&#39;auto&#39;,combine_last=None)</span>
-<span class="sd">			ax = ec.plot()</span>
+<span class="s1">			#assuming a LaplaceTransform object lt and RealData object rd</span>
+<span class="s1">			phi,resid_err,rgh_err,omega = lt.calc_fE_inv(rd,omega=&#39;auto&#39;)</span>
+<span class="s1">			</span>
+<span class="s1">			ec = rp.EnergyComplex(eps,phi,</span>
+<span class="s1">				nPeaks=&#39;auto&#39;,</span>
+<span class="s1">				thres=0.02,</span>
+<span class="s1">				combine_last=3,</span>
+<span class="s1">				DEa=0.0018)</span>
+<span class="s1">			</span>
+<span class="s1">			#plot results and print summary</span>
+<span class="s1">			ax = ec.plot()</span>
+<span class="s1">			ec.summary()</span>
 
-<span class="sd">	References:</span>
+<span class="s1">	References:</span>
 
-<span class="sd">	Notes:</span>
-<span class="sd">		All results are bounded to be non-negative, and mu values are bounded to be</span>
-<span class="sd">		within the concave down regions of the Ea distribution. This class </span>
-<span class="sd">		implements the scipy.optimize.least_squares method using the &#39;Trust Region</span>
-<span class="sd">		Reflective&#39; algorithm, as this algorithm is able to handle bounded</span>
-<span class="sd">		parameters much better than the Levenberg-Marquardt algorithm.</span>
-<span class="sd">	&#39;&#39;&#39;</span>
+<span class="s1">	Notes:</span>
+<span class="s1">		All results are bounded to be non-negative, and mu values are bounded to be</span>
+<span class="s1">		within the concave down regions of the Ea distribution. This class </span>
+<span class="s1">		implements the scipy.optimize.least_squares method using the &#39;Trust Region</span>
+<span class="s1">		Reflective&#39; algorithm, as this algorithm is able to handle bounded</span>
+<span class="s1">		parameters much better than the Levenberg-Marquardt algorithm.</span>
+<span class="s1">	&#39;&#39;&#39;</span>
 
 	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">thres</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">combine_last</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">DEa</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 
@@ -515,10 +527,27 @@
 
 		<span class="k">return</span> <span class="n">ax</span></div>
 
-<div class="viewcode-block" id="EnergyComplex.summary"><a class="viewcode-back" href="../../../energycomplex.html#rampedpyrox.core.energycomplex.EnergyComplex.summary">[docs]</a>	<span class="k">def</span> <span class="nf">summary</span><span class="p">():</span>
+<div class="viewcode-block" id="EnergyComplex.summary"><a class="viewcode-back" href="../../../energycomplex.html#rampedpyrox.core.energycomplex.EnergyComplex.summary">[docs]</a>	<span class="k">def</span> <span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Prints a summary of the EnergyComplex object.</span>
-<span class="sd">		&#39;&#39;&#39;</span></div></div>
+<span class="sd">		&#39;&#39;&#39;</span>
+
+		<span class="c1">#make a pd.DataFrame object</span>
+		<span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">mu</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> 
+			<span class="bp">self</span><span class="o">.</span><span class="n">rel_area</span><span class="p">))</span>
+		<span class="n">col_name</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;means (kJ)&#39;</span><span class="p">,</span><span class="s1">&#39;stdev. (kJ)&#39;</span><span class="p">,</span><span class="s1">&#39;height&#39;</span><span class="p">,</span> <span class="s1">&#39;rel. area&#39;</span><span class="p">]</span>
+		<span class="n">ind_name</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mu</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+		<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">columns</span><span class="o">=</span><span class="n">col_name</span><span class="p">,</span><span class="n">index</span><span class="o">=</span><span class="n">ind_name</span><span class="p">)</span>
+
+		<span class="c1">#make strings</span>
+		<span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span> <span class="o">+</span> <span class="s1">&#39; summary table:&#39;</span>
+		<span class="n">line</span> <span class="o">=</span> <span class="s1">&#39;===========================================================&#39;</span>
+		<span class="n">pi</span> <span class="o">=</span> <span class="s1">&#39;Peak information for each deconvolved peak:&#39;</span>
+		<span class="n">note</span> <span class="o">=</span> <span class="s1">&#39;NOTE: Combined peaks are reported separately in this table!&#39;</span>
+
+		<span class="nb">print</span><span class="p">(</span><span class="n">title</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">line</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">pi</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">note</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">line</span><span class="p">)</span></div></div>
 </pre></div>
 
           </div>

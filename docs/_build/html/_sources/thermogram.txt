@@ -3,10 +3,11 @@
 Thermogram
 ==========
 
-``Thermogram`` objects store the time, temperature, and amount of carbon remaining
-thoughout the course of a thermoanalytical run. Temperature ramp rate need not
-be constant thoughout the run -- ``rampedpyrox`` can handle non-constant
-heating rates. This module creates either RealData or ModeledData objects.
+``Thermogram`` class instances store the time, temperature, and amount of
+carbon remaining thoughout the course of a thermoanalytical run. Temperature
+ramp rate need not be constant thoughout the run -- ``rampedpyrox`` can handle
+non-constant heating rates. This module creates either RealData or ModeledData
+objects.
 
 Examples
 --------

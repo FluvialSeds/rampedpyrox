@@ -1,6 +1,8 @@
 Isotope Result
 ==============
-
+``IsotopeResult`` class instances store the isotope results for each peak
+calculated using the measured fraction isotope data and 
+``scipy.optimize.least_squares``.
 
 
 Examples
@@ -15,8 +17,7 @@ Calculating the isotope composition of each peak::
 	ir = rp.IsotopeResult(iso_data,md)
 
 	#view results
-	print(ir.Fm_peak)
-	print(ir.d13C_peak)
+	ir.summary()
 
 Technical documentation
 -----------------------
