@@ -114,7 +114,7 @@ class Thermogram(object):
 
 	def summary():
 		'''
-		Prints a summary of the Thermogram object.
+		Prints a summary of the Thermogram instance.
 		'''
 
 
@@ -122,29 +122,42 @@ class RealData(Thermogram):
 	__doc__='''
 	Class for real data thermograms (e.g. data from RampedPyrox experiment).
 
-	Args:
-		all_data (str or pd.DataFrame): File containing thermogram data,
-			either as a path string or pandas.DataFrame object.
+	Parameters
+	----------
+	all_data : str or pd.DataFrame
+		File containing thermogram data, either as a path string or 
+		``pandas.DataFrame`` instance.
 
-		nT (int): The number of time points to use. Defaults to 250.
+	nT : int
+		The number of time points to use. Defaults to 250.
 
-	Returns:
-		rd (rp.RealData): RealData object containing thermogram data.
+	Returns
+	-------
+	rd : rp.RealData
+		``np.RealData`` instance containing thermogram data.
 
-	Raises:
-		ValueError: If `all_data` is not str or pd.DataFrame.
-		ValueError: If `all_data` does not contain "CO2_scaled" and "temp" columns.
-		ValueError: If index is not `DatetimeIndex`.
+	Raises
+	------
+	ValueError
+		If `all_data` is not ``str`` or ``pd.DataFrame`` instance.
 
-	Examples:
-		Importing data into a thermogram object::
+	ValueError
+		If `all_data` does not contain "CO2_scaled" and "temp" columns.
 	
-			#load modules
-			import rampedpyrox as rp
+	ValueError
+		If `all_data` index is not ``pd.DatetimeIndex`` instance.
 
-			data = '/path_to_folder_containing_data/data.csv'
-			nT = 250 #number of timepoints
-			rd = rp.RealData(data,nT=nT)
+	Examples
+	--------
+	Importing data into a thermogram object::
+
+		#load modules
+		import rampedpyrox as rp
+
+		data = '/path_to_folder_containing_data/data.csv'
+		nT = 250 #number of timepoints
+
+		rd = rp.RealData(data, nT=nT)
 	'''
 
 	def __init__(self, all_data, nT=250):
@@ -162,26 +175,34 @@ class RealData(Thermogram):
 		'''
 		Plots the true thermogram against time or temp.
 
-		Args:
-			ax (None or matplotlib.axis): Axis to plot on. If None, 
-				creates an axis object to return. Defaults to None.
-			xaxis (str): Sets the x axis units, either 'time' or 'temp'.
-				Defaults to 'time'.
+		Parameters
+		----------
+		ax : None or matplotlib.axis
+			Axis to plot on. If `None`, automatically creates a
+			``matplotlip.axis`` instance to return. Defaults to `None`.
 
-		Returns:
-			ax (matplotlib.axis): Updated axis with plotted data.
+		xaxis : str
+			Sets the x axis unit, either 'time' or 'temp'. Defaults to 'time'.
 
-		Raises:
-			ValueError: If `xaxis` is not 'time' or 'temp'.
+		Returns
+		-------
+		ax : matplotlib.axis
+			Updated axis instance with plotted data.
 
-		Examples:
-			Plotting thermogram data::
+		Raises
+		------
+		ValueError
+			If `xaxis` is not 'time' or 'temp'.
 
-				#load modules
-				import matplotlib.pyplot as plt
+		Examples
+		--------
+		Plotting thermogram data::
 
-				fig,ax = plt.subplots(1,1)
-				ax = rd.plot(ax=ax,xaxis='time')
+			#load modules
+			import matplotlib.pyplot as plt
+
+			fig,ax = plt.subplots(1,1)
+			ax = rd.plot(ax=ax, xaxis='time')
 		'''
 
 		#plot the thermogram and edit tg_line parameters
@@ -205,7 +226,7 @@ class RealData(Thermogram):
 
 class ModeledData(Thermogram):
 	__doc__='''
-	Subclass for thermograms generated using an f(Ea) distribution.
+	Class for thermograms generated using an f(Ea) distribution.
 
 	Args:
 		t (np.ndarray): Array of timepoints.

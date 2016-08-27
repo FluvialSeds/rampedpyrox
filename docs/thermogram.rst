@@ -43,5 +43,5 @@ Module Reference
 .. autosummary::
 	:toctree: _generated/
 
-	rampedpyrox.core.thermogram.RealData
-	rampedpyrox.core.thermogram.ModeledData
+	rampedpyrox.RealData
+	rampedpyrox.ModeledData

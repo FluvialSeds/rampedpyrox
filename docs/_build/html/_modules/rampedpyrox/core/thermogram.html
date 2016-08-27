@@ -157,40 +157,52 @@
 
 	<span class="k">def</span> <span class="nf">summary</span><span class="p">():</span>
 		<span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">		Prints a summary of the Thermogram object.</span>
+<span class="sd">		Prints a summary of the Thermogram instance.</span>
 <span class="sd">		&#39;&#39;&#39;</span>
 
 
-<div class="viewcode-block" id="RealData"><a class="viewcode-back" href="../../../_generated/rampedpyrox.core.thermogram.RealData.html#rampedpyrox.core.thermogram.RealData">[docs]</a><span class="k">class</span> <span class="nc">RealData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
+<div class="viewcode-block" id="RealData"><a class="viewcode-back" href="../../../_generated/rampedpyrox.RealData.html#rampedpyrox.RealData">[docs]</a><span class="k">class</span> <span class="nc">RealData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
 	<span class="n">__doc__</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
 <span class="s1">	Class for real data thermograms (e.g. data from RampedPyrox experiment).</span>
 
-<span class="s1">	Args:</span>
-<span class="s1">		all_data (str or pd.DataFrame): File containing thermogram data,</span>
-<span class="s1">			either as a path string or pandas.DataFrame object.</span>
+<span class="s1">	Parameters</span>
+<span class="s1">	----------</span>
+<span class="s1">	all_data : str or pd.DataFrame</span>
+<span class="s1">		File containing thermogram data, either as a path string or </span>
+<span class="s1">		``pandas.DataFrame`` instance.</span>
 
-<span class="s1">		nT (int): The number of time points to use. Defaults to 250.</span>
+<span class="s1">	nT : int</span>
+<span class="s1">		The number of time points to use. Defaults to 250.</span>
 
-<span class="s1">	Returns:</span>
-<span class="s1">		rd (rp.RealData): RealData object containing thermogram data.</span>
+<span class="s1">	Returns</span>
+<span class="s1">	-------</span>
+<span class="s1">	rd : rp.RealData</span>
+<span class="s1">		``np.RealData`` instance containing thermogram data.</span>
 
-<span class="s1">	Raises:</span>
-<span class="s1">		ValueError: If `all_data` is not str or pd.DataFrame.</span>
-<span class="s1">		ValueError: If `all_data` does not contain &quot;CO2_scaled&quot; and &quot;temp&quot; columns.</span>
-<span class="s1">		ValueError: If index is not `DatetimeIndex`.</span>
+<span class="s1">	Raises</span>
+<span class="s1">	------</span>
+<span class="s1">	ValueError</span>
+<span class="s1">		If `all_data` is not ``str`` or ``pd.DataFrame`` instance.</span>
 
-<span class="s1">	Examples:</span>
-<span class="s1">		Importing data into a thermogram object::</span>
+<span class="s1">	ValueError</span>
+<span class="s1">		If `all_data` does not contain &quot;CO2_scaled&quot; and &quot;temp&quot; columns.</span>
 <span class="s1">	</span>
-<span class="s1">			#load modules</span>
-<span class="s1">			import rampedpyrox as rp</span>
+<span class="s1">	ValueError</span>
+<span class="s1">		If `all_data` index is not ``pd.DatetimeIndex`` instance.</span>
 
-<span class="s1">			data = &#39;/path_to_folder_containing_data/data.csv&#39;</span>
-<span class="s1">			nT = 250 #number of timepoints</span>
-<span class="s1">			rd = rp.RealData(data,nT=nT)</span>
+<span class="s1">	Examples</span>
+<span class="s1">	--------</span>
+<span class="s1">	Importing data into a thermogram object::</span>
+
+<span class="s1">		#load modules</span>
+<span class="s1">		import rampedpyrox as rp</span>
+
+<span class="s1">		data = &#39;/path_to_folder_containing_data/data.csv&#39;</span>
+<span class="s1">		nT = 250 #number of timepoints</span>
+<span class="s1">		rd = rp.RealData(data,nT=nT)</span>
 <span class="s1">	&#39;&#39;&#39;</span>
 
-<div class="viewcode-block" id="RealData.__init__"><a class="viewcode-back" href="../../../_generated/rampedpyrox.core.thermogram.RealData.html#rampedpyrox.core.thermogram.RealData.__init__">[docs]</a>	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">all_data</span><span class="p">,</span> <span class="n">nT</span><span class="o">=</span><span class="mi">250</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">all_data</span><span class="p">,</span> <span class="n">nT</span><span class="o">=</span><span class="mi">250</span><span class="p">):</span>
 
 		<span class="c1">#extract t, Tau, and g from all_data</span>
 		<span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="n">_extract_tg</span><span class="p">(</span><span class="n">all_data</span><span class="p">,</span> <span class="n">nT</span><span class="p">)</span>
@@ -199,32 +211,40 @@
 		<span class="nb">super</span><span class="p">(</span><span class="n">RealData</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
 
 		<span class="c1">#define private parameters</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_nT</span> <span class="o">=</span> <span class="n">nT</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_nT</span> <span class="o">=</span> <span class="n">nT</span>
 
-	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="RealData.plot"><a class="viewcode-back" href="../../../_generated/rampedpyrox.RealData.plot.html#rampedpyrox.RealData.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Plots the true thermogram against time or temp.</span>
 
-<span class="sd">		Args:</span>
-<span class="sd">			ax (None or matplotlib.axis): Axis to plot on. If None, </span>
-<span class="sd">				creates an axis object to return. Defaults to None.</span>
-<span class="sd">			xaxis (str): Sets the x axis units, either &#39;time&#39; or &#39;temp&#39;.</span>
-<span class="sd">				Defaults to &#39;time&#39;.</span>
+<span class="sd">		Parameters</span>
+<span class="sd">		----------</span>
+<span class="sd">		ax : None or matplotlib.axis</span>
+<span class="sd">			Axis to plot on. If `None`, automatically creates a</span>
+<span class="sd">			``matplotlip.axis`` instance to return. Defaults to `None`.</span>
 
-<span class="sd">		Returns:</span>
-<span class="sd">			ax (matplotlib.axis): Updated axis with plotted data.</span>
+<span class="sd">		xaxis : str</span>
+<span class="sd">			Sets the x axis unit, either &#39;time&#39; or &#39;temp&#39;. Defaults to &#39;time&#39;.</span>
 
-<span class="sd">		Raises:</span>
-<span class="sd">			ValueError: If `xaxis` is not &#39;time&#39; or &#39;temp&#39;.</span>
+<span class="sd">		Returns</span>
+<span class="sd">		-------</span>
+<span class="sd">		ax : matplotlib.axis</span>
+<span class="sd">			Updated axis instance with plotted data.</span>
 
-<span class="sd">		Examples:</span>
-<span class="sd">			Plotting thermogram data::</span>
+<span class="sd">		Raises</span>
+<span class="sd">		------</span>
+<span class="sd">		ValueError</span>
+<span class="sd">			If `xaxis` is not &#39;time&#39; or &#39;temp&#39;.</span>
 
-<span class="sd">				#load modules</span>
-<span class="sd">				import matplotlib.pyplot as plt</span>
+<span class="sd">		Examples</span>
+<span class="sd">		--------</span>
+<span class="sd">		Plotting thermogram data::</span>
 
-<span class="sd">				fig,ax = plt.subplots(1,1)</span>
-<span class="sd">				ax = rd.plot(ax=ax,xaxis=&#39;time&#39;)</span>
+<span class="sd">			#load modules</span>
+<span class="sd">			import matplotlib.pyplot as plt</span>
+
+<span class="sd">			fig,ax = plt.subplots(1,1)</span>
+<span class="sd">			ax = rd.plot(ax=ax,xaxis=&#39;time&#39;)</span>
 <span class="sd">		&#39;&#39;&#39;</span>
 
 		<span class="c1">#plot the thermogram and edit tg_line parameters</span>
@@ -243,10 +263,10 @@
 		
 		<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handle_list</span><span class="p">,</span><span class="n">label_list</span><span class="p">,</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;best&#39;</span><span class="p">)</span>
 
-		<span class="k">return</span> <span class="n">ax</span></div>
+		<span class="k">return</span> <span class="n">ax</span></div></div>
 
 
-<div class="viewcode-block" id="ModeledData"><a class="viewcode-back" href="../../../_generated/rampedpyrox.core.thermogram.ModeledData.html#rampedpyrox.core.thermogram.ModeledData">[docs]</a><span class="k">class</span> <span class="nc">ModeledData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
+<div class="viewcode-block" id="ModeledData"><a class="viewcode-back" href="../../../_generated/rampedpyrox.ModeledData.html#rampedpyrox.ModeledData">[docs]</a><span class="k">class</span> <span class="nc">ModeledData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
 	<span class="n">__doc__</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
 <span class="s1">	Subclass for thermograms generated using an f(Ea) distribution.</span>
 
@@ -272,7 +292,7 @@
 <span class="s1">			md = rp.ModeledData(rd.t,rd.Tau,g_hat,gp)</span>
 <span class="s1">	&#39;&#39;&#39;</span>
 
-<div class="viewcode-block" id="ModeledData.__init__"><a class="viewcode-back" href="../../../_generated/rampedpyrox.core.thermogram.ModeledData.html#rampedpyrox.core.thermogram.ModeledData.__init__">[docs]</a>	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">g_hat</span><span class="p">,</span> <span class="n">gp</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">g_hat</span><span class="p">,</span> <span class="n">gp</span><span class="p">):</span>
 
 		<span class="c1">#ensure equal array lengths</span>
 		<span class="n">nT</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
@@ -298,9 +318,9 @@
 
 		<span class="c1">#define private parameters</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_nT</span> <span class="o">=</span> <span class="n">nT</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_nPeak</span> <span class="o">=</span> <span class="n">nPeak</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_nPeak</span> <span class="o">=</span> <span class="n">nPeak</span>
 
-	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="ModeledData.plot"><a class="viewcode-back" href="../../../_generated/rampedpyrox.ModeledData.plot.html#rampedpyrox.ModeledData.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Plots the modeled thermogram and individual peaks against time or temp.</span>
 
@@ -354,7 +374,7 @@
 		
 		<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handle_list</span><span class="p">,</span><span class="n">label_list</span><span class="p">,</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;best&#39;</span><span class="p">)</span>
 
-		<span class="k">return</span> <span class="n">ax</span></div>
+		<span class="k">return</span> <span class="n">ax</span></div></div>
 </pre></div>
 
           </div>
