@@ -42,11 +42,14 @@
             
   <h1>Source code for rampedpyrox.core.thermogram</h1><div class="highlight"><pre>
 <span></span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">Thermogram module for storing thermogram data, either RealData (i.e. collected</span>
-<span class="sd">from an actual instrument) or ModeledData (i.e. results from inverse model).</span>
+<span class="sd">Thermogram module for storing and plotting thermogram data, either ``RealData``</span>
+<span class="sd">(i.e. collected from an actual instrument) or ``ModeledData`` (i.e. results </span>
+<span class="sd">from inverse model).</span>
 
 <span class="sd">* TODO: Add summary method for ModeledData.</span>
 <span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -59,27 +62,42 @@
 <span class="c1">#exclude Thermogram superclass in __all__</span>
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;RealData&#39;</span><span class="p">,</span><span class="s1">&#39;ModeledData&#39;</span><span class="p">]</span>
 
-<span class="c1">#define function to extract Thermogram variables from &#39;real_data&#39;</span>
+<span class="c1">#define function to extract variables from &#39;real_data&#39;</span>
 <span class="k">def</span> <span class="nf">_extract_tg</span><span class="p">(</span><span class="n">all_data</span><span class="p">,</span> <span class="n">nT</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Extracts time, temperature, and carbon remaining vectors from all_data.</span>
-<span class="sd">	Called by Thermogram during __init__.</span>
+<span class="sd">	Called by ``RealData.__init__()``.</span>
 
-<span class="sd">	Args:</span>
-<span class="sd">		all_data (str or pd.DataFrame): File containing thermogram data,</span>
-<span class="sd">			either as a path string or pandas.DataFrame object.</span>
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	all_data : str or pd.DataFrame </span>
+<span class="sd">		File containing thermogram data, either as a path string or </span>
+<span class="sd">		``pd.DataFrame`` instance.</span>
 
-<span class="sd">		nT (int): The number of time points to use.</span>
+<span class="sd">	nT : int </span>
+<span class="sd">		The number of time points to use. Defaults to 250.</span>
 
-<span class="sd">	Returns:</span>
-<span class="sd">		t (np.ndarray): Array of timepoints.</span>
-<span class="sd">		Tau (np.ndarray): Array of temperature points.</span>
-<span class="sd">		g (np.ndarray): Array of fraction of carbon remaining.</span>
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	t : np.ndarray</span>
+<span class="sd">		Array of timepoints (in seconds).</span>
 
-<span class="sd">	Raises:</span>
-<span class="sd">		ValueError: If `all_data` is not str or pd.DataFrame.</span>
-<span class="sd">		ValueError: If `all_data` does not contain &quot;CO2_scaled&quot; and &quot;temp&quot; columns.</span>
-<span class="sd">		ValueError: If index is not `DatetimeIndex`.</span>
+<span class="sd">	Tau : np.ndarray</span>
+<span class="sd">		Array of temperature points (in Kelvin).</span>
+<span class="sd">	</span>
+<span class="sd">	g : np.ndarray</span>
+<span class="sd">		Array of fraction of carbon remaining.</span>
+
+<span class="sd">	Raises</span>
+<span class="sd">	------</span>
+<span class="sd">	ValueError</span>
+<span class="sd">		If `all_data` is not str or ``pd.DataFrame`` instance.</span>
+<span class="sd">	</span>
+<span class="sd">	ValueError</span>
+<span class="sd">		If `all_data` does not contain &quot;CO2_scaled&quot; and &quot;temp&quot; columns.</span>
+<span class="sd">	</span>
+<span class="sd">	ValueError</span>
+<span class="sd">		If index is not ``pd.DatetimeIndex`` instance.</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 
 	<span class="c1">#import all_data as a pd.DataFrame if inputted as a string path and check</span>
@@ -155,11 +173,6 @@
 
 		<span class="k">return</span> <span class="n">ax</span><span class="p">,</span> <span class="n">tg_line</span>
 
-	<span class="k">def</span> <span class="nf">summary</span><span class="p">():</span>
-		<span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">		Prints a summary of the Thermogram instance.</span>
-<span class="sd">		&#39;&#39;&#39;</span>
-
 
 <div class="viewcode-block" id="RealData"><a class="viewcode-back" href="../../../_generated/rampedpyrox.RealData.html#rampedpyrox.RealData">[docs]</a><span class="k">class</span> <span class="nc">RealData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
 	<span class="n">__doc__</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
@@ -169,15 +182,10 @@
 <span class="s1">	----------</span>
 <span class="s1">	all_data : str or pd.DataFrame</span>
 <span class="s1">		File containing thermogram data, either as a path string or </span>
-<span class="s1">		``pandas.DataFrame`` instance.</span>
+<span class="s1">		``pd.DataFrame`` instance.</span>
 
 <span class="s1">	nT : int</span>
 <span class="s1">		The number of time points to use. Defaults to 250.</span>
-
-<span class="s1">	Returns</span>
-<span class="s1">	-------</span>
-<span class="s1">	rd : rp.RealData</span>
-<span class="s1">		``np.RealData`` instance containing thermogram data.</span>
 
 <span class="s1">	Raises</span>
 <span class="s1">	------</span>
@@ -190,6 +198,19 @@
 <span class="s1">	ValueError</span>
 <span class="s1">		If `all_data` index is not ``pd.DatetimeIndex`` instance.</span>
 
+<span class="s1">	Notes</span>
+<span class="s1">	-----</span>
+<span class="s1">	If using `all_data` generated by the NOSAMS RPO LabView program, </span>
+<span class="s1">	the date_time column must be converted to `hh:mm:ss AM/PM` format and</span>
+<span class="s1">	a header row must be added with the following columns:</span>
+
+<span class="s1">	date_time, T_room, P_room, CO2_raw, corr_int, corr_slope, temp, CO2_scaled</span>
+<span class="s1">	flow_rate, dTdt, fraction, ug_frac, ug_sum</span>
+
+<span class="s1">	See Also</span>
+<span class="s1">	--------</span>
+<span class="s1">	ModeledData</span>
+
 <span class="s1">	Examples</span>
 <span class="s1">	--------</span>
 <span class="s1">	Importing data into a thermogram object::</span>
@@ -197,9 +218,47 @@
 <span class="s1">		#load modules</span>
 <span class="s1">		import rampedpyrox as rp</span>
 
+<span class="s1">		#create string of path to data</span>
 <span class="s1">		data = &#39;/path_to_folder_containing_data/data.csv&#39;</span>
-<span class="s1">		nT = 250 #number of timepoints</span>
-<span class="s1">		rd = rp.RealData(data,nT=nT)</span>
+<span class="s1">		</span>
+<span class="s1">		#number of timepoints</span>
+<span class="s1">		nT = 250</span>
+
+<span class="s1">		rd = rp.RealData(data, nT=nT)</span>
+
+<span class="s1">	Plotting thermogram data from ``rp.RealData`` instance (rd)::</span>
+
+<span class="s1">		#load modules</span>
+<span class="s1">		import matplotlib.pyplot as plt</span>
+
+<span class="s1">		#generate axis handle</span>
+<span class="s1">		fig,ax = plt.subplots(1,1)</span>
+
+<span class="s1">		# plot thermogram</span>
+<span class="s1">		ax = rd.plot(ax=ax, xaxis=&#39;time&#39;)</span>
+
+<span class="s1">	Attributes</span>
+<span class="s1">	----------</span>
+<span class="s1">	g : np.ndarray</span>
+<span class="s1">		Array containing the fraction of carbon remaining at each timepoint.</span>
+
+<span class="s1">	gdot_t : np.ndarray</span>
+<span class="s1">		Array containing the derivative of the fraction remaining with respect</span>
+<span class="s1">		to time.</span>
+
+<span class="s1">	gdot_Tau : np.ndarray</span>
+<span class="s1">		Array containing the derivative of the fraction remaining with respect</span>
+<span class="s1">		to temperature -- i.e. the negative of the thermogram.</span>
+
+<span class="s1">	t : np.ndarray</span>
+<span class="s1">		Array containing the timepoints (in seconds).</span>
+
+<span class="s1">	Tau : np.ndarray</span>
+<span class="s1">		Array containing the temperature at each timepoint (in Kelvin).</span>
+
+<span class="s1">	Taudot_t : np.ndarray</span>
+<span class="s1">		Array containing the derivative of temperature with respect to time --</span>
+<span class="s1">		i.e. the ramp rate.</span>
 <span class="s1">	&#39;&#39;&#39;</span>
 
 	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">all_data</span><span class="p">,</span> <span class="n">nT</span><span class="o">=</span><span class="mi">250</span><span class="p">):</span>
@@ -235,16 +294,6 @@
 <span class="sd">		------</span>
 <span class="sd">		ValueError</span>
 <span class="sd">			If `xaxis` is not &#39;time&#39; or &#39;temp&#39;.</span>
-
-<span class="sd">		Examples</span>
-<span class="sd">		--------</span>
-<span class="sd">		Plotting thermogram data::</span>
-
-<span class="sd">			#load modules</span>
-<span class="sd">			import matplotlib.pyplot as plt</span>
-
-<span class="sd">			fig,ax = plt.subplots(1,1)</span>
-<span class="sd">			ax = rd.plot(ax=ax,xaxis=&#39;time&#39;)</span>
 <span class="sd">		&#39;&#39;&#39;</span>
 
 		<span class="c1">#plot the thermogram and edit tg_line parameters</span>
@@ -268,28 +317,100 @@
 
 <div class="viewcode-block" id="ModeledData"><a class="viewcode-back" href="../../../_generated/rampedpyrox.ModeledData.html#rampedpyrox.ModeledData">[docs]</a><span class="k">class</span> <span class="nc">ModeledData</span><span class="p">(</span><span class="n">Thermogram</span><span class="p">):</span>
 	<span class="n">__doc__</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
-<span class="s1">	Subclass for thermograms generated using an f(Ea) distribution.</span>
+<span class="s1">	Class for thermograms generated using the inverse model.</span>
 
-<span class="s1">	Args:</span>
-<span class="s1">		t (np.ndarray): Array of timepoints.</span>
-<span class="s1">		Tau (np.ndarray): Array of temperature points.</span>
-<span class="s1">		g (np.ndarray): Array of fraction of carbon remaining.</span>
+<span class="s1">	Parameters</span>
+<span class="s1">	----------</span>
+<span class="s1">	t : np.ndarray</span>
+<span class="s1">		Array containing the timepoints (in seconds).</span>
 
-<span class="s1">	Returns:</span>
-<span class="s1">		md (rp.ModeledData): Modeled object containing thermogram data.</span>
+<span class="s1">	Tau : np.ndarray</span>
+<span class="s1">		Array containing the temperature at each timepoint (in Kelvin).</span>
 
-<span class="s1">	Raises:</span>
-<span class="s1">		ValueError: If any of the inputted arrays are not same length.</span>
+<span class="s1">	g_hat : np.ndarray</span>
+<span class="s1">		Array containing the fraction of carbon remaining at each timepoint,</span>
+<span class="s1">		as determined using the inverse model results contained in an </span>
+<span class="s1">		``rp.EnergyComplex`` instance.</span>
 
-<span class="s1">	Examples:</span>
-<span class="s1">		Creating a ModeledData object using inversemodel results::</span>
-<span class="s1">	</span>
-<span class="s1">			#load modules</span>
-<span class="s1">			import rampedpyrox as rp</span>
+<span class="s1">	gp : np.ndarray</span>
+<span class="s1">		Array of the fraction of carbon remaining for each peak at each</span>
+<span class="s1">		timepoint, as determind using the inverse model results contained in</span>
+<span class="s1">		an ``up.EnergyComplex`` instance.</span>
 
-<span class="s1">			#t and Tau from RealData object, g_hat and gp from running</span>
-<span class="s1">			# LaplaceTransform.calc_TG_fwd()</span>
-<span class="s1">			md = rp.ModeledData(rd.t,rd.Tau,g_hat,gp)</span>
+<span class="s1">	Raises</span>
+<span class="s1">	------</span>
+<span class="s1">	ValueError</span>
+<span class="s1">		If any of the inputted arrays are not same length (nT).</span>
+
+<span class="s1">	See Also</span>
+<span class="s1">	--------</span>
+<span class="s1">	RealData</span>
+
+<span class="s1">	Examples</span>
+<span class="s1">	---------</span>
+<span class="s1">	Creating a ModeledData object using inversemodel results::</span>
+
+<span class="s1">		#load modules</span>
+<span class="s1">		import rampedpyrox as rp</span>
+
+<span class="s1">		#t and Tau from RealData object, g_hat and gp from running</span>
+<span class="s1">		# LaplaceTransform.calc_TG_fwd()</span>
+<span class="s1">		md = rp.ModeledData(rd.t,rd.Tau,g_hat,gp)</span>
+
+<span class="s1">	Plotting thermogram data from ``rp.ModeledData`` instance (md)::</span>
+
+<span class="s1">		#load modules</span>
+<span class="s1">		import matplotlib.pyplot as plt</span>
+
+<span class="s1">		#generate axis handle</span>
+<span class="s1">		fig,ax = plt.subplots(1,1)</span>
+
+<span class="s1">		# plot thermogram</span>
+<span class="s1">		ax = md.plot(ax=ax, xaxis=&#39;time&#39;)</span>
+
+<span class="s1">	Returning peak summary data from ``rp.ModeledData`` instance (md)::</span>
+
+<span class="s1">		#print summary</span>
+<span class="s1">		md.summary()</span>
+
+<span class="s1">	Attributes</span>
+<span class="s1">	----------</span>
+<span class="s1">	g : np.ndarray</span>
+<span class="s1">		Array containing the fraction of carbon remaining at each timepoint.</span>
+
+<span class="s1">	gdot_t : np.ndarray</span>
+<span class="s1">		Array containing the derivative of the fraction remaining with respect</span>
+<span class="s1">		to time.</span>
+
+<span class="s1">	gdot_Tau : np.ndarray</span>
+<span class="s1">		Array containing the derivative of the fraction remaining with respect</span>
+<span class="s1">		to temperature -- i.e. the negative of the thermogram.</span>
+
+<span class="s1">	gp : np.ndarray</span>
+<span class="s1">		Array containing the fraction of carbon reamining in each peak at</span>
+<span class="s1">		each timepoint.</span>
+
+<span class="s1">	gpdot_t : np.ndarray</span>
+<span class="s1">		Array containing the derivative of the fraction remaining in each peak</span>
+<span class="s1">		with respect to time.</span>
+
+<span class="s1">	gpdot_Tau : np.ndarray</span>
+<span class="s1">		Array containing the derivative of the fraction remaining in each peak</span>
+<span class="s1">		with respect to temperature -- i.e. the negative of the deconvolved</span>
+<span class="s1">		thermogram.</span>
+
+<span class="s1">	peak_info : pd.DataFrame</span>
+<span class="s1">		Contains the peak info data: max temp, max time, and relative area.</span>
+
+<span class="s1">	t : np.ndarray</span>
+<span class="s1">		Array containing the timepoints (in seconds).</span>
+
+<span class="s1">	Tau : np.ndarray</span>
+<span class="s1">		Array containing the temperature at each timepoint (in Kelvin).</span>
+
+<span class="s1">	Taudot_t : np.ndarray</span>
+<span class="s1">		Array containing the derivative of temperature with respect to time --</span>
+<span class="s1">		i.e. the ramp rate.</span>
 <span class="s1">	&#39;&#39;&#39;</span>
 
 	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">g_hat</span><span class="p">,</span> <span class="n">gp</span><span class="p">):</span>
@@ -316,6 +437,17 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">gpdot_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">gp</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">/</span><span class="n">dt_mat</span> <span class="c1">#second-1</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">gpdot_Tau</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpdot_t</span><span class="o">/</span><span class="n">dTau_mat</span> <span class="c1">#Kelvin-1</span>
 
+		<span class="c1">#store peak data in dataframe</span>
+		<span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">gpdot_t</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+		<span class="n">rel_area</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gpdot_t</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gpdot_t</span><span class="p">)</span>
+		<span class="n">pk_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">t</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">Tau</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">rel_area</span><span class="p">))</span>
+
+		<span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;time (seconds)&#39;</span><span class="p">,</span><span class="s1">&#39;temp (Kelvin)&#39;</span><span class="p">,</span><span class="s1">&#39;rel. area&#39;</span><span class="p">]</span>
+		<span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">nPeak</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+
+		<span class="n">pk_dat</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">pk_data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">ind</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">peak_info</span> <span class="o">=</span> <span class="n">pk_dat</span>
+
 		<span class="c1">#define private parameters</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_nT</span> <span class="o">=</span> <span class="n">nT</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_nPeak</span> <span class="o">=</span> <span class="n">nPeak</span>
@@ -324,26 +456,24 @@
 		<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Plots the modeled thermogram and individual peaks against time or temp.</span>
 
-<span class="sd">		Args:</span>
-<span class="sd">			ax (None or matplotlib.axis): Axis to plot on. If None, </span>
-<span class="sd">				creates an axis object to return. Defaults to None.</span>
-<span class="sd">			xaxis (str): Sets the x axis units, either &#39;time&#39; or &#39;temp&#39;.</span>
-<span class="sd">				Defaults to time.</span>
+<span class="sd">		Parameters</span>
+<span class="sd">		----------</span>
+<span class="sd">		ax : None or matplotlib.axis</span>
+<span class="sd">			Axis to plot on. If `None`, automatically creates a</span>
+<span class="sd">			``matplotlip.axis`` instance to return. Defaults to `None`.</span>
 
-<span class="sd">		Returns:</span>
-<span class="sd">			ax (matplotlib.axis): Updated axis with plotted data.</span>
+<span class="sd">		xaxis : str</span>
+<span class="sd">			Sets the x axis unit, either &#39;time&#39; or &#39;temp&#39;. Defaults to &#39;time&#39;.</span>
 
-<span class="sd">		Raises:</span>
-<span class="sd">			ValueError: If `xaxis` is not &#39;time&#39; or &#39;temp&#39;.</span>
+<span class="sd">		Returns</span>
+<span class="sd">		-------</span>
+<span class="sd">		ax : matplotlib.axis</span>
+<span class="sd">			Updated axis instance with plotted data.</span>
 
-<span class="sd">		Examples:</span>
-<span class="sd">			Plotting thermogram data::</span>
-
-<span class="sd">				#load modules</span>
-<span class="sd">				import matplotlib.pyplot as plt</span>
-
-<span class="sd">				fig,ax = plt.subplots(1,1)</span>
-<span class="sd">				ax = md.plot(ax=ax,xaxis=&#39;time&#39;)</span>
+<span class="sd">		Raises</span>
+<span class="sd">		------</span>
+<span class="sd">		ValueError</span>
+<span class="sd">			If `xaxis` is not &#39;time&#39; or &#39;temp&#39;.</span>
 <span class="sd">		&#39;&#39;&#39;</span>
 
 		<span class="c1">#plot the thermogram and edit tg_line parameters</span>
@@ -374,7 +504,27 @@
 		
 		<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handle_list</span><span class="p">,</span><span class="n">label_list</span><span class="p">,</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;best&#39;</span><span class="p">)</span>
 
-		<span class="k">return</span> <span class="n">ax</span></div></div>
+		<span class="k">return</span> <span class="n">ax</span></div>
+
+	<span class="k">def</span> <span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Generates a summary of the ``rp.ModeledData`` instance.</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+
+		<span class="c1">#define strings</span>
+		<span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span> <span class="o">+</span> <span class="s1">&#39; summary table:&#39;</span>
+		<span class="n">line</span> <span class="o">=</span> <span class="s1">&#39;============================================================&#39;</span>
+		<span class="n">pi</span> <span class="o">=</span> <span class="s1">&#39;max time, max temp, and rel. area for each deconvolved peak:&#39;</span>
+		<span class="n">note</span> <span class="o">=</span> <span class="s1">&#39;NOTE: Combined peak results are represented as one in table!&#39;</span>
+
+		<span class="nb">print</span><span class="p">(</span><span class="n">title</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">line</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">pi</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">note</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">peak_info</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">line</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+	<span class="c1">#import some thermogram from the test_data folder</span>
+	<span class="n">rd</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">RealData</span><span class="p">(</span><span class="s1">&#39;test_data/TS3.csv&#39;</span><span class="p">,</span><span class="n">nT</span><span class="o">=</span><span class="mi">250</span><span class="p">)</span>
 </pre></div>
 
           </div>

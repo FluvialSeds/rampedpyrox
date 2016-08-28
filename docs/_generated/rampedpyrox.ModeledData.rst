@@ -11,6 +11,7 @@ rampedpyrox.ModeledData
       :toctree:
    
       ~ModeledData.plot
+      ~ModeledData.summary
    
    
 
