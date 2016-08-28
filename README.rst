@@ -7,11 +7,6 @@ instruments such as RampedPyrox, RockEval, pyrolysis gc (pyGC), thermogravimitry
 sample using a Distributed Activation Energy Model (DAEM) and calculates the
 corresponding stable-carbon and radiocarbon isotope values for each peak.
 
-Rampedpyrox is written by Jordon D. Hemingway (MIT/WHOI Joint Program). When using
-rampedpyrox, please cite the following peer-reviewed publications:
-
-(insert papers here once published)
-
 
 Documentation
 =============

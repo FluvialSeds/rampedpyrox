@@ -21,9 +21,6 @@ calculates the corresponding stable-carbon and radiocarbon isotope values for ea
 :License:
 	MIT License
 
-When using ``rampedpyrox``, please cite the following peer-reviewed publications:
-
-(insert papers here once published)
 
 Minimal examples
 ----------------
