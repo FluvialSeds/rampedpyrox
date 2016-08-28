@@ -82,10 +82,8 @@ Table of contents
 .. toctree::
    :maxdepth: 2
 
-   thermogram
-   laplacetransform
-   energycomplex
-   isotoperesult
+   package_reference
+
 
 Indices and tables
 ==================

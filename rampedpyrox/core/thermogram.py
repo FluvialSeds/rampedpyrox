@@ -1,9 +1,7 @@
 '''
-Thermogram module for storing and plotting thermogram data, either ``RealData``
-(i.e. collected from an actual instrument) or ``ModeledData`` (i.e. results 
-from inverse model).
-
-* TODO: Add summary method for ModeledData.
+``thermogram`` module for storing and plotting thermogram data, either as a
+``RealData`` instance (i.e. collected from an actual instrument) or a 
+``ModeledData`` instance (i.e. results from inverse model).
 '''
 
 from __future__ import print_function
@@ -465,7 +463,7 @@ class ModeledData(Thermogram):
 
 	def summary(self):
 		'''
-		Generates a summary of the ``rp.ModeledData`` instance.
+		Prints a summary of the ``rp.ModeledData`` instance.
 		'''
 
 		#define strings
@@ -480,5 +478,5 @@ class ModeledData(Thermogram):
 
 
 if __name__ == '__main__':
-	#import some thermogram from the test_data folder
-	rd = rp.RealData('test_data/TS3.csv',nT=250)
+
+	import rampedpyrox.core.api as rp

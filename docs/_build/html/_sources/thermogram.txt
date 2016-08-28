@@ -38,10 +38,3 @@ RampedPyrox references:
 pyrolysis: Methodology and data treatment. *Geochemistry, Geophysics, 
 Geosystems*, **9(4)**, Q04005.
 
-Module Reference
-----------------
-.. autosummary::
-	:toctree: _generated/
-
-	rampedpyrox.RealData
-	rampedpyrox.ModeledData

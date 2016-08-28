@@ -42,11 +42,9 @@
             
   <h1>Source code for rampedpyrox.core.thermogram</h1><div class="highlight"><pre>
 <span></span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">Thermogram module for storing and plotting thermogram data, either ``RealData``</span>
-<span class="sd">(i.e. collected from an actual instrument) or ``ModeledData`` (i.e. results </span>
-<span class="sd">from inverse model).</span>
-
-<span class="sd">* TODO: Add summary method for ModeledData.</span>
+<span class="sd">``thermogram`` module for storing and plotting thermogram data, either as a</span>
+<span class="sd">``RealData`` instance (i.e. collected from an actual instrument) or a </span>
+<span class="sd">``ModeledData`` instance (i.e. results from inverse model).</span>
 <span class="sd">&#39;&#39;&#39;</span>
 
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
@@ -506,9 +504,9 @@
 
 		<span class="k">return</span> <span class="n">ax</span></div>
 
-	<span class="k">def</span> <span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ModeledData.summary"><a class="viewcode-back" href="../../../_generated/rampedpyrox.ModeledData.summary.html#rampedpyrox.ModeledData.summary">[docs]</a>	<span class="k">def</span> <span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">		Generates a summary of the ``rp.ModeledData`` instance.</span>
+<span class="sd">		Prints a summary of the ``rp.ModeledData`` instance.</span>
 <span class="sd">		&#39;&#39;&#39;</span>
 
 		<span class="c1">#define strings</span>
@@ -519,12 +517,12 @@
 
 		<span class="nb">print</span><span class="p">(</span><span class="n">title</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">line</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">pi</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">note</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
 		<span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">peak_info</span><span class="p">)</span>
-		<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">line</span><span class="p">)</span></div>
+		<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">line</span><span class="p">)</span></div></div>
 
 
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-	<span class="c1">#import some thermogram from the test_data folder</span>
-	<span class="n">rd</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">RealData</span><span class="p">(</span><span class="s1">&#39;test_data/TS3.csv&#39;</span><span class="p">,</span><span class="n">nT</span><span class="o">=</span><span class="mi">250</span><span class="p">)</span>
+
+	<span class="kn">import</span> <span class="nn">rampedpyrox.core.api</span> <span class="k">as</span> <span class="nn">rp</span>
 </pre></div>
 
           </div>

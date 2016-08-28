@@ -1,11 +1,13 @@
 '''
-Laplacetransform module for calculating the Laplace Transform for a given model
-and performing the inverse/forward transformation. Stores information in a
-LaplaceTransform object.
+``laplacetransform`` module for calculating the Laplace Transform for a given 
+model and performing the inverse/forward transformation. Stores information 
+as a ``LaplaceTransform`` intstance.
 
 * TODO: update calc_L_curve to be more pythonic.
-* TODO: Keep testing "Wabha" function and developing best-fit omega
+* TODO: Keep testing "calc_Wabha" function and developing best-fit omega
 '''
+
+from __future__ import print_function
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,25 +20,36 @@ from rampedpyrox.core.thermogram import ModeledData
 
 __docformat__ = 'restructuredtext en'
 
+## PRIVATE FUNCTIONS ##
+
 #define function to calculate phi
 def _calc_phi(A, g, omega):
 	'''
-	Calculates phi, the discretized Lapalce transform f(Ea) result.
+	Calculates `phi`, the discretized Lapalce transform f(Ea) result.
 	Called by ``LaplaceTransform.calc_EC_inv()``.
+	Called by ``calc_L()``.
 
-	Args:
-		A (np.ndarray): Laplace Transform matrix of shape [nT x nE].
+	Parameters
+	----------
+	A : np.ndarray
+		Laplace Transform matrix of shape [nT x nE].
 
-		g (np.ndarray): Array of fraction of carbon remaining.
+	g : np.ndarray
+		Array of fraction of carbon remaining.
 
-		omega (int): Omega value for Tikhonov Regularization.
+	omega : int
+		Omega value for Tikhonov Regularization.
 
-	Returns:
-		phi (np.ndarray): Array of the pdf of the distribution of Ea.
+	Returns
+	-------
+	phi : np.ndarray
+		Array of the pdf of the distribution of Ea, f(Ea).
 
-		resid_err (float): Residual RMSE between true and modeled thermogram.
+	resid_err : float
+		Residual RMSE between true and modeled thermogram.
 
-		rgh_err (float): Roughness RMSE from Tikhonov Regularization.
+	rgh_err : float
+		Roughness RMSE from Tikhonov Regularization.
 	'''
 
 	#extract scalars, calculate R
@@ -60,19 +73,24 @@ def _calc_phi(A, g, omega):
 #define function to calculate R matrix
 def _calc_R(n):
 	'''
-	Calculates regularization matrix (R) for a given size, n.
+	Calculates regularization matrix (`R`) for a given size, n.
 	Called by ``_calc_phi()``.
 
-	Args:
-		n (int): Size of the regularization matrix will be [n+1 x n].
+	Parameters
+	----------
+	n : int
+		Size of the regularization matrix will be [n+1 x n].
 
-	Returns:
-		R (np.ndarray): Regularization matrix of size [n+1 x n].
+	Returns
+	-------
+	R : np.ndarray
+		Regularization matrix of size [n+1 x n].
 
-	References:
-		D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
-		respiration rates from decay time series. *Biogeosciences*, **9**,
-		3601-3612.
+	References
+	----------
+	D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+	respiration rates from decay time series. *Biogeosciences*, **9**,
+	3601-3612.
 	'''
 
 	R = np.zeros([n+1,n])
@@ -87,24 +105,30 @@ def _calc_R(n):
 
 	return R
 
-#function to round to sig fig
+#function to round to sig fig for removing noise in L curve calculation
 def _round_to_sigfig(vec, sig_figs=6):
 	'''
 	Rounds inputted vector to specified sig fig.
 	Called by ``calc_L_curve``.
 
-	Args:
-		vec (np.ndarray): Array of data to round.
+	Parameters
+	----------
+	vec : np.ndarray
+		Array of data to round.
 
-		sig_figs (int): Number of sig figs to round to. Defaults to 6.
+	sig_figs : int
+		Number of sig figs to round to. Defaults to 6.
 
-	Returns:
-		vec_round (np.ndarray): Rounded array.
+	Returns
+	-------
+	vec_round : np.ndarray
+		`vec` array rounded to `sig_figs`.
 
-	References:
-		D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
-		respiration rates from decay time series. *Biogeosciences*, **9**,
-		3601-3612.
+	References
+	----------
+	D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+	respiration rates from decay time series. *Biogeosciences*, **9**,
+	3601-3612.
 	'''
 
 	p = sig_figs
@@ -115,59 +139,112 @@ def _round_to_sigfig(vec, sig_figs=6):
 
 	return vec_round
 
-#define function to calculate A matrix for LaplaceTransform
+## PUBLIC FUNCTIONS ##
+
+#define function to calculate A matrix for ``LaplaceTransform``
 def calc_A(t, Tau, eps, logk0):
 	'''
-	Instance method to calculate the Laplace transform (A) matrix.
-	Called by ``LaplaceTransform.__init__()``.
+	Calculates the Laplace transform matrix A assuming a first-order DAEM.
+	Called by ``rp.LaplaceTransform.__init__()``.
 
-	Args:
-		t (np.ndarray): Array of timepoints.
+	Parameters
+	----------
+	t : np.ndarray
+		Array of timepoints (in seconds) from ``rp.RealData`` instance,
+		length nT.
 
-		Tau (np.ndarray): Array of temperature points.
+	Tau : np.ndarray
+		Array of temperature points (in Kelvin) from ``rp.RealData`` instance,
+		length nT.
 
-		eps (np.ndarray): Array of Ea values.
+	eps : np.ndarray
+		Array of Ea values (in kJ/mol), length nE.
 
-		logk0 (int, float, or lambda): Arrhenius pre-exponential factor,
-			either a constant value or a lambda function of Ea.
+	logk0 : np.ndarray
+		Array of Arrhenius pre-exponential factor values of length nE. See 
+		White et al. (2011) for a review on logk0 values in biomass and 
+		Dieckmann (2005) for a discussion on logk0 values in petroleum 
+		formations.
 
-	Returns:
-		A (np.ndarray): Laplace Transform matrix of shape [nT x nE].
+	Returns
+	-------
+	A : np.ndarray
+		Laplace Transform matrix of shape [nT x nE].
 
-	Examples:
-		Calculating an A matrix for given input data::
+	Raises
+	------
+	ValueError
+		If `t` and `Tau` arrays are not the same length.
 
-			#t and Tau from RealData object rd
-			eps = np.arange(50,350) #Ea range to calculate over
-			logk0 = 10 #pre-exponential (Arrhenius) factor
+	ValueError
+		If `eps` and `logk0` arrays are not the same length.
 
-			A = rp.LaplaceTransform(rd.t, rd.Tau, eps, logk0)
+	Notes
+	-----
+	The `A` matrix does not depend on the actual thermogram, only on the time-
+	temperature history and the pre-exponential factor `logk0`. That is, two
+	thermograms with the same time-temperature history will generate the same
+	`A` matrix.
 
-	References:
-		R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction kinetics
-			using a distribution of activation energies and simpler models.
-			*Energy & Fuels*, **1**, 153-161.
+	Time-temperature history need not be constant. ``calc_A`` allows for non-
+	constant ramp rates, including isothermal conditions.
 
-		\B. Cramer et al. (1998) Modeling isotope fractionation during primary
-			cracking of natural gas: A reaction kinetic approach. *Chemical
-			Geology*, **149**, 235-250.
+	See Also
+	--------
+	calc_L_curve
+	LaplaceTransform
 
-		D.C. Forney and D.H. Rothman (2012) Common structure in the
-			heterogeneity of plant-matter decay. *Journal of the Royal Society
-			Interface*, rsif.2012.0122.
+	Examples
+	--------
+	Calculating an A matrix for given input data::
 
-		D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
-			respiration rates from decay time series. *Biogeosciences*, **9**,
-			3601-3612.
+		#t and Tau from rp.RealData instance rd
+		eps = np.arange(50,350) #Ea range to calculate over
+		logk0 = 10 #constant pre-exponential (Arrhenius) factor
+
+		A = rp.calc_A(rd.t, rd.Tau, eps, logk0)
+
+	References
+	----------
+	R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction kinetics
+	using a distribution of activation energies and simpler models.
+	*Energy & Fuels*, **1**, 153-161.
+
+	\B. Cramer et al. (1998) Modeling isotope fractionation during primary
+	cracking of natural gas: A reaction kinetic approach. *Chemical
+	Geology*, **149**, 235-250.
+
+	\V. Dieckmann (2005) Modeling petroleum formation from heterogeneous
+	source rocks: The influence of frequency factors on activation energy
+	distribution and geological prediction. *Marine and Petroleum Geology*,
+	**22**, 375-390.
+
+	D.C. Forney and D.H. Rothman (2012) Common structure in the
+	heterogeneity of plant-matter decay. *Journal of the Royal Society
+	Interface*, rsif.2012.0122.
+
+	D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+	respiration rates from decay time series. *Biogeosciences*, **9**,
+	3601-3612.
+
+	J.E. White et al. (2011) Biomass pyrolysis kinetics: A comparative
+	critical review with relevant agricultural residue case studies.
+	*Journal of Analytical and Applied Pyrolysis*, **91**, 1-33.
 	'''
 
 	#set constants
-	nT = len(Tau)
+	nT = len(t)
 	nE = len(eps)
 	k0 = 10**logk0 #s-1
 	R = 8.314/1000 #kJ/mol/K
 	del_t = t[1]-t[0] #s
 	del_eps = eps[1]-eps[0] #kJ
+
+	#check array lengths
+	if len(Tau) != nT:
+		raise ValueError('t and Tau must be same length.')
+	elif len(k0) != nE:
+		raise ValueError('eps and logk0 must be same length.')
 
 	#pre-allocate A
 	A = np.zeros([nT,nE])
@@ -190,49 +267,82 @@ def calc_A(t, Tau, eps, logk0):
 #define function to calculate L curve
 def calc_L_curve(A, g, log_om_min=-3, log_om_max=2, nOm=100):
 	'''
-	Instance method to calculate the L curve for a given matrix A and
-	thermogram data g.
-	Called by ``LaplaceTransform.calc_EC_inv()`` if omega is 'auto'.
-	Called by ``LaplaceTransform.plot_L_curve()``.
+	Calculates the L curve for a given matrix `A` and fraction of carbon
+	remaining `g`.
+	Called by ``rp.LaplaceTransform.calc_EC_inv()`` if omega is 'auto'.
+	Called by ``rp.LaplaceTransform.plot_L_curve()``.
 
-	Args:
-		A (np.ndarray): Laplace Transform matrix of shape [nT x nE].
+	Parameters
+	----------
+	A : np.ndarray
+		Laplace Transform matrix of shape [nT x nE].
 
-		g (np.ndarray): Array of fraction of carbon remaining.
+	g : np.ndarray
+		Array of fraction of carbon remaining.
 
-		log_om_min (int): Log10 of minimum omega value to search.
-			Defaults to -3.
+	log_om_min : int
+		Log10 of minimum omega value to search. Defaults to -3.
 
-		log_om_max (int): Log10 of maximum omega value to search.
-			Defaults to 2.
+	log_om_max : int
+		Log10 of maximum omega value to search. Defaults to 2.
 
-		nOm (int): Number of omega values to consider. Defaults to 100.
+	nOm : int
+		Number of omega values to consider. Defaults to 100.
 
-	Returns:
-		om_best (float): Omega value that minimizes resididual RMSE and
-			roughness RMSE.
+	Returns
+	-------
+	om_best : float
+		Omega value at the point of maximum curvature in the L-curve plot of
+		resididual RMSE vs. roughness RMSE. See Hansen (1987; 1994) for 
+		discussion on `om_best` calculation.
 
-		resid_vec (np.ndarray): Array of log10 of the residual RMSE.
-		
-		rgh_vec (np.ndarray): Array of the log10 of the roughness RMSE.
-		
-		omega_vec (np.ndarray): Array of the omega values considered.
+	resid_vec : np.ndarray
+		Array of log10 of the residual RMSE for each omega value considered,
+		length `nOm`.
+	
+	rgh_vec : np.ndarray
+		Array of log10 of the roughness RMSE for each omega value considered,
+		length `nOm`.
+	
+	omega_vec : np.ndarray
+		Array of the omega values considered, length `nOm`.
 
-	Examples:
-		Basic implementation::
+	Notes
+	-----
+	Best-fit omega values using the L-curve approach typically under-
+	regularize for Ramped PyrOx data. That is, `om_best` calculated here
+	results in a "peakier" f(Ea) and a higher number of Ea Gaussian peaks
+	than can be resolved given a typical run with ~5-7 CO2 fractions. Omega
+	values between 1 and 5 typically result in ~5 Ea Gaussian peaks for most
+	Ramped PyrOx samples.
 
-			#assuming A calculated as above and g from RealData object rd.
-			om_best,resid_vec,rgh_vec,omega_vec = rp.calc_L_curve(A,g)
+	See Also
+	--------
+	calc_A
+	LaplaceTransform
 
-	References:
-		D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
-			respiration rates from decay time series. *Biogeosciences*, **9**,
-			3601-3612.
+	Examples
+	--------
+	Basic implementation::
 
-		P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
-			Numerical aspects of linear inversion (monographs on mathematical
-			modeling and computation). *Society for Industrial and Applied
-			Mathematics*.
+		#assuming A matrix calculated by rp.calc_A and g from rp.RealData 
+		# instance rd.
+
+		om_best,resid_vec,rgh_vec,omega_vec = rp.calc_L_curve(A,g)
+
+	References
+	----------
+	D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+	respiration rates from decay time series. *Biogeosciences*, **9**,
+	3601-3612.
+
+	P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
+	Numerical aspects of linear inversion (monographs on mathematical modeling
+	and computation). *Society for Industrial and Applied Mathematics*.
+
+	P.C. Hansen (1994) Regularization tools: A Matlab package for analysis and
+	solution of discrete ill-posed problems. *Numerical Algorithms*, **6**,
+	1-35.
 	'''
 
 	#shape of A is nT x nE
@@ -291,9 +401,26 @@ def calc_L_curve(A, g, log_om_min=-3, log_om_max=2, nOm=100):
 
 	return om_best, resid_vec, rgh_vec, omega_vec 
 
-def Wabha(A, g, omega):
-	'''
+def calc_Wabha(A, g, omega):
+	__doc__='''
 	Currently unused. Testing alternate methods of choosing best-fit omega.
+
+	Parameters
+	----------
+	A : np.ndarray
+		Laplace Transform matrix of shape [nT x nE].
+
+	g : np.ndarray
+		Array of fraction of carbon remaining.
+
+	omega : int or float
+		Omega value for regularization.
+
+	References
+	----------
+	\G. Wabha (1980) Spline models for observational data (monographs on 
+	mathematical modeling and computation). *Society for Industrial and*
+	*Applied Mathematics*.
 	'''
 
 
@@ -319,56 +446,115 @@ class LaplaceTransform(object):
 	__doc__='''
 	Class for storing the A matrix and calculating forward/inverse results.
 
-	Args:
-		t (np.ndarray): Array of timepoints.
+	Parameters
+	----------
+	t : np.ndarray
+		Array of timepoints (in seconds) from ``rp.RealData`` instance,
+		length nT.
 
-		Tau (np.ndarray): Array of temperature points.
+	Tau : np.ndarray
+		Array of temperature points (in Kelvin) from ``rp.RealData`` instance,
+		length nT.
 
-		eps (np.ndarray): Array of Ea values.
+	eps : np.ndarray
+		Array of Ea values (in kJ/mol), length nE.
 
-		logk0 (int, float, or lambda): Arrhenius pre-exponential factor,
-			either a constant value or a lambda function of Ea.
+	logk0 : int, float, or lambda
+		Arrhenius pre-exponential factor, either a constant value or a lambda
+		function of Ea. See White et al. (2011) for a review on logk0 values
+		in biomass and Dieckmann (2005) for a discussion on logk0 values in
+		petroleum formations.
 
-	Returns:
-		lt (rp.LaplaceTransform): ``LaplaceTransform`` object.
+	Raises
+	------
+	ValueError
+		If `logk0` is not scalar, lambda function, or array of length nE.
 
-	Raises:
-		ValueError: If logk0 is not scalar, lambda function, or array of length nE.
+	ValueError
+		If `t` and `Tau` arrays do not have the same length.
 
-	Examples:
-		Calculating the Laplace Transform object and plotting the L-curve::
+	Notes
+	-----
+	Best-fit omega values using the L-curve approach typically under-
+	regularize for Ramped PyrOx data. That is, `om_best` calculated here
+	results in a "peakier" f(Ea) and a higher number of Ea Gaussian peaks
+	than can be resolved given a typical run with ~5-7 CO2 fractions. Omega
+	values between 1 and 5 typically result in ~5 Ea Gaussian peaks for most
+	Ramped PyrOx samples.
 
-			#load modules
-			import numpy as np
-			import matplotlib.pyplot as plt
 
-			eps = np.arange(50,350) #Ea range to calculate over
-			logk0 = 10 #pre-exponential (Arrhenius) factor
-			lt = rp.LaplaceTransform(rd.t,rd.Tau,eps,logk0)
-			omega,ax = lt.plot_L_curve(rd)
-	
-	References:
+	See Also
+	--------
+	calc_A
+	calc_L_curve
 
-		R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction kinetics
-			using a distribution of activation energies and simpler models.
-			*Energy & Fuels*, **1**, 153-161.
+	Examples
+	--------
+	Calculating the Laplace Transform object::
 
-		\B. Cramer et al. (1998) Modeling isotope fractionation during primary
-			cracking of natural gas: A reaction kinetic approach. *Chemical
-			Geology*, **149**, 235-250.
+		#load modules
+		import numpy as np
 
-		D.C. Forney and D.H. Rothman (2012) Common structure in the
-			heterogeneity of plant-matter decay. *Journal of the Royal Society
-			Interface*, rsif.2012.0122.
+		eps = np.arange(50,350) #Ea range to calculate over
+		logk0 = 10. #pre-exponential (Arrhenius) factor
+		
+		lt = rp.LaplaceTransform(rd.t,rd.Tau,eps,logk0)
+		
+	Plotting the L-curve::
 
-		D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
-			respiration rates from decay time series. *Biogeosciences*, **9**,
-			3601-3612.
+		#load modules
+		import matplotlib.pyplot as plt
+		fig,ax = plt.subplots(1,1)
 
-		P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
-			Numerical aspects of linear inversion (monographs on mathematical
-			modeling and computation). *Society for Industrial and Applied
-			Mathematics*.
+		omega,ax = lt.plot_L_curve(rd, ax=ax)
+
+	Calculating an f(Ea) distribution for an ``rp.RealData`` instance rd 
+	using the inverse model::
+
+		#calculate best-fit omega using the L-curve
+		phi,resid_err,rgh_err,om_best = lt.calc_EC_inv(rd,omega='auto')
+
+	Creating an ``rp.ModeledData`` instance of the forward-modeled thermogram
+	using an ``rp.EnergyComplex`` instance ec::
+
+		rd = lt.calc_TG_fwd(ec)
+
+	References
+	----------
+
+	R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction kinetics
+	using a distribution of activation energies and simpler models.
+	*Energy & Fuels*, **1**, 153-161.
+
+	\B. Cramer et al. (1998) Modeling isotope fractionation during primary
+	cracking of natural gas: A reaction kinetic approach. *Chemical
+	Geology*, **149**, 235-250.
+
+	\V. Dieckmann (2005) Modeling petroleum formation from heterogeneous
+	source rocks: The influence of frequency factors on activation energy
+	distribution and geological prediction. *Marine and Petroleum Geology*,
+	**22**, 375-390.
+
+	D.C. Forney and D.H. Rothman (2012) Common structure in the
+	heterogeneity of plant-matter decay. *Journal of the Royal Society
+	Interface*, rsif.2012.0122.
+
+	D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+	respiration rates from decay time series. *Biogeosciences*, **9**,
+	3601-3612.
+
+	P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
+	Numerical aspects of linear inversion (monographs on mathematical
+	modeling and computation). *Society for Industrial and Applied
+	Mathematics*.
+
+	P.C. Hansen (1994) Regularization tools: A Matlab package for analysis and
+	solution of discrete ill-posed problems. *Numerical Algorithms*, **6**,
+	1-35.
+
+	J.E. White et al. (2011) Biomass pyrolysis kinetics: A comparative
+	critical review with relevant agricultural residue case studies.
+	*Journal of Analytical and Applied Pyrolysis*, **91**, 1-33.
 	'''
 
 	def __init__(self, t, Tau, eps, logk0):
@@ -395,34 +581,41 @@ class LaplaceTransform(object):
 
 	def calc_EC_inv(self, tg, omega='auto'):
 		'''
-		Calculates the Energy Complex for a given Thermogram (inverse model).
+		Calculates the Energy Complex for a given thermogram (inverse model).
 
-		Args:
-			tg (rp.RealData): ``RealData`` object containing the data to use
-				for the inverse model.
+		Parameters
+		----------
+		tg : rp.RealData
+			``rp.RealData`` instance containing the thermogram to use for the
+			inverse model.
 
-			omega (int or str): Omega value for Tikhonov regularization, either
-				an integer or 'auto'. Defaults to 'auto'.
+		omega : int or str
+			Omega value for Tikhonov regularization, either an integer or 'auto'.
+			Defaults to 'auto'.
 
-		Returns:
-			phi (np.ndarray): Array of the pdf of the distribution of Ea.
+		Returns
+		-------
+		phi : np.ndarray
+			Array of the pdf of the distribution of Ea, f(Ea).
 
-			resid_err (float): Residual RMSE between true and modeled thermogram.
+		resid_err : float
+			Residual RMSE between true and modeled thermogram.
 
-			rgh_err (float): Roughness RMSE from Tikhonov Regularization.
+		rgh_err : float
+			Roughness RMSE from Tikhonov Regularization.
 
-			om_best (float): Best-fit omega value (assuming inputted omega='auto').
+		om_best : float
+			Omega value at the point of maximum curvature in the L-curve plot of
+			resididual RMSE vs. roughness RMSE. See Hansen (1987; 1994) for 
+			discussion on `om_best` calculation.
 
-		Raises:
-			ValueError: If the size of the A matrix does not match that of the 
-				data in tg.
-			ValueError: If inputted omega is not int, float, or 'auto'.
-
-		Examples:
-			Basic implementation::
-
-				#assuming LaplaceTransform object lt and RealData object rd
-				phi,resid_err,rgh_err,omega = lt.calc_EC_inv(rd,omega='auto')
+		Raises
+		------
+		ValueError
+			If the size of the A matrix does not match that of the  data in tg.
+			
+		ValueError
+			If inputted omega is not int, float, or 'auto'.
 		'''
 
 		#extract thermogram data
@@ -453,19 +646,17 @@ class LaplaceTransform(object):
 		'''
 		Calculates the Thermogram for a given EnergyComplex (forward model).
 
-		Args:
-			ec (rp.EnergyComplex): ``EnergyComplex`` object containing the 
-				invsersion model results.
+		Parameters
+		----------
+		ec : rp.EnergyComplex
+			``rp.EnergyComplex`` instance containing the invsersion model Ea
+			Gaussian peaks.
 
-		Returns:
-			md (rp.ModeledData): ``ModeledData`` object containing the estimated
-				thermogram using the inversion model results.
-
-		Examples:
-			Basic implementation::
-
-				#assuming LaplaceTransform object lt and EnergyComplex object ec
-				rd = lt.calc_TG_fwd(ec)
+		Returns
+		-------
+		md : rp.ModeledData
+			``rp.ModeledData`` instance containing the estimated thermogram 
+			using the inversion model results.
 		'''
 
 		#calculate the estimated g
@@ -480,33 +671,37 @@ class LaplaceTransform(object):
 
 	def plot_L_curve(self, tg, ax=None, log_om_min=-3, log_om_max=2, nOm=100):
 		'''
-		Calculates the L curve w.r.t. a given thermogram and plots.
+		Calculates the L curve w.r.t. a given ``rp.RealData`` instance and 
+		plots the result.
 
-		Args:
-			tg (rp.RealData): ``RealData`` object containing the data to use
-				for the inverse model.
+		Parameters
+		----------
+		tg : rp.RealData
+			``rp.RealData`` instance containing the thermogram to use for the
+			inverse model.
 
-			ax (None or matplotlib.axis): Axis to plot on. If None, 
-				creates an axis object to return. Defaults to None.
+		ax : None or matplotlib.axis
+			Axis to plot on. If `None`, automatically creates a
+			``matplotlip.axis`` instance to return. Defaults to `None`.
 
-			log_om_min (int): Log10 of minimum omega value to search.
-				Defaults to -3.
+		log_om_min : int
+			Log10 of minimum omega value to search. Defaults to -3.
 
-			log_om_max (int): Log10 of maximum omega value to search.
-				Defaults to 2.
+		log_om_max : int
+			Log10 of maximum omega value to search. Defaults to 2.
 
-			nOm (int): Number of omega values to consider. Defaults to 100.
+		nOm : int
+			Number of omega values to consider. Defaults to 100.
 
-		Returns:
-			om_best (float): Best-fit omega value.
+		Returns
+		-------
+		om_best : float
+			Omega value at the point of maximum curvature in the L-curve plot
+			of resididual RMSE vs. roughness RMSE. See Hansen (1987; 1994) for
+			discussion on `om_best` calculation.
 
-			ax (matplotlib.axis): Updated axis with plotted data.
-
-		Examples:
-			Basic implemenation::
-				
-				#assuming LaplaceTransform object lt and RealData object rd
-				omega,ax = lt.plot_L_curve(rd)
+		ax : matplotlib.axis
+			Updated axis instance with plotted data.
 		'''
 
 		#calculate L curve
@@ -540,8 +735,3 @@ class LaplaceTransform(object):
 			transform=ax.transAxes)
 
 		return om_best, ax
-
-	def summary():
-		'''
-		Prints a summary of the LaplaceTransform object.
-		'''
