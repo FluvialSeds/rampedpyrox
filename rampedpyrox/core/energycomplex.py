@@ -1,5 +1,5 @@
 '''
-Energycomplex module for deconvolving a given Ea distribution, phi, into 
+``Energycomplex`` module for deconvolving a given Ea distribution, phi, into 
 individual Gaussian peaks.
 
 * TODO: Update how _peak_indices sorts to select first nPeaks.
@@ -417,7 +417,9 @@ class EnergyComplex(object):
 		DEa values (the difference in Ea between 12C- and 13C-containing
 		molecules) for each Gaussian peak (in kJ/mol), either a scalar or 
 		vector of length nPeaks. If using nPeaks = 'auto', leave DEa as a 
-		scalar to avoid issues with array length. Defaults to 0.
+		scalar to avoid issues with array length. Defaults to 0.0018, the
+		best-fit value determined for carbonate standards on the NOSAMS Ramped
+		PyrOx instrument [see Hemingway et al. **(in prep)**].
 
 	Raises
 	------
@@ -534,9 +536,13 @@ class EnergyComplex(object):
 	\B. Cramer (2004) Methane generation from coal during open system 
 	pyrolysis investigated by isotope specific, Gaussian distributed reaction
 	kinetics. *Organic Geochemistry*, **35**, 379-392.
+
+	J.D. Hemingway et al. **(in prep)** Assessing the blank carbon
+	contribution, isotope mass balance, and kinetic isotope fractionation of 
+	the ramped pyrolysis/oxidation instrument at NOSAMS.
 	'''
 
-	def __init__(self, eps, phi, nPeaks='auto', thres=0.05, combine_last=None, DEa=0):
+	def __init__(self, eps, phi, nPeaks='auto', thres=0.05, combine_last=None, DEa=0.0018):
 
 		#assert phi and eps are same length
 		if len(phi) != len(eps):
@@ -648,8 +654,13 @@ class EnergyComplex(object):
 		line = '==========================================================='
 		pi = 'Peak information for each deconvolved peak:'
 		note = 'NOTE: Combined peaks are reported separately in this table!'
-		RMSE = 'Deconvolution RMSE = %.3f' %(self.phi_rmse)
+		RMSE = 'Deconvolution RMSE = %.2f x 10^6' %(self.phi_rmse*1e6)
 
 		print(title + '\n\n' + line + '\n' + pi + '\n\n' + note + '\n')
 		print(df)
 		print('\n' + line + '\n\n' + RMSE + '\n\n' + line)
+
+
+if __name__ == '__main__':
+
+	import rampedpyrox.core.api as rp

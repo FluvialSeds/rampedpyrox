@@ -765,3 +765,9 @@ class LaplaceTransform(object):
 			transform=ax.transAxes)
 
 		return om_best, ax
+
+if __name__ == '__main__':
+
+	import rampedpyrox.core.api as rp
+
+

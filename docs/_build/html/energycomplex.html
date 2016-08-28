@@ -66,14 +66,14 @@ calculated automatically), and plots resulting Ea distribution.</p>
 </div>
 <div class="section" id="module-rampedpyrox.core.energycomplex">
 <span id="module-reference"></span><h2>Module Reference<a class="headerlink" href="#module-rampedpyrox.core.energycomplex" title="Permalink to this headline">¶</a></h2>
-<p>Energycomplex module for deconvolving a given Ea distribution, phi, into
+<p><code class="docutils literal"><span class="pre">Energycomplex</span></code> module for deconvolving a given Ea distribution, phi, into
 individual Gaussian peaks.</p>
 <ul class="simple">
 <li>TODO: Update how _peak_indices sorts to select first nPeaks.</li>
 </ul>
 <dl class="class">
 <dt id="rampedpyrox.core.energycomplex.EnergyComplex">
-<em class="property">class </em><code class="descclassname">rampedpyrox.core.energycomplex.</code><code class="descname">EnergyComplex</code><span class="sig-paren">(</span><em>eps</em>, <em>phi</em>, <em>nPeaks='auto'</em>, <em>thres=0.05</em>, <em>combine_last=None</em>, <em>DEa=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/energycomplex.html#EnergyComplex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rampedpyrox.core.energycomplex.</code><code class="descname">EnergyComplex</code><span class="sig-paren">(</span><em>eps</em>, <em>phi</em>, <em>nPeaks='auto'</em>, <em>thres=0.05</em>, <em>combine_last=None</em>, <em>DEa=0.0018</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/energycomplex.html#EnergyComplex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class for storing Ea distribution and performing Gaussian deconvolution.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -93,7 +93,9 @@ often the case with Ramped PyrOx samples). Defaults to None.</li>
 <li><strong>DEa</strong> (<em>int, float, or np.ndarray</em>) &#8211; DEa values (the difference in Ea between 12C- and 13C-containing
 molecules) for each Gaussian peak (in kJ/mol), either a scalar or
 vector of length nPeaks. If using nPeaks = &#8216;auto&#8217;, leave DEa as a
-scalar to avoid issues with array length. Defaults to 0.</li>
+scalar to avoid issues with array length. Defaults to 0.0018, the
+best-fit value determined for carbonate standards on the NOSAMS Ramped
+PyrOx instrument [see Hemingway et al. <strong>(in prep)</strong>].</li>
 </ul>
 </td>
 </tr>
@@ -227,10 +229,13 @@ energy model for coal devolatilization. <em>Energy &amp; Fuels</em>, <strong>26<
 <p>B. Cramer (2004) Methane generation from coal during open system
 pyrolysis investigated by isotope specific, Gaussian distributed reaction
 kinetics. <em>Organic Geochemistry</em>, <strong>35</strong>, 379-392.</p>
+<p>J.D. Hemingway et al. <strong>(in prep)</strong> Assessing the blank carbon
+contribution, isotope mass balance, and kinetic isotope fractionation of
+the ramped pyrolysis/oxidation instrument at NOSAMS.</p>
 <dl class="method">
 <dt id="rampedpyrox.core.energycomplex.EnergyComplex.plot">
 <code class="descname">plot</code><span class="sig-paren">(</span><em>ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/energycomplex.html#EnergyComplex.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.plot" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plots the inverse and peak-deconvolved EC.</p>
+<dd><p>Plots the inverse and peak-deconvolved discretized f(Ea).</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />

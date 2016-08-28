@@ -14,5 +14,6 @@ from rampedpyrox.core.energycomplex import (
 	)
 
 from rampedpyrox.core.isotoperesult import (
+	blank_correct,
 	IsotopeResult
 	)

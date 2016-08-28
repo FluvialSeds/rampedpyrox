@@ -305,6 +305,9 @@ class ModeledData(Thermogram):
 	RealData
 		Class to store real Ramped PyrOx data.
 
+	rampedpyrox.LaplaceTransform.calc_TG_fwd
+		Method to generate ``rp.ModeledData`` instance.
+
 	Examples
 	---------
 	Creating a ModeledData object using inversemodel results::

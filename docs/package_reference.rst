@@ -7,6 +7,7 @@ Ramped PyrOx classes
 	rampedpyrox.ModeledData
 	rampedpyrox.LaplaceTransform
 	rampedpyrox.EnergyComplex
+	rampedpyrox.IsotopeResult
 
 Ramped PyrOx methods
 --------------------
@@ -15,3 +16,4 @@ Ramped PyrOx methods
 
 	rampedpyrox.calc_A
 	rampedpyrox.calc_L_curve
+	rampedpyrox.blank_correct
