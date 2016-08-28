@@ -58,7 +58,7 @@ Binaries can be installed through the Python package index (coming soon)
 
 License
 =======
-This product is licensed under the MIT License.
+This product is licensed under the GNU GPL license, version 3 or greater.
 
 Bug Reports
 ===========

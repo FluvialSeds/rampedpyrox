@@ -14,7 +14,7 @@ setup(name='rampedpyrox',
       url='http://github.com/FluvialSeds/rampedpyrox',
       author='Jordon D. Hemingway',
       author_email='jhemingway@whoi.edu',
-      license='MIT',
+      license='GNU GPL Version 3',
       packages=['rampedpyrox'],
       install_requires=[
       	'matplotlib',

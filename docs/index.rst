@@ -19,7 +19,7 @@ calculates the corresponding stable-carbon and radiocarbon isotope values for ea
 	0.1.1 (Pre-release 27 August 2016)
 
 :License:
-	MIT License
+	GNU GPL Version 3 or greater
 
 
 Minimal examples
