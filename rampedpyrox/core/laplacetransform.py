@@ -459,7 +459,7 @@ class LaplaceTransform(object):
 	eps : np.ndarray
 		Array of Ea values (in kJ/mol), length nE.
 
-	logk0 : int, float, or lambda
+	logk0 : int, float, lambda, or np.ndarray
 		Arrhenius pre-exponential factor, either a constant value or a lambda
 		function of Ea. See White et al. (2011) for a review on logk0 values
 		in biomass and Dieckmann (2005) for a discussion on logk0 values in
@@ -555,6 +555,23 @@ class LaplaceTransform(object):
 	J.E. White et al. (2011) Biomass pyrolysis kinetics: A comparative
 	critical review with relevant agricultural residue case studies.
 	*Journal of Analytical and Applied Pyrolysis*, **91**, 1-33.
+
+	Attributes
+	----------
+	A : np.ndarray
+		Laplace Transform matrix of shape [nT x nE].
+
+	t : np.ndarray
+		Array of timepoints (in seconds), length nT.
+
+	Tau : np.ndarray
+		Array of temperature points (in Kelvin), length nT.
+
+	eps : np.ndarray
+		Array of Ea values (in kJ/mol), length nE.
+
+	logk0 : np.ndarray
+		Array of Arrhenius pre-exponential factor values of length nE.
 	'''
 
 	def __init__(self, t, Tau, eps, logk0):
@@ -562,16 +579,20 @@ class LaplaceTransform(object):
 		#convert logk0 to array
 		if hasattr(logk0,'__call__'):
 			#checking if lambda function
-			self._logk0 = logk0(eps) #kJ
+			self.logk0 = logk0(eps) #kJ
 		elif isinstance(logk0,(int,float)):
 			#checking if scalar
-			self._logk0 = np.ones(len(eps))*logk0 #kJ
-		elif len(logk0) != len(eps):
-			#raise error
-			raise ValueError('logk0 must be lambda, scalar, or array of len nE')
+			self.logk0 = np.ones(len(eps))*logk0 #kJ
+		elif isinstance(logk0,np.ndarray):
+			if len(logk0) != len(eps):
+				#raise error
+				raise ValueError('logk0 and eps must be same length.')
+			self.logk0 = logk0
+		else:
+			raise ValueError('logk0 must be int, float, lambda, or np.ndarray')
 
 		#calculate A matrix
-		A = calc_A(t, Tau, eps, logk0)
+		A = calc_A(t, Tau, eps, self.logk0)
 
 		#define public parameters
 		self.A = A #[nT,nE]

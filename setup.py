@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='rampedpyrox',
-      version='0.1',
+      version='0.1.1 (pre-release)',
       description='Ramped PyrOx decolvolution code',
       long_description=readme(),
       classifiers=[
