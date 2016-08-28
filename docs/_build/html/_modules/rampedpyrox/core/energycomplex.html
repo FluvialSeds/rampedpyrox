@@ -42,12 +42,10 @@
             
   <h1>Source code for rampedpyrox.core.energycomplex</h1><div class="highlight"><pre>
 <span></span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">Energycomplex module for deconvolving a given Ea distribution into individual</span>
-<span class="sd">Gaussian peaks.</span>
+<span class="sd">Energycomplex module for deconvolving a given Ea distribution, phi, into </span>
+<span class="sd">individual Gaussian peaks.</span>
 
-<span class="sd">* TODO: Make legend more pythonic.</span>
-<span class="sd">* TODO: Fix how _peak_indices sorts to select first nPeaks.</span>
-<span class="sd">* TODO: Include references for finding peak indices.</span>
+<span class="sd">* TODO: Update how _peak_indices sorts to select first nPeaks.</span>
 <span class="sd">&#39;&#39;&#39;</span>
 
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
@@ -62,29 +60,48 @@
 
 <span class="n">__docformat__</span> <span class="o">=</span> <span class="s1">&#39;restructuredtext en&#39;</span>
 
+<span class="c1">## PRIVATE FUNCTIONS ##</span>
+
+<span class="c1">#define function to deconvolve phi</span>
 <span class="k">def</span> <span class="nf">_deconvolve</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">thres</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Performs Gaussian peak deconvolution.</span>
 <span class="sd">	Called by ``EnergyComplex.__init__()``.</span>
 
-<span class="sd">	Args:</span>
-<span class="sd">		eps (np.ndarray): Array of Ea values.</span>
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	eps : np.ndarray</span>
+<span class="sd">		Array of Ea values (in kJ/mol), length nE.</span>
 
-<span class="sd">		phi (np.ndarray): Array of the pdf of the distribution of Ea.</span>
+<span class="sd">	phi : np.ndarray</span>
+<span class="sd">		Array of the pdf of the discretized distribution of Ea, f(Ea).</span>
 
-<span class="sd">		nPeaks (int or str): Number of Gaussians to use in deconvolution,</span>
-<span class="sd">			either an integer or &#39;auto&#39;. Defaults to &#39;auto&#39;.</span>
+<span class="sd">	nPeaks : int or str</span>
+<span class="sd">		Number of Gaussians to use in deconvolution, either an integer or </span>
+<span class="sd">		&#39;auto&#39;. Defaults to &#39;auto&#39;.</span>
 
-<span class="sd">		thres (float): Threshold for peak detection cutoff. Thres is the relative</span>
-<span class="sd">			height of the global maximum under which no peaks will be detected.</span>
+<span class="sd">	thres : float</span>
+<span class="sd">		Threshold for peak detection cutoff. `thres` is the relative height of</span>
+<span class="sd">		the global maximum under which no peaks will be detected. Defaults to</span>
+<span class="sd">		0.05 (i.e. 5 percent of the highest peak).</span>
 
-<span class="sd">	Returns:</span>
-<span class="sd">		mu (np.ndarray): Array of resulting Gaussian peak means.</span>
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	mu : np.ndarray)</span>
+<span class="sd">		Array of resulting Gaussian peak means (in kJ), length nPeak.</span>
 
-<span class="sd">		sigma (np.ndarray): Array of resulting Gaussian peak standard deviations.</span>
+<span class="sd">	sigma : np.ndarray</span>
+<span class="sd">		Array of resulting Gaussian peak standard deviations (in kJ), length</span>
+<span class="sd">		nPeak.</span>
 
-<span class="sd">		height (np.ndarray): Array of resulting Gaussian peak heights.</span>
+<span class="sd">	height : np.ndarray</span>
+<span class="sd">		Array of resulting Gaussian peak heights (unitless), length nPeak.</span>
 
+<span class="sd">	Notes</span>
+<span class="sd">	-----</span>
+<span class="sd">	`mu` values are bounded to be within each unique concave down region of</span>
+<span class="sd">	`phi`, `sigma` values are bounded to be below 1/2 of the total `eps`</span>
+<span class="sd">	range, and `height` values are bounded to be non-negative.</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 
 	<span class="c1">#find peak indices and bounds</span>
@@ -125,29 +142,37 @@
 
 	<span class="k">return</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">height</span>
 
+<span class="c1">#define function to generate Gaussian peaks</span>
 <span class="k">def</span> <span class="nf">_gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Calculates a Gaussian peak for a given x vector, mu, and sigma.</span>
 <span class="sd">	Called by ``_phi_hat()``.</span>
 
-<span class="sd">	Args:</span>
-<span class="sd">		x (np.ndarray): Array of x values for Gaussian calculation.</span>
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	x : np.ndarray</span>
+<span class="sd">		Array of x values for Gaussian calculation.</span>
 
-<span class="sd">		mu (int, float, or np.ndarray): Gaussian means, either a single scalar</span>
-<span class="sd">			for one peak or an array for simultaneously calculating multiple</span>
-<span class="sd">			peaks.</span>
+<span class="sd">	mu : int, float, or np.ndarray</span>
+<span class="sd">		Gaussian means, either a single scalar for one peak or an array for </span>
+<span class="sd">		simultaneously calculating multiple peaks.</span>
 
-<span class="sd">		sigma (int, float, or np.ndarray): Gaussian standard deviations, either</span>
-<span class="sd">			a single scalar for one peak or an array for simultaneously</span>
-<span class="sd">			calculating multiple peaks.</span>
+<span class="sd">	sigma : int, float, or np.ndarray</span>
+<span class="sd">		Gaussian standard deviations, either a single scalar for one peak or </span>
+<span class="sd">		an array for simultaneously calculating multiple peaks.</span>
 
-<span class="sd">	Returns:</span>
-<span class="sd">		y (np.ndarray): Array of resulting y values of shape [len(x) x len(mu)].</span>
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	y : np.ndarray</span>
+<span class="sd">		Array of resulting y values of shape [len(x) x len(mu)].</span>
 
-<span class="sd">	Raises:</span>
-<span class="sd">		ValueError: If mu and sigma arrays are not the same length.</span>
+<span class="sd">	Raises</span>
+<span class="sd">	------</span>
+<span class="sd">	ValueError</span>
+<span class="sd">		If mu and sigma arrays are not the same length.</span>
 <span class="sd">		</span>
-<span class="sd">		ValueError: If mu and sigma arrays are not int, float, or np.ndarray.</span>
+<span class="sd">	ValueError</span>
+<span class="sd">		If mu and sigma arrays are not int, float, or np.ndarray.</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 
 	<span class="c1">#check data types and broadcast if necessary</span>
@@ -179,36 +204,57 @@
 
 	<span class="k">return</span> <span class="n">y</span>
 
+<span class="c1">#define a function to find the indices of each peak in `eps`.</span>
 <span class="k">def</span> <span class="nf">_peak_indices</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">thres</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Finds the indices and the bounded range of the mu values for peaks in phi.</span>
 <span class="sd">	Called by ``_deconvolve()``.</span>
 
-<span class="sd">	Args:</span>
-<span class="sd">		phi (np.ndarray): Array of the pdf of the distribution of Ea.</span>
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	phi : np.ndarray</span>
+<span class="sd">		Array of the pdf of the discretized distribution of Ea, f(Ea).</span>
 
-<span class="sd">		nPeaks (int or str): Number of Gaussians to use in deconvolution,</span>
-<span class="sd">			either an integer or &#39;auto&#39;. Defaults to &#39;auto&#39;.</span>
+<span class="sd">	nPeaks : int or str</span>
+<span class="sd">		Number of Gaussians to use in deconvolution, either an integer or </span>
+<span class="sd">		&#39;auto&#39;. Defaults to &#39;auto&#39;.</span>
 
-<span class="sd">		thres (float): Threshold for peak detection cutoff. Thres is the relative</span>
-<span class="sd">			height of the global maximum under which no peaks will be detected.</span>
+<span class="sd">	thres : float</span>
+<span class="sd">		Threshold for peak detection cutoff. `thres` is the relative height of</span>
+<span class="sd">		the global maximum under which no peaks will be detected. Defaults to</span>
+<span class="sd">		0.05 (i.e. 5% of the highest peak).</span>
 
-<span class="sd">	Returns:</span>
-<span class="sd">		ind (np.ndarray): Array of indices in phi containing peak mu values.</span>
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	ind : np.ndarray)</span>
+<span class="sd">		Array of indices in `phi` containing peak `mu` values.</span>
 
-<span class="sd">		lb_ind(np.ndarray): Array of indices in phi containing the lower bound</span>
-<span class="sd">			for each peak mu value.</span>
+<span class="sd">	lb_ind : np.ndarray</span>
+<span class="sd">		Array of indices in `phi` containing the lower bound for each peak</span>
+<span class="sd">		`mu` value.</span>
 
-<span class="sd">		ub_ind(np.ndarray): Array of indices in phi containing the upper bound</span>
-<span class="sd">			for each peak mu value.</span>
+<span class="sd">	ub_ind : np.ndarray</span>
+<span class="sd">		Array of indices in `phi` containing the upper bound for each peak</span>
+<span class="sd">		`mu` value.</span>
 
-<span class="sd">	Raises:</span>
-<span class="sd">		ValueError: If ub_ind and lb_ind arrays are not the same length.</span>
+<span class="sd">	Raises</span>
+<span class="sd">	------</span>
+<span class="sd">	ValueError</span>
+<span class="sd">		If `ub_ind` and `lb_ind` arrays are not the same length.</span>
 <span class="sd">		</span>
-<span class="sd">		ValueError: If ``nPeaks`` is greater than the total number of peaks detected.</span>
+<span class="sd">	ValueError</span>
+<span class="sd">		If `nPeaks` is greater than the total number of peaks detected.</span>
 <span class="sd">		</span>
-<span class="sd">		ValueError: If ``nPeaks`` is not &#39;auto&#39; or int.</span>
+<span class="sd">	ValueError</span>
+<span class="sd">		If `nPeaks` is not &#39;auto&#39; or int.</span>
 
+<span class="sd">	Notes</span>
+<span class="sd">	-----</span>
+<span class="sd">	This method calculates peaks according to changes in curvature in the</span>
+<span class="sd">	`phi` array. Each bounded section with a negative second derivative (i.e.</span>
+<span class="sd">	concave down) and `phi` value above `thres` is considered a unique peak.</span>
+<span class="sd">	If `nPeaks` is not &#39;auto&#39;, these peaks are sorted according to decreasing</span>
+<span class="sd">	peak heights and the first `nPeaks` peaks are saved.</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 
 	<span class="c1">#convert thres to absolute value</span>
@@ -244,18 +290,6 @@
 	<span class="n">ab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">phi</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">thres</span><span class="p">)</span>
 	<span class="n">ind</span> <span class="o">=</span> <span class="n">ind</span><span class="p">[</span><span class="n">ab</span><span class="p">];</span> <span class="n">lb_ind</span> <span class="o">=</span> <span class="n">lb_ind</span><span class="p">[</span><span class="n">ab</span><span class="p">];</span> <span class="n">ub_ind</span> <span class="o">=</span> <span class="n">ub_ind</span><span class="p">[</span><span class="n">ab</span><span class="p">]</span>
 
-	<span class="c1">#retain first nPeaks according to increasing d2phi</span>
-	<span class="c1"># if isinstance(nPeaks,int):</span>
-	<span class="c1"># 	#check if nPeaks is greater than the total amount of peaks</span>
-	<span class="c1"># 	if len(ind) &lt; nPeaks:</span>
-	<span class="c1"># 		raise ValueError(&#39;nPeaks greater than total detected peaks&#39;)</span>
-
-	<span class="c1"># 	#sort according to increasing d2phi, keep first nPeaks, and re-sort</span>
-	<span class="c1"># 	i = np.argsort(d2phi[ind])[:nPeaks]</span>
-	<span class="c1"># 	i = np.sort(i)</span>
-
-	<span class="c1"># 	ind = ind[i]; lb_ind = lb_ind[i]; ub_ind = ub_ind[i]</span>
-
 	<span class="c1">#retain first nPeaks according to decreasing phi[mu]</span>
 	<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nPeaks</span><span class="p">,</span><span class="nb">int</span><span class="p">):</span>
 		<span class="c1">#check if nPeaks is greater than the total amount of peaks</span>
@@ -273,26 +307,37 @@
 
 	<span class="k">return</span> <span class="n">ind</span><span class="p">,</span> <span class="n">lb_ind</span><span class="p">,</span> <span class="n">ub_ind</span>
 
+<span class="c1">#define function to generate fitted f(Ea) distribution, phi_hat</span>
 <span class="k">def</span> <span class="nf">_phi_hat</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">height</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Calculates phi hat for given parameters.</span>
 <span class="sd">	Called by ``_phi_hat_diff()``.</span>
 <span class="sd">	Called by ``EnergyComplex.__init__()``.</span>
 
-<span class="sd">	Args:</span>
-<span class="sd">		eps (np.ndarray): Array of Ea values.</span>
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	eps : np.ndarray</span>
+<span class="sd">		Array of Ea values (in kJ/mol), length nE.</span>
 
-<span class="sd">		mu (np.ndarray): Array of Gaussian peak means.</span>
+<span class="sd">	mu : np.ndarray)</span>
+<span class="sd">		Array of resulting Gaussian peak means (in kJ), length nPeak.</span>
 
-<span class="sd">		sigma (np.ndarray): Array of Gaussian peak standard deviations.</span>
+<span class="sd">	sigma : np.ndarray</span>
+<span class="sd">		Array of resulting Gaussian peak standard deviations (in kJ), length</span>
+<span class="sd">		nPeak.</span>
 
-<span class="sd">		height (np.ndarray): Array of Gaussian peak heights.</span>
+<span class="sd">	height : np.ndarray</span>
+<span class="sd">		Array of resulting Gaussian peak heights (unitless), length nPeak.</span>
 
-<span class="sd">	Returns:</span>
-<span class="sd">		phi_hat (np.ndarray): Array of estimated Ea distribution.</span>
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	phi_hat : np.ndarray</span>
+<span class="sd">		Array of the estimated pdf of the discretized distribution of Ea,</span>
+<span class="sd">		f(Ea), using the inputted Gaussian peaks.</span>
 
-<span class="sd">		y_scaled (np.ndarray): Array of individual estimated Ea Gaussian peaks.</span>
-<span class="sd">			Shape is [len(eps) x len(mu)].</span>
+<span class="sd">	y_scaled : np.ndarray</span>
+<span class="sd">		Array of individual estimated Ea Gaussian peaks. Shape is </span>
+<span class="sd">		[len(eps) x len(mu)].</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 
 	<span class="c1">#generate Gaussian peaks</span>
@@ -307,26 +352,35 @@
 
 	<span class="k">return</span> <span class="n">phi_hat</span><span class="p">,</span> <span class="n">y_scaled</span>
 
+<span class="c1">#define function to calculate the difference between true and estimated phi.</span>
 <span class="k">def</span> <span class="nf">_phi_hat_diff</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">phi</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Calculates the difference between phi and phi_hat for scipy least_squares.</span>
 <span class="sd">	Called by ``_deconvolve()``.</span>
 
-<span class="sd">	Args:</span>
-<span class="sd">		params (np.ndarray): Array of hrizontally stacked parameter values with</span>
-<span class="sd">			shape [mus, sigmas, heights].</span>
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	params : np.ndarray</span>
+<span class="sd">		Array of hrizontally stacked parameter values in the order:</span>
+<span class="sd">		[`mu`, `sigma`, `height`].</span>
 
-<span class="sd">		eps (np.ndarray): Array of Ea values.</span>
+<span class="sd">	eps : np.ndarray</span>
+<span class="sd">		Array of Ea values (in kJ/mol), length nE.</span>
 
-<span class="sd">		phi (np.ndarray): Array of the pdf of the distribution of Ea.</span>
+<span class="sd">	phi : np.ndarray</span>
+<span class="sd">		Array of the pdf of the discretized distribution of Ea, f(Ea).</span>
 
-<span class="sd">	Returns:</span>
-<span class="sd">		diff (np.ndarray): Array of the difference between phi_hat and phi</span>
-<span class="sd">			at each point.</span>
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	diff : np.ndarray</span>
+<span class="sd">		Array of the difference between `phi_hat` and `phi` at each point,</span>
+<span class="sd">		length nE.</span>
 
-<span class="sd">	Raises:</span>
-<span class="sd">		ValueError: If len(params) is not 3*n, where n is the length of the</span>
-<span class="sd">			mu, sigma, and height vectors.</span>
+<span class="sd">	Raises</span>
+<span class="sd">	------</span>
+<span class="sd">	ValueError</span>
+<span class="sd">		If len(params) is not 3*n, where n is the length of the `mu`, `sigma`,</span>
+<span class="sd">		and `height` vectors.</span>
 
 <span class="sd">	&#39;&#39;&#39;</span>
 
@@ -345,18 +399,24 @@
 
 	<span class="k">return</span> <span class="n">phi_hat</span> <span class="o">-</span> <span class="n">phi</span>
 
+<span class="c1">#define a function to calculate relative areas.</span>
 <span class="k">def</span> <span class="nf">_rel_area</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">y_scaled</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Calculates the relative areas of each Ea Gaussian peak.</span>
+<span class="sd">	Calculates the relative contribution of each Ea Gaussian peak to `phi_hat`.</span>
 
-<span class="sd">	Args:</span>
-<span class="sd">		eps (np.ndarray): Array of Ea values.</span>
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	eps : np.ndarray</span>
+<span class="sd">		Array of Ea values (in kJ/mol), length nE.</span>
 
-<span class="sd">		y_scaled (np.ndarray): Array of individual estimated Ea Gaussian peaks.</span>
-<span class="sd">			Shape is [len(eps) x len(mu)].</span>
+<span class="sd">	y_scaled : np.ndarray</span>
+<span class="sd">		Array of individual estimated Ea Gaussian peaks. Shape is </span>
+<span class="sd">		[len(eps) x len(mu)].</span>
 
-<span class="sd">	Returns:</span>
-<span class="sd">		rel_area (np.ndarray): Array of relative areas of each peak.</span>
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	rel_area : np.ndarray</span>
+<span class="sd">		Array of relative contributions of each peak to `phi_hat`.</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 
 	<span class="c1">#extract gradient and mulitply to get areas</span>
@@ -370,69 +430,156 @@
 	<span class="k">return</span> <span class="n">rel_area</span>
 
 
-<div class="viewcode-block" id="EnergyComplex"><a class="viewcode-back" href="../../../energycomplex.html#rampedpyrox.core.energycomplex.EnergyComplex">[docs]</a><span class="k">class</span> <span class="nc">EnergyComplex</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="EnergyComplex"><a class="viewcode-back" href="../../../_generated/rampedpyrox.EnergyComplex.html#rampedpyrox.EnergyComplex">[docs]</a><span class="k">class</span> <span class="nc">EnergyComplex</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 	<span class="n">__doc__</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
-<span class="s1">	Class for storing Ea distribution and calculating peak deconvolution.</span>
+<span class="s1">	Class for storing Ea distribution and performing Gaussian deconvolution.</span>
 
-<span class="s1">	Args:</span>
-<span class="s1">		eps (np.ndarray): Array of Ea values.</span>
+<span class="s1">	Parameters</span>
+<span class="s1">	----------</span>
+<span class="s1">	eps : np.ndarray</span>
+<span class="s1">		Array of Ea values (in kJ/mol), length nE.</span>
 
-<span class="s1">		phi (np.ndarray): Array of the pdf of the distribution of Ea.</span>
+<span class="s1">	phi : np.ndarray</span>
+<span class="s1">		Array of the pdf of the discretized distribution of Ea, f(Ea).</span>
 
-<span class="s1">		nPeaks (int or str): Number of Gaussians to use in deconvolution,</span>
-<span class="s1">			either an integer or &#39;auto&#39;. Defaults to &#39;auto&#39;.</span>
+<span class="s1">	nPeaks : int or str</span>
+<span class="s1">		Number of Gaussians to use in deconvolution, either an integer or </span>
+<span class="s1">		&#39;auto&#39;. Defaults to &#39;auto&#39;.</span>
 
-<span class="s1">		thres (float): Threshold for peak detection cutoff. Thres is the relative</span>
-<span class="s1">			height of the global maximum under which no peaks will be detected.</span>
+<span class="s1">	thres : float</span>
+<span class="s1">		Threshold for peak detection cutoff. `thres` is the relative height of</span>
+<span class="s1">		the global maximum under which no peaks will be detected. Defaults to</span>
+<span class="s1">		0.05 (i.e. 5 percent of the highest peak).</span>
 
-<span class="s1">		combine_last (int or None): Number of peaks to combine at the end of</span>
-<span class="s1">			the run (necessary if there is not enough isotope resolution at the</span>
-<span class="s1">			high temperature range, as is often the case with real data).</span>
-<span class="s1">			Defaults to None.</span>
+<span class="s1">	combine_last : int or None</span>
+<span class="s1">		Number of peaks to combine at the end of the run (necessary if there</span>
+<span class="s1">		is not enough isotope resolution at the high temperature range, as is</span>
+<span class="s1">		often the case with Ramped PyrOx samples). Defaults to None.</span>
 
-<span class="s1">		DEa (int, float, or np.ndarray): DEa values, either a scalar or vector</span>
-<span class="s1">			of length nPeaks (in units of kJ!). If using nPeaks = &#39;auto&#39;, leave</span>
-<span class="s1">			DEa as a scalar to avoid issues with array length. Defaults to 0.</span>
+<span class="s1">	DEa : int, float, or np.ndarray</span>
+<span class="s1">		DEa values (the difference in Ea between 12C- and 13C-containing</span>
+<span class="s1">		molecules) for each Gaussian peak (in kJ/mol), either a scalar or </span>
+<span class="s1">		vector of length nPeaks. If using nPeaks = &#39;auto&#39;, leave DEa as a </span>
+<span class="s1">		scalar to avoid issues with array length. Defaults to 0.</span>
 
-<span class="s1">	Returns:</span>
-<span class="s1">		ec (rp.EnergyComplex): ``EnergyComplex`` object.</span>
+<span class="s1">	Raises</span>
+<span class="s1">	------</span>
+<span class="s1">	ValueError</span>
+<span class="s1">		If phi and eps vectors are not the same length.</span>
 
-<span class="s1">	Raises:</span>
-<span class="s1">		ValueError: If phi and eps vectors are not the same length.</span>
-
-<span class="s1">		ValueError: If ``nPeaks`` is greater than the total number of peaks detected.</span>
+<span class="s1">	ValueError</span>
+<span class="s1">		If `nPeaks` is greater than the total number of peaks detected (if</span>
+<span class="s1">		`nPeaks` is not &#39;auto&#39;).</span>
 <span class="s1">		</span>
-<span class="s1">		ValueError: If ``nPeaks`` is not &#39;auto&#39; or int.</span>
+<span class="s1">	ValueError</span>
+<span class="s1">		If `nPeaks` is not &#39;auto&#39; or int.</span>
 
-<span class="s1">		ValueError: If ``DEa`` is not int, float, or np.ndarray of length nPeaks.</span>
+<span class="s1">	ValueError</span>
+<span class="s1">		If `DEa` is not int, float, or np.ndarray of length nPeaks.</span>
 
-<span class="s1">	Examples:</span>
-<span class="s1">		Running a thermogram through the inverse model and deconvolving::</span>
+<span class="s1">	Warnings</span>
+<span class="s1">	--------</span>
+<span class="s1">	Raises warning if ``scipy.optimize.least_squares`` cannot converge on a</span>
+<span class="s1">	best-fit solution.</span>
 
-<span class="s1">			#assuming a LaplaceTransform object lt and RealData object rd</span>
-<span class="s1">			phi,resid_err,rgh_err,omega = lt.calc_fE_inv(rd,omega=&#39;auto&#39;)</span>
-<span class="s1">			</span>
-<span class="s1">			ec = rp.EnergyComplex(eps,phi,</span>
-<span class="s1">				nPeaks=&#39;auto&#39;,</span>
-<span class="s1">				thres=0.02,</span>
-<span class="s1">				combine_last=3,</span>
-<span class="s1">				DEa=0.0018)</span>
-<span class="s1">			</span>
-<span class="s1">			#plot results and print summary</span>
-<span class="s1">			ax = ec.plot()</span>
-<span class="s1">			ec.summary()</span>
+<span class="s1">	Notes</span>
+<span class="s1">	-----</span>
+<span class="s1">	Peaks are selected according to changes in curvature in the</span>
+<span class="s1">	`phi` array. Each bounded section with a negative second derivative (i.e.</span>
+<span class="s1">	concave down) and `phi` value above `thres` is considered a unique peak.</span>
+<span class="s1">	If `nPeaks` is not &#39;auto&#39;, these peaks are sorted according to decreasing</span>
+<span class="s1">	peak heights and the first `nPeaks` peaks are saved.</span>
 
-<span class="s1">	References:</span>
+<span class="s1">	During peak deconvolution, `mu` values are bounded to be within each</span>
+<span class="s1">	unique concave down region of `phi`, `sigma` values are bounded to be</span>
+<span class="s1">	below 1/2 of the total `eps` range, and `height` values are bounded to be</span>
+<span class="s1">	non-negative.</span>
 
-<span class="s1">	Notes:</span>
-<span class="s1">		All results are bounded to be non-negative, and mu values are bounded to be</span>
-<span class="s1">		within the concave down regions of the Ea distribution. This class </span>
-<span class="s1">		implements the scipy.optimize.least_squares method using the &#39;Trust Region</span>
-<span class="s1">		Reflective&#39; algorithm, as this algorithm is able to handle bounded</span>
-<span class="s1">		parameters much better than the Levenberg-Marquardt algorithm.</span>
+<span class="s1">	Peak deconvolution performed here implements the </span>
+<span class="s1">	``scipy.optimize.least_squares`` method using the &#39;Trust Region</span>
+<span class="s1">	Reflective&#39; algorithm, as this algorithm is able to handle bounded</span>
+<span class="s1">	parameters much better than the Levenberg-Marquardt algorithm.</span>
+
+
+<span class="s1">	See Also</span>
+<span class="s1">	--------</span>
+<span class="s1">	rampedpyrox.LaplaceTransform.calc_EC_inv</span>
+<span class="s1">		Method to generate `phi` vector inputted into ``rp.EnergyComplex``.</span>
+
+<span class="s1">	Examples</span>
+<span class="s1">	--------</span>
+<span class="s1">	Running a thermogram through the inverse model and deconvolving using a</span>
+<span class="s1">	``rp.LaplaceTransform`` isntance (lt) and ``rp.RealData`` instance (rd)::</span>
+
+<span class="s1">		phi,resid_err,rgh_err,omega = lt.calc_fE_inv(rd,omega=&#39;auto&#39;)</span>
+<span class="s1">		</span>
+<span class="s1">		ec = rp.EnergyComplex(eps,phi,</span>
+<span class="s1">			nPeaks=&#39;auto&#39;,</span>
+<span class="s1">			thres=0.02,</span>
+<span class="s1">			combine_last=3,</span>
+<span class="s1">			DEa=0.0018)</span>
+<span class="s1">		</span>
+<span class="s1">	Plotting resulting f(Ea) distribution and each individual peak::</span>
+
+<span class="s1">		#load modules</span>
+<span class="s1">		import matplotlib.pyplot as plt</span>
+
+<span class="s1">		#generate axis handle</span>
+<span class="s1">		fig,ax = plt.subplots(1,1)</span>
+
+<span class="s1">		# plot thermogram</span>
+<span class="s1">		ax = ec.plot(ax=ax)</span>
+
+<span class="s1">	Returning peak summary data from ``rp.EnergyComplex`` instance (ec)::</span>
+
+<span class="s1">		#print summary</span>
+<span class="s1">		ec.summary()</span>
+
+<span class="s1">	Attributes</span>
+<span class="s1">	----------</span>
+<span class="s1">	eps : np.ndarray</span>
+<span class="s1">		Array of Ea values (in kJ/mol), length nE.</span>
+
+<span class="s1">	height : np.ndarray</span>
+<span class="s1">		Array of resulting Gaussian peak heights (unitless), length nPeak.</span>
+
+<span class="s1">	mu : np.ndarray)</span>
+<span class="s1">		Array of resulting Gaussian peak means (in kJ), length nPeak.</span>
+
+<span class="s1">	peaks : np.ndarray</span>
+<span class="s1">		Array of individual estimated Ea Gaussian peaks. Shape is </span>
+<span class="s1">		[len(eps) x len(mu)].</span>
+
+<span class="s1">	phi : np.ndarray</span>
+<span class="s1">		Array of the pdf of the discretized distribution of Ea, f(Ea).</span>
+
+<span class="s1">	phi_hat : np.ndarray</span>
+<span class="s1">		Array of the estimated pdf of the discretized distribution of Ea,</span>
+<span class="s1">		f(Ea), using the inputted Gaussian peaks.</span>
+
+<span class="s1">	phi_rmse : float</span>
+<span class="s1">		RMSE value of the estimated `phi_hat` array to `phi` -- that is, the</span>
+<span class="s1">		Gaussian peak deconvolution RMSE.</span>
+
+<span class="s1">	rel_area : np.ndarray</span>
+<span class="s1">		Array of relative contributions of each peak to `phi_hat`.</span>
+
+<span class="s1">	sigma : np.ndarray</span>
+<span class="s1">		Array of resulting Gaussian peak standard deviations (in kJ), length</span>
+<span class="s1">		nPeak.</span>
+
+<span class="s1">	References</span>
+<span class="s1">	----------</span>
+<span class="s1">	\B. de Caprariis et al. (2012) Double-Gaussian distributed activation</span>
+<span class="s1">	energy model for coal devolatilization. *Energy &amp; Fuels*, **26**,</span>
+<span class="s1">	6153-6159.</span>
+
+<span class="s1">	\B. Cramer (2004) Methane generation from coal during open system </span>
+<span class="s1">	pyrolysis investigated by isotope specific, Gaussian distributed reaction</span>
+<span class="s1">	kinetics. *Organic Geochemistry*, **35**, 379-392.</span>
 <span class="s1">	&#39;&#39;&#39;</span>
 
-	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">thres</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">combine_last</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">DEa</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="EnergyComplex.__init__"><a class="viewcode-back" href="../../../_generated/rampedpyrox.EnergyComplex.html#rampedpyrox.EnergyComplex.__init__">[docs]</a>	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">thres</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">combine_last</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">DEa</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 
 		<span class="c1">#assert phi and eps are same length</span>
 		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">eps</span><span class="p">):</span>
@@ -447,19 +594,21 @@
 		<span class="n">mu</span><span class="p">,</span><span class="n">sigma</span><span class="p">,</span><span class="n">height</span> <span class="o">=</span> <span class="n">_deconvolve</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">nPeaks</span><span class="o">=</span><span class="n">nPeaks</span><span class="p">,</span> <span class="n">thres</span><span class="o">=</span><span class="n">thres</span><span class="p">)</span>
 		<span class="n">phi_hat</span><span class="p">,</span><span class="n">y_scaled</span> <span class="o">=</span> <span class="n">_phi_hat</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
 		<span class="n">phi_hat_13</span><span class="p">,</span><span class="n">y_scaled_13</span> <span class="o">=</span> <span class="n">_phi_hat</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">mu</span><span class="o">+</span><span class="n">DEa</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
-		<span class="n">phi_err</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">phi</span><span class="o">-</span><span class="n">phi_hat</span><span class="p">)</span><span class="o">/</span><span class="n">nE</span>
+		<span class="n">phi_rmse</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">phi</span><span class="o">-</span><span class="n">phi_hat</span><span class="p">)</span><span class="o">/</span><span class="n">nE</span>
 		<span class="n">rel_area</span> <span class="o">=</span> <span class="n">_rel_area</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">y_scaled</span><span class="p">)</span>
 
-		<span class="c1">#define public parameters</span>
+		<span class="c1">#define public attributes</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">phi</span> <span class="o">=</span> <span class="n">phi</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">mu</span> <span class="o">=</span> <span class="n">mu</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">height</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">phi_hat</span> <span class="o">=</span> <span class="n">phi_hat</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">phi_hat_13</span> <span class="o">=</span> <span class="n">phi_hat_13</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">phi_err</span> <span class="o">=</span> <span class="n">phi_err</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">phi_rmse</span> <span class="o">=</span> <span class="n">phi_rmse</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">rel_area</span> <span class="o">=</span> <span class="n">rel_area</span>
+
+		<span class="c1">#define private attributes</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_phi_hat_13</span> <span class="o">=</span> <span class="n">phi_hat_13</span>
 
 		<span class="c1">#combine last peaks if necessary</span>
 		<span class="k">if</span> <span class="n">combine_last</span><span class="p">:</span>
@@ -467,27 +616,25 @@
 			<span class="n">combined</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y_scaled</span><span class="p">[:,</span><span class="n">n</span><span class="p">:],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 			<span class="n">combined_13</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y_scaled_13</span><span class="p">[:,</span><span class="n">n</span><span class="p">:],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">peaks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">y_scaled</span><span class="p">[:,:</span><span class="n">n</span><span class="p">],</span><span class="n">combined</span><span class="p">))</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">peaks_13</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">y_scaled_13</span><span class="p">[:,:</span><span class="n">n</span><span class="p">],</span><span class="n">combined_13</span><span class="p">))</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_peaks_13</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">y_scaled_13</span><span class="p">[:,:</span><span class="n">n</span><span class="p">],</span><span class="n">combined_13</span><span class="p">))</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">peaks</span> <span class="o">=</span> <span class="n">y_scaled</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">peaks_13</span> <span class="o">=</span> <span class="n">y_scaled_13</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_peaks_13</span> <span class="o">=</span> <span class="n">y_scaled_13</span></div>
 
-<div class="viewcode-block" id="EnergyComplex.plot"><a class="viewcode-back" href="../../../energycomplex.html#rampedpyrox.core.energycomplex.EnergyComplex.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="EnergyComplex.plot"><a class="viewcode-back" href="../../../_generated/rampedpyrox.EnergyComplex.plot.html#rampedpyrox.EnergyComplex.plot">[docs]</a>	<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Plots the inverse and peak-deconvolved EC.</span>
 
-<span class="sd">		Args:</span>
-<span class="sd">			ax (None or matplotlib.axis): Axis to plot on. If None, </span>
-<span class="sd">			creates an axis object to return. Defaults to None.</span>
+<span class="sd">		Parameters</span>
+<span class="sd">		----------</span>
+<span class="sd">		ax : None or matplotlib.axis</span>
+<span class="sd">			Axis to plot on. If `None`, automatically creates a</span>
+<span class="sd">			``matplotlip.axis`` instance to return. Defaults to `None`.</span>
 
-<span class="sd">		Returns:</span>
-<span class="sd">			ax (matplotlib.axis): Updated axis with plotted data.</span>
-
-<span class="sd">		Examples:</span>
-<span class="sd">			Basic implementation::</span>
-
-<span class="sd">				#assuming EnergyComplex object ec</span>
-<span class="sd">				ax = ec.plot()</span>
+<span class="sd">		Returns</span>
+<span class="sd">		-------</span>
+<span class="sd">		ax : matplotlib.axis</span>
+<span class="sd">			Updated axis instance with plotted data.</span>
 <span class="sd">		&#39;&#39;&#39;</span>
 
 		<span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -527,9 +674,9 @@
 
 		<span class="k">return</span> <span class="n">ax</span></div>
 
-<div class="viewcode-block" id="EnergyComplex.summary"><a class="viewcode-back" href="../../../energycomplex.html#rampedpyrox.core.energycomplex.EnergyComplex.summary">[docs]</a>	<span class="k">def</span> <span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="EnergyComplex.summary"><a class="viewcode-back" href="../../../_generated/rampedpyrox.EnergyComplex.summary.html#rampedpyrox.EnergyComplex.summary">[docs]</a>	<span class="k">def</span> <span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">		Prints a summary of the EnergyComplex object.</span>
+<span class="sd">		Prints a summary of the ``rp.EnergyComplex`` instance.</span>
 <span class="sd">		&#39;&#39;&#39;</span>
 
 		<span class="c1">#make a pd.DataFrame object</span>
@@ -544,10 +691,11 @@
 		<span class="n">line</span> <span class="o">=</span> <span class="s1">&#39;===========================================================&#39;</span>
 		<span class="n">pi</span> <span class="o">=</span> <span class="s1">&#39;Peak information for each deconvolved peak:&#39;</span>
 		<span class="n">note</span> <span class="o">=</span> <span class="s1">&#39;NOTE: Combined peaks are reported separately in this table!&#39;</span>
+		<span class="n">RMSE</span> <span class="o">=</span> <span class="s1">&#39;Deconvolution RMSE = </span><span class="si">%.3f</span><span class="s1">&#39;</span> <span class="o">%</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">phi_rmse</span><span class="p">)</span>
 
 		<span class="nb">print</span><span class="p">(</span><span class="n">title</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">line</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">pi</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">note</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
 		<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
-		<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">line</span><span class="p">)</span></div></div>
+		<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">line</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">RMSE</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">line</span><span class="p">)</span></div></div>
 </pre></div>
 
           </div>

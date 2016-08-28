@@ -43,7 +43,7 @@ def _calc_phi(A, g, omega):
 	Returns
 	-------
 	phi : np.ndarray
-		Array of the pdf of the distribution of Ea, f(Ea).
+		Array of the pdf of the discretized distribution of Ea, f(Ea).
 
 	resid_err : float
 		Residual RMSE between true and modeled thermogram.
@@ -192,7 +192,10 @@ def calc_A(t, Tau, eps, logk0):
 	See Also
 	--------
 	calc_L_curve
+		Method to calculate the L-curve for determining omega.
+	
 	LaplaceTransform
+		Class to store Laplace Transform data.
 
 	Examples
 	--------
@@ -319,7 +322,10 @@ def calc_L_curve(A, g, log_om_min=-3, log_om_max=2, nOm=100):
 	See Also
 	--------
 	calc_A
+		Method to calculate the Laplace transform matrix for the DAEM.
+	
 	LaplaceTransform
+		Class to store Laplace Transform data.
 
 	Examples
 	--------
@@ -402,7 +408,7 @@ def calc_L_curve(A, g, log_om_min=-3, log_om_max=2, nOm=100):
 	return om_best, resid_vec, rgh_vec, omega_vec 
 
 def calc_Wabha(A, g, omega):
-	__doc__='''
+	'''
 	Currently unused. Testing alternate methods of choosing best-fit omega.
 
 	Parameters
@@ -486,7 +492,10 @@ class LaplaceTransform(object):
 	See Also
 	--------
 	calc_A
+		Method to calculate the Laplace transform matrix for the DAEM.
+
 	calc_L_curve
+		Method to calculate the L-curve for determining omega.
 
 	Examples
 	--------
@@ -518,6 +527,23 @@ class LaplaceTransform(object):
 	using an ``rp.EnergyComplex`` instance ec::
 
 		rd = lt.calc_TG_fwd(ec)
+
+	Attributes
+	----------
+	A : np.ndarray
+		Laplace Transform matrix of shape [nT x nE].
+
+	eps : np.ndarray
+		Array of Ea values (in kJ/mol), length nE.
+
+	logk0 : np.ndarray
+		Array of Arrhenius pre-exponential factor values of length nE.
+
+	t : np.ndarray
+		Array of timepoints (in seconds), length nT.
+
+	Tau : np.ndarray
+		Array of temperature points (in Kelvin), length nT.
 
 	References
 	----------
@@ -555,23 +581,6 @@ class LaplaceTransform(object):
 	J.E. White et al. (2011) Biomass pyrolysis kinetics: A comparative
 	critical review with relevant agricultural residue case studies.
 	*Journal of Analytical and Applied Pyrolysis*, **91**, 1-33.
-
-	Attributes
-	----------
-	A : np.ndarray
-		Laplace Transform matrix of shape [nT x nE].
-
-	t : np.ndarray
-		Array of timepoints (in seconds), length nT.
-
-	Tau : np.ndarray
-		Array of temperature points (in Kelvin), length nT.
-
-	eps : np.ndarray
-		Array of Ea values (in kJ/mol), length nE.
-
-	logk0 : np.ndarray
-		Array of Arrhenius pre-exponential factor values of length nE.
 	'''
 
 	def __init__(self, t, Tau, eps, logk0):
@@ -594,7 +603,7 @@ class LaplaceTransform(object):
 		#calculate A matrix
 		A = calc_A(t, Tau, eps, self.logk0)
 
-		#define public parameters
+		#define public attributes
 		self.A = A #[nT,nE]
 		self.t = t #seconds
 		self.Tau = Tau #Kelvin
@@ -617,7 +626,7 @@ class LaplaceTransform(object):
 		Returns
 		-------
 		phi : np.ndarray
-			Array of the pdf of the distribution of Ea, f(Ea).
+			Array of the pdf of the discretized distribution of Ea, f(Ea).
 
 		resid_err : float
 			Residual RMSE between true and modeled thermogram.

@@ -17,6 +17,8 @@ __docformat__ = 'restructuredtext en'
 #exclude Thermogram superclass in __all__
 __all__ = ['RealData','ModeledData']
 
+## PRIVATE FUNCTIONS ##
+
 #define function to extract variables from 'real_data'
 def _extract_tg(all_data, nT):
 	'''
@@ -96,7 +98,7 @@ class Thermogram(object):
 
 	def __init__(self, t, Tau, g):
 
-		#define public parameters
+		#define public attributes
 		self.t = t #seconds
 		self.Tau = Tau + 273.15 #Kelvin
 		self.g = g #fraction
@@ -165,6 +167,7 @@ class RealData(Thermogram):
 	See Also
 	--------
 	ModeledData
+		Class to store data generated from the inverse model.
 
 	Examples
 	--------
@@ -224,7 +227,7 @@ class RealData(Thermogram):
 		#pass variables to Thermogram superclass
 		super(RealData,self).__init__(t, Tau, g)
 
-		#define private parameters
+		#define private attributes
 		self._nT = nT
 
 	def plot(self, ax=None, xaxis='time'):
@@ -300,6 +303,7 @@ class ModeledData(Thermogram):
 	See Also
 	--------
 	RealData
+		Class to store real Ramped PyrOx data.
 
 	Examples
 	---------
@@ -387,7 +391,7 @@ class ModeledData(Thermogram):
 		dt_mat = np.gradient(np.outer(t,np.ones(nPeak)),axis=0)
 		dTau_mat = np.outer(self.Taudot_t,np.ones(nPeak))
 		
-		#define public parameters
+		#define public attributes
 		self.gp = gp
 		self.gpdot_t = np.gradient(gp,axis=0)/dt_mat #second-1
 		self.gpdot_Tau = self.gpdot_t/dTau_mat #Kelvin-1
@@ -403,7 +407,7 @@ class ModeledData(Thermogram):
 		pk_dat = pd.DataFrame(pk_data, columns=cols, index=ind)
 		self.peak_info = pk_dat
 
-		#define private parameters
+		#define private attributes
 		self._nT = nT
 		self._nPeak = nPeak
 

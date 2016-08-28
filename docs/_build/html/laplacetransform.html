@@ -24,8 +24,6 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="rampedpyrox 0.1.1 documentation" href="index.html" />
-    <link rel="next" title="Energy Complex" href="energycomplex.html" />
-    <link rel="prev" title="rampedpyrox.calc_L_curve" href="_generated/rampedpyrox.calc_L_curve.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -105,7 +103,7 @@ length nT.</li>
 <li><strong>Tau</strong> (<em>np.ndarray</em>) &#8211; Array of temperature points (in Kelvin) from <code class="docutils literal"><span class="pre">rp.RealData</span></code> instance,
 length nT.</li>
 <li><strong>eps</strong> (<em>np.ndarray</em>) &#8211; Array of Ea values (in kJ/mol), length nE.</li>
-<li><strong>logk0</strong> (<em>int, float, or lambda</em>) &#8211; Arrhenius pre-exponential factor, either a constant value or a lambda
+<li><strong>logk0</strong> (<em>int, float, lambda, or np.ndarray</em>) &#8211; Arrhenius pre-exponential factor, either a constant value or a lambda
 function of Ea. See White et al. (2011) for a review on logk0 values
 in biomass and Dieckmann (2005) for a discussion on logk0 values in
 petroleum formations.</li>
@@ -129,7 +127,12 @@ values between 1 and 5 typically result in ~5 Ea Gaussian peaks for most
 Ramped PyrOx samples.</p>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="#rampedpyrox.core.laplacetransform.calc_A" title="rampedpyrox.core.laplacetransform.calc_A"><code class="xref py py-class docutils literal"><span class="pre">calc_A</span></code></a>, <a class="reference internal" href="#rampedpyrox.core.laplacetransform.calc_L_curve" title="rampedpyrox.core.laplacetransform.calc_L_curve"><code class="xref py py-class docutils literal"><span class="pre">calc_L_curve</span></code></a></p>
+<dl class="last docutils">
+<dt><a class="reference internal" href="#rampedpyrox.core.laplacetransform.calc_A" title="rampedpyrox.core.laplacetransform.calc_A"><code class="xref py py-class docutils literal"><span class="pre">calc_A</span></code></a></dt>
+<dd>Method to calculate the Laplace transform matrix for the DAEM.</dd>
+<dt><a class="reference internal" href="#rampedpyrox.core.laplacetransform.calc_L_curve" title="rampedpyrox.core.laplacetransform.calc_L_curve"><code class="xref py py-class docutils literal"><span class="pre">calc_L_curve</span></code></a></dt>
+<dd>Method to calculate the L-curve for determining omega.</dd>
+</dl>
 </div>
 <p class="rubric">Examples</p>
 <p>Calculating the Laplace Transform object:</p>
@@ -161,6 +164,36 @@ using an <code class="docutils literal"><span class="pre">rp.EnergyComplex</span
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">rd</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">calc_TG_fwd</span><span class="p">(</span><span class="n">ec</span><span class="p">)</span>
 </pre></div>
 </div>
+<dl class="attribute">
+<dt id="rampedpyrox.core.laplacetransform.LaplaceTransform.A">
+<code class="descname">A</code><a class="headerlink" href="#rampedpyrox.core.laplacetransform.LaplaceTransform.A" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.ndarray</em> &#8211; Laplace Transform matrix of shape [nT x nE].</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rampedpyrox.core.laplacetransform.LaplaceTransform.eps">
+<code class="descname">eps</code><a class="headerlink" href="#rampedpyrox.core.laplacetransform.LaplaceTransform.eps" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.ndarray</em> &#8211; Array of Ea values (in kJ/mol), length nE.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rampedpyrox.core.laplacetransform.LaplaceTransform.logk0">
+<code class="descname">logk0</code><a class="headerlink" href="#rampedpyrox.core.laplacetransform.LaplaceTransform.logk0" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.ndarray</em> &#8211; Array of Arrhenius pre-exponential factor values of length nE.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rampedpyrox.core.laplacetransform.LaplaceTransform.t">
+<code class="descname">t</code><a class="headerlink" href="#rampedpyrox.core.laplacetransform.LaplaceTransform.t" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.ndarray</em> &#8211; Array of timepoints (in seconds), length nT.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rampedpyrox.core.laplacetransform.LaplaceTransform.Tau">
+<code class="descname">Tau</code><a class="headerlink" href="#rampedpyrox.core.laplacetransform.LaplaceTransform.Tau" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.ndarray</em> &#8211; Array of temperature points (in Kelvin), length nT.</p>
+</dd></dl>
+
 <p class="rubric">References</p>
 <p>R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction kinetics
 using a distribution of activation energies and simpler models.
@@ -205,7 +238,7 @@ Defaults to &#8216;auto&#8217;.</li>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
-<li><strong>phi</strong> (<em>np.ndarray</em>) &#8211; Array of the pdf of the distribution of Ea, f(Ea).</li>
+<li><strong>phi</strong> (<em>np.ndarray</em>) &#8211; Array of the pdf of the discretized distribution of Ea, f(Ea).</li>
 <li><strong>resid_err</strong> (<em>float</em>) &#8211; Residual RMSE between true and modeled thermogram.</li>
 <li><strong>rgh_err</strong> (<em>float</em>) &#8211; Roughness RMSE from Tikhonov Regularization.</li>
 <li><strong>om_best</strong> (<em>float</em>) &#8211; Omega value at the point of maximum curvature in the L-curve plot of
@@ -325,7 +358,12 @@ thermograms with the same time-temperature history will generate the same
 constant ramp rates, including isothermal conditions.</p>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="#rampedpyrox.core.laplacetransform.calc_L_curve" title="rampedpyrox.core.laplacetransform.calc_L_curve"><code class="xref py py-func docutils literal"><span class="pre">calc_L_curve()</span></code></a>, <a class="reference internal" href="#rampedpyrox.core.laplacetransform.LaplaceTransform" title="rampedpyrox.core.laplacetransform.LaplaceTransform"><code class="xref py py-func docutils literal"><span class="pre">LaplaceTransform()</span></code></a></p>
+<dl class="last docutils">
+<dt><a class="reference internal" href="#rampedpyrox.core.laplacetransform.calc_L_curve" title="rampedpyrox.core.laplacetransform.calc_L_curve"><code class="xref py py-func docutils literal"><span class="pre">calc_L_curve()</span></code></a></dt>
+<dd>Method to calculate the L-curve for determining omega.</dd>
+<dt><a class="reference internal" href="#rampedpyrox.core.laplacetransform.LaplaceTransform" title="rampedpyrox.core.laplacetransform.LaplaceTransform"><code class="xref py py-func docutils literal"><span class="pre">LaplaceTransform()</span></code></a></dt>
+<dd>Class to store Laplace Transform data.</dd>
+</dl>
 </div>
 <p class="rubric">Examples</p>
 <p>Calculating an A matrix for given input data:</p>
@@ -402,7 +440,12 @@ values between 1 and 5 typically result in ~5 Ea Gaussian peaks for most
 Ramped PyrOx samples.</p>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="#rampedpyrox.core.laplacetransform.calc_A" title="rampedpyrox.core.laplacetransform.calc_A"><code class="xref py py-func docutils literal"><span class="pre">calc_A()</span></code></a>, <a class="reference internal" href="#rampedpyrox.core.laplacetransform.LaplaceTransform" title="rampedpyrox.core.laplacetransform.LaplaceTransform"><code class="xref py py-func docutils literal"><span class="pre">LaplaceTransform()</span></code></a></p>
+<dl class="last docutils">
+<dt><a class="reference internal" href="#rampedpyrox.core.laplacetransform.calc_A" title="rampedpyrox.core.laplacetransform.calc_A"><code class="xref py py-func docutils literal"><span class="pre">calc_A()</span></code></a></dt>
+<dd>Method to calculate the Laplace transform matrix for the DAEM.</dd>
+<dt><a class="reference internal" href="#rampedpyrox.core.laplacetransform.LaplaceTransform" title="rampedpyrox.core.laplacetransform.LaplaceTransform"><code class="xref py py-func docutils literal"><span class="pre">LaplaceTransform()</span></code></a></dt>
+<dd>Class to store Laplace Transform data.</dd>
+</dl>
 </div>
 <p class="rubric">Examples</p>
 <p>Basic implementation:</p>
@@ -422,6 +465,29 @@ and computation). <em>Society for Industrial and Applied Mathematics</em>.</p>
 <p>P.C. Hansen (1994) Regularization tools: A Matlab package for analysis and
 solution of discrete ill-posed problems. <em>Numerical Algorithms</em>, <strong>6</strong>,
 1-35.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rampedpyrox.core.laplacetransform.calc_Wabha">
+<code class="descclassname">rampedpyrox.core.laplacetransform.</code><code class="descname">calc_Wabha</code><span class="sig-paren">(</span><em>A</em>, <em>g</em>, <em>omega</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/laplacetransform.html#calc_Wabha"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.laplacetransform.calc_Wabha" title="Permalink to this definition">¶</a></dt>
+<dd><p>Currently unused. Testing alternate methods of choosing best-fit omega.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>A</strong> (<em>np.ndarray</em>) &#8211; Laplace Transform matrix of shape [nT x nE].</li>
+<li><strong>g</strong> (<em>np.ndarray</em>) &#8211; Array of fraction of carbon remaining.</li>
+<li><strong>omega</strong> (<em>int or float</em>) &#8211; Omega value for regularization.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">References</p>
+<p>G. Wabha (1980) Spline models for observational data (monographs on
+mathematical modeling and computation). <em>Society for Industrial and</em>
+<em>Applied Mathematics</em>.</p>
 </dd></dl>
 
 </div>
@@ -449,8 +515,6 @@ solution of discrete ill-posed problems. <em>Numerical Algorithms</em>, <strong>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="_generated/rampedpyrox.calc_L_curve.html" title="previous chapter">rampedpyrox.calc_L_curve</a></li>
-      <li>Next: <a href="energycomplex.html" title="next chapter">Energy Complex</a></li>
   </ul></li>
 </ul>
 </div>

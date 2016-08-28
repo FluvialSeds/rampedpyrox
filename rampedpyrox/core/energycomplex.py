@@ -1,10 +1,8 @@
 '''
-Energycomplex module for deconvolving a given Ea distribution into individual
-Gaussian peaks.
+Energycomplex module for deconvolving a given Ea distribution, phi, into 
+individual Gaussian peaks.
 
-* TODO: Make legend more pythonic.
-* TODO: Fix how _peak_indices sorts to select first nPeaks.
-* TODO: Include references for finding peak indices.
+* TODO: Update how _peak_indices sorts to select first nPeaks.
 '''
 
 from __future__ import print_function
@@ -19,29 +17,48 @@ from scipy.optimize import least_squares
 
 __docformat__ = 'restructuredtext en'
 
+## PRIVATE FUNCTIONS ##
+
+#define function to deconvolve phi
 def _deconvolve(eps, phi, nPeaks='auto', thres=0.05):
 	'''
 	Performs Gaussian peak deconvolution.
 	Called by ``EnergyComplex.__init__()``.
 
-	Args:
-		eps (np.ndarray): Array of Ea values.
+	Parameters
+	----------
+	eps : np.ndarray
+		Array of Ea values (in kJ/mol), length nE.
 
-		phi (np.ndarray): Array of the pdf of the distribution of Ea.
+	phi : np.ndarray
+		Array of the pdf of the discretized distribution of Ea, f(Ea).
 
-		nPeaks (int or str): Number of Gaussians to use in deconvolution,
-			either an integer or 'auto'. Defaults to 'auto'.
+	nPeaks : int or str
+		Number of Gaussians to use in deconvolution, either an integer or 
+		'auto'. Defaults to 'auto'.
 
-		thres (float): Threshold for peak detection cutoff. Thres is the relative
-			height of the global maximum under which no peaks will be detected.
+	thres : float
+		Threshold for peak detection cutoff. `thres` is the relative height of
+		the global maximum under which no peaks will be detected. Defaults to
+		0.05 (i.e. 5 percent of the highest peak).
 
-	Returns:
-		mu (np.ndarray): Array of resulting Gaussian peak means.
+	Returns
+	-------
+	mu : np.ndarray)
+		Array of resulting Gaussian peak means (in kJ), length nPeak.
 
-		sigma (np.ndarray): Array of resulting Gaussian peak standard deviations.
+	sigma : np.ndarray
+		Array of resulting Gaussian peak standard deviations (in kJ), length
+		nPeak.
 
-		height (np.ndarray): Array of resulting Gaussian peak heights.
+	height : np.ndarray
+		Array of resulting Gaussian peak heights (unitless), length nPeak.
 
+	Notes
+	-----
+	`mu` values are bounded to be within each unique concave down region of
+	`phi`, `sigma` values are bounded to be below 1/2 of the total `eps`
+	range, and `height` values are bounded to be non-negative.
 	'''
 
 	#find peak indices and bounds
@@ -82,29 +99,37 @@ def _deconvolve(eps, phi, nPeaks='auto', thres=0.05):
 
 	return mu, sigma, height
 
+#define function to generate Gaussian peaks
 def _gaussian(x, mu, sigma):
 	'''
 	Calculates a Gaussian peak for a given x vector, mu, and sigma.
 	Called by ``_phi_hat()``.
 
-	Args:
-		x (np.ndarray): Array of x values for Gaussian calculation.
+	Parameters
+	----------
+	x : np.ndarray
+		Array of x values for Gaussian calculation.
 
-		mu (int, float, or np.ndarray): Gaussian means, either a single scalar
-			for one peak or an array for simultaneously calculating multiple
-			peaks.
+	mu : int, float, or np.ndarray
+		Gaussian means, either a single scalar for one peak or an array for 
+		simultaneously calculating multiple peaks.
 
-		sigma (int, float, or np.ndarray): Gaussian standard deviations, either
-			a single scalar for one peak or an array for simultaneously
-			calculating multiple peaks.
+	sigma : int, float, or np.ndarray
+		Gaussian standard deviations, either a single scalar for one peak or 
+		an array for simultaneously calculating multiple peaks.
 
-	Returns:
-		y (np.ndarray): Array of resulting y values of shape [len(x) x len(mu)].
+	Returns
+	-------
+	y : np.ndarray
+		Array of resulting y values of shape [len(x) x len(mu)].
 
-	Raises:
-		ValueError: If mu and sigma arrays are not the same length.
+	Raises
+	------
+	ValueError
+		If mu and sigma arrays are not the same length.
 		
-		ValueError: If mu and sigma arrays are not int, float, or np.ndarray.
+	ValueError
+		If mu and sigma arrays are not int, float, or np.ndarray.
 	'''
 
 	#check data types and broadcast if necessary
@@ -136,36 +161,57 @@ def _gaussian(x, mu, sigma):
 
 	return y
 
+#define a function to find the indices of each peak in `eps`.
 def _peak_indices(phi, nPeaks='auto', thres=0.05):
 	'''
 	Finds the indices and the bounded range of the mu values for peaks in phi.
 	Called by ``_deconvolve()``.
 
-	Args:
-		phi (np.ndarray): Array of the pdf of the distribution of Ea.
+	Parameters
+	----------
+	phi : np.ndarray
+		Array of the pdf of the discretized distribution of Ea, f(Ea).
 
-		nPeaks (int or str): Number of Gaussians to use in deconvolution,
-			either an integer or 'auto'. Defaults to 'auto'.
+	nPeaks : int or str
+		Number of Gaussians to use in deconvolution, either an integer or 
+		'auto'. Defaults to 'auto'.
 
-		thres (float): Threshold for peak detection cutoff. Thres is the relative
-			height of the global maximum under which no peaks will be detected.
+	thres : float
+		Threshold for peak detection cutoff. `thres` is the relative height of
+		the global maximum under which no peaks will be detected. Defaults to
+		0.05 (i.e. 5% of the highest peak).
 
-	Returns:
-		ind (np.ndarray): Array of indices in phi containing peak mu values.
+	Returns
+	-------
+	ind : np.ndarray)
+		Array of indices in `phi` containing peak `mu` values.
 
-		lb_ind(np.ndarray): Array of indices in phi containing the lower bound
-			for each peak mu value.
+	lb_ind : np.ndarray
+		Array of indices in `phi` containing the lower bound for each peak
+		`mu` value.
 
-		ub_ind(np.ndarray): Array of indices in phi containing the upper bound
-			for each peak mu value.
+	ub_ind : np.ndarray
+		Array of indices in `phi` containing the upper bound for each peak
+		`mu` value.
 
-	Raises:
-		ValueError: If ub_ind and lb_ind arrays are not the same length.
+	Raises
+	------
+	ValueError
+		If `ub_ind` and `lb_ind` arrays are not the same length.
 		
-		ValueError: If ``nPeaks`` is greater than the total number of peaks detected.
+	ValueError
+		If `nPeaks` is greater than the total number of peaks detected.
 		
-		ValueError: If ``nPeaks`` is not 'auto' or int.
+	ValueError
+		If `nPeaks` is not 'auto' or int.
 
+	Notes
+	-----
+	This method calculates peaks according to changes in curvature in the
+	`phi` array. Each bounded section with a negative second derivative (i.e.
+	concave down) and `phi` value above `thres` is considered a unique peak.
+	If `nPeaks` is not 'auto', these peaks are sorted according to decreasing
+	peak heights and the first `nPeaks` peaks are saved.
 	'''
 
 	#convert thres to absolute value
@@ -201,18 +247,6 @@ def _peak_indices(phi, nPeaks='auto', thres=0.05):
 	ab = np.where(phi[ind] >= thres)
 	ind = ind[ab]; lb_ind = lb_ind[ab]; ub_ind = ub_ind[ab]
 
-	#retain first nPeaks according to increasing d2phi
-	# if isinstance(nPeaks,int):
-	# 	#check if nPeaks is greater than the total amount of peaks
-	# 	if len(ind) < nPeaks:
-	# 		raise ValueError('nPeaks greater than total detected peaks')
-
-	# 	#sort according to increasing d2phi, keep first nPeaks, and re-sort
-	# 	i = np.argsort(d2phi[ind])[:nPeaks]
-	# 	i = np.sort(i)
-
-	# 	ind = ind[i]; lb_ind = lb_ind[i]; ub_ind = ub_ind[i]
-
 	#retain first nPeaks according to decreasing phi[mu]
 	if isinstance(nPeaks,int):
 		#check if nPeaks is greater than the total amount of peaks
@@ -230,26 +264,37 @@ def _peak_indices(phi, nPeaks='auto', thres=0.05):
 
 	return ind, lb_ind, ub_ind
 
+#define function to generate fitted f(Ea) distribution, phi_hat
 def _phi_hat(eps, mu, sigma, height):
 	'''
 	Calculates phi hat for given parameters.
 	Called by ``_phi_hat_diff()``.
 	Called by ``EnergyComplex.__init__()``.
 
-	Args:
-		eps (np.ndarray): Array of Ea values.
+	Parameters
+	----------
+	eps : np.ndarray
+		Array of Ea values (in kJ/mol), length nE.
 
-		mu (np.ndarray): Array of Gaussian peak means.
+	mu : np.ndarray)
+		Array of resulting Gaussian peak means (in kJ), length nPeak.
 
-		sigma (np.ndarray): Array of Gaussian peak standard deviations.
+	sigma : np.ndarray
+		Array of resulting Gaussian peak standard deviations (in kJ), length
+		nPeak.
 
-		height (np.ndarray): Array of Gaussian peak heights.
+	height : np.ndarray
+		Array of resulting Gaussian peak heights (unitless), length nPeak.
 
-	Returns:
-		phi_hat (np.ndarray): Array of estimated Ea distribution.
+	Returns
+	-------
+	phi_hat : np.ndarray
+		Array of the estimated pdf of the discretized distribution of Ea,
+		f(Ea), using the inputted Gaussian peaks.
 
-		y_scaled (np.ndarray): Array of individual estimated Ea Gaussian peaks.
-			Shape is [len(eps) x len(mu)].
+	y_scaled : np.ndarray
+		Array of individual estimated Ea Gaussian peaks. Shape is 
+		[len(eps) x len(mu)].
 	'''
 
 	#generate Gaussian peaks
@@ -264,26 +309,35 @@ def _phi_hat(eps, mu, sigma, height):
 
 	return phi_hat, y_scaled
 
+#define function to calculate the difference between true and estimated phi.
 def _phi_hat_diff(params, eps, phi):
 	'''
 	Calculates the difference between phi and phi_hat for scipy least_squares.
 	Called by ``_deconvolve()``.
 
-	Args:
-		params (np.ndarray): Array of hrizontally stacked parameter values with
-			shape [mus, sigmas, heights].
+	Parameters
+	----------
+	params : np.ndarray
+		Array of hrizontally stacked parameter values in the order:
+		[`mu`, `sigma`, `height`].
 
-		eps (np.ndarray): Array of Ea values.
+	eps : np.ndarray
+		Array of Ea values (in kJ/mol), length nE.
 
-		phi (np.ndarray): Array of the pdf of the distribution of Ea.
+	phi : np.ndarray
+		Array of the pdf of the discretized distribution of Ea, f(Ea).
 
-	Returns:
-		diff (np.ndarray): Array of the difference between phi_hat and phi
-			at each point.
+	Returns
+	-------
+	diff : np.ndarray
+		Array of the difference between `phi_hat` and `phi` at each point,
+		length nE.
 
-	Raises:
-		ValueError: If len(params) is not 3*n, where n is the length of the
-			mu, sigma, and height vectors.
+	Raises
+	------
+	ValueError
+		If len(params) is not 3*n, where n is the length of the `mu`, `sigma`,
+		and `height` vectors.
 
 	'''
 
@@ -302,18 +356,24 @@ def _phi_hat_diff(params, eps, phi):
 
 	return phi_hat - phi
 
+#define a function to calculate relative areas.
 def _rel_area(eps, y_scaled):
 	'''
-	Calculates the relative areas of each Ea Gaussian peak.
+	Calculates the relative contribution of each Ea Gaussian peak to `phi_hat`.
 
-	Args:
-		eps (np.ndarray): Array of Ea values.
+	Parameters
+	----------
+	eps : np.ndarray
+		Array of Ea values (in kJ/mol), length nE.
 
-		y_scaled (np.ndarray): Array of individual estimated Ea Gaussian peaks.
-			Shape is [len(eps) x len(mu)].
+	y_scaled : np.ndarray
+		Array of individual estimated Ea Gaussian peaks. Shape is 
+		[len(eps) x len(mu)].
 
-	Returns:
-		rel_area (np.ndarray): Array of relative areas of each peak.
+	Returns
+	-------
+	rel_area : np.ndarray
+		Array of relative contributions of each peak to `phi_hat`.
 	'''
 
 	#extract gradient and mulitply to get areas
@@ -329,64 +389,151 @@ def _rel_area(eps, y_scaled):
 
 class EnergyComplex(object):
 	__doc__='''
-	Class for storing Ea distribution and calculating peak deconvolution.
+	Class for storing Ea distribution and performing Gaussian deconvolution.
 
-	Args:
-		eps (np.ndarray): Array of Ea values.
+	Parameters
+	----------
+	eps : np.ndarray
+		Array of Ea values (in kJ/mol), length nE.
 
-		phi (np.ndarray): Array of the pdf of the distribution of Ea.
+	phi : np.ndarray
+		Array of the pdf of the discretized distribution of Ea, f(Ea).
 
-		nPeaks (int or str): Number of Gaussians to use in deconvolution,
-			either an integer or 'auto'. Defaults to 'auto'.
+	nPeaks : int or str
+		Number of Gaussians to use in deconvolution, either an integer or 
+		'auto'. Defaults to 'auto'.
 
-		thres (float): Threshold for peak detection cutoff. Thres is the relative
-			height of the global maximum under which no peaks will be detected.
+	thres : float
+		Threshold for peak detection cutoff. `thres` is the relative height of
+		the global maximum under which no peaks will be detected. Defaults to
+		0.05 (i.e. 5 percent of the highest peak).
 
-		combine_last (int or None): Number of peaks to combine at the end of
-			the run (necessary if there is not enough isotope resolution at the
-			high temperature range, as is often the case with real data).
-			Defaults to None.
+	combine_last : int or None
+		Number of peaks to combine at the end of the run (necessary if there
+		is not enough isotope resolution at the high temperature range, as is
+		often the case with Ramped PyrOx samples). Defaults to None.
 
-		DEa (int, float, or np.ndarray): DEa values, either a scalar or vector
-			of length nPeaks (in units of kJ!). If using nPeaks = 'auto', leave
-			DEa as a scalar to avoid issues with array length. Defaults to 0.
+	DEa : int, float, or np.ndarray
+		DEa values (the difference in Ea between 12C- and 13C-containing
+		molecules) for each Gaussian peak (in kJ/mol), either a scalar or 
+		vector of length nPeaks. If using nPeaks = 'auto', leave DEa as a 
+		scalar to avoid issues with array length. Defaults to 0.
 
-	Returns:
-		ec (rp.EnergyComplex): ``EnergyComplex`` object.
+	Raises
+	------
+	ValueError
+		If phi and eps vectors are not the same length.
 
-	Raises:
-		ValueError: If phi and eps vectors are not the same length.
-
-		ValueError: If ``nPeaks`` is greater than the total number of peaks detected.
+	ValueError
+		If `nPeaks` is greater than the total number of peaks detected (if
+		`nPeaks` is not 'auto').
 		
-		ValueError: If ``nPeaks`` is not 'auto' or int.
+	ValueError
+		If `nPeaks` is not 'auto' or int.
 
-		ValueError: If ``DEa`` is not int, float, or np.ndarray of length nPeaks.
+	ValueError
+		If `DEa` is not int, float, or np.ndarray of length nPeaks.
 
-	Examples:
-		Running a thermogram through the inverse model and deconvolving::
+	Warnings
+	--------
+	Raises warning if ``scipy.optimize.least_squares`` cannot converge on a
+	best-fit solution.
 
-			#assuming a LaplaceTransform object lt and RealData object rd
-			phi,resid_err,rgh_err,omega = lt.calc_fE_inv(rd,omega='auto')
-			
-			ec = rp.EnergyComplex(eps,phi,
-				nPeaks='auto',
-				thres=0.02,
-				combine_last=3,
-				DEa=0.0018)
-			
-			#plot results and print summary
-			ax = ec.plot()
-			ec.summary()
+	Notes
+	-----
+	Peaks are selected according to changes in curvature in the
+	`phi` array. Each bounded section with a negative second derivative (i.e.
+	concave down) and `phi` value above `thres` is considered a unique peak.
+	If `nPeaks` is not 'auto', these peaks are sorted according to decreasing
+	peak heights and the first `nPeaks` peaks are saved.
 
-	References:
+	During peak deconvolution, `mu` values are bounded to be within each
+	unique concave down region of `phi`, `sigma` values are bounded to be
+	below 1/2 of the total `eps` range, and `height` values are bounded to be
+	non-negative.
 
-	Notes:
-		All results are bounded to be non-negative, and mu values are bounded to be
-		within the concave down regions of the Ea distribution. This class 
-		implements the scipy.optimize.least_squares method using the 'Trust Region
-		Reflective' algorithm, as this algorithm is able to handle bounded
-		parameters much better than the Levenberg-Marquardt algorithm.
+	Peak deconvolution performed here implements the 
+	``scipy.optimize.least_squares`` method using the 'Trust Region
+	Reflective' algorithm, as this algorithm is able to handle bounded
+	parameters much better than the Levenberg-Marquardt algorithm.
+
+
+	See Also
+	--------
+	rampedpyrox.LaplaceTransform.calc_EC_inv
+		Method to generate `phi` vector inputted into ``rp.EnergyComplex``.
+
+	Examples
+	--------
+	Running a thermogram through the inverse model and deconvolving using a
+	``rp.LaplaceTransform`` isntance (lt) and ``rp.RealData`` instance (rd)::
+
+		phi,resid_err,rgh_err,omega = lt.calc_fE_inv(rd,omega='auto')
+		
+		ec = rp.EnergyComplex(eps,phi,
+			nPeaks='auto',
+			thres=0.02,
+			combine_last=3,
+			DEa=0.0018)
+		
+	Plotting resulting f(Ea) distribution and each individual peak::
+
+		#load modules
+		import matplotlib.pyplot as plt
+
+		#generate axis handle
+		fig,ax = plt.subplots(1,1)
+
+		# plot thermogram
+		ax = ec.plot(ax=ax)
+
+	Returning peak summary data from ``rp.EnergyComplex`` instance (ec)::
+
+		#print summary
+		ec.summary()
+
+	Attributes
+	----------
+	eps : np.ndarray
+		Array of Ea values (in kJ/mol), length nE.
+
+	height : np.ndarray
+		Array of resulting Gaussian peak heights (unitless), length nPeak.
+
+	mu : np.ndarray)
+		Array of resulting Gaussian peak means (in kJ), length nPeak.
+
+	peaks : np.ndarray
+		Array of individual estimated Ea Gaussian peaks. Shape is 
+		[len(eps) x len(mu)].
+
+	phi : np.ndarray
+		Array of the pdf of the discretized distribution of Ea, f(Ea).
+
+	phi_hat : np.ndarray
+		Array of the estimated pdf of the discretized distribution of Ea,
+		f(Ea), using the inputted Gaussian peaks.
+
+	phi_rmse : float
+		RMSE value of the estimated `phi_hat` array to `phi` -- that is, the
+		Gaussian peak deconvolution RMSE.
+
+	rel_area : np.ndarray
+		Array of relative contributions of each peak to `phi_hat`.
+
+	sigma : np.ndarray
+		Array of resulting Gaussian peak standard deviations (in kJ), length
+		nPeak.
+
+	References
+	----------
+	\B. de Caprariis et al. (2012) Double-Gaussian distributed activation
+	energy model for coal devolatilization. *Energy & Fuels*, **26**,
+	6153-6159.
+
+	\B. Cramer (2004) Methane generation from coal during open system 
+	pyrolysis investigated by isotope specific, Gaussian distributed reaction
+	kinetics. *Organic Geochemistry*, **35**, 379-392.
 	'''
 
 	def __init__(self, eps, phi, nPeaks='auto', thres=0.05, combine_last=None, DEa=0):
@@ -404,19 +551,21 @@ class EnergyComplex(object):
 		mu,sigma,height = _deconvolve(eps, phi, nPeaks=nPeaks, thres=thres)
 		phi_hat,y_scaled = _phi_hat(eps, mu, sigma, height)
 		phi_hat_13,y_scaled_13 = _phi_hat(eps, mu+DEa, sigma, height)
-		phi_err = norm(phi-phi_hat)/nE
+		phi_rmse = norm(phi-phi_hat)/nE
 		rel_area = _rel_area(eps, y_scaled)
 
-		#define public parameters
+		#define public attributes
 		self.phi = phi
 		self.eps = eps
 		self.mu = mu
 		self.sigma = sigma
 		self.height = height
 		self.phi_hat = phi_hat
-		self.phi_hat_13 = phi_hat_13
-		self.phi_err = phi_err
+		self.phi_rmse = phi_rmse
 		self.rel_area = rel_area
+
+		#define private attributes
+		self._phi_hat_13 = phi_hat_13
 
 		#combine last peaks if necessary
 		if combine_last:
@@ -424,27 +573,25 @@ class EnergyComplex(object):
 			combined = np.sum(y_scaled[:,n:],axis=1)
 			combined_13 = np.sum(y_scaled_13[:,n:],axis=1)
 			self.peaks = np.column_stack((y_scaled[:,:n],combined))
-			self.peaks_13 = np.column_stack((y_scaled_13[:,:n],combined_13))
+			self._peaks_13 = np.column_stack((y_scaled_13[:,:n],combined_13))
 		else:
 			self.peaks = y_scaled
-			self.peaks_13 = y_scaled_13
+			self._peaks_13 = y_scaled_13
 
 	def plot(self, ax=None):
 		'''
-		Plots the inverse and peak-deconvolved EC.
+		Plots the inverse and peak-deconvolved discretized f(Ea).
 
-		Args:
-			ax (None or matplotlib.axis): Axis to plot on. If None, 
-			creates an axis object to return. Defaults to None.
+		Parameters
+		----------
+		ax : None or matplotlib.axis
+			Axis to plot on. If `None`, automatically creates a
+			``matplotlip.axis`` instance to return. Defaults to `None`.
 
-		Returns:
-			ax (matplotlib.axis): Updated axis with plotted data.
-
-		Examples:
-			Basic implementation::
-
-				#assuming EnergyComplex object ec
-				ax = ec.plot()
+		Returns
+		-------
+		ax : matplotlib.axis
+			Updated axis instance with plotted data.
 		'''
 
 		if ax is None:
@@ -486,7 +633,7 @@ class EnergyComplex(object):
 
 	def summary(self):
 		'''
-		Prints a summary of the EnergyComplex object.
+		Prints a summary of the ``rp.EnergyComplex`` instance.
 		'''
 
 		#make a pd.DataFrame object
@@ -501,7 +648,8 @@ class EnergyComplex(object):
 		line = '==========================================================='
 		pi = 'Peak information for each deconvolved peak:'
 		note = 'NOTE: Combined peaks are reported separately in this table!'
+		RMSE = 'Deconvolution RMSE = %.3f' %(self.phi_rmse)
 
 		print(title + '\n\n' + line + '\n' + pi + '\n\n' + note + '\n')
 		print(df)
-		print('\n' + line)
+		print('\n' + line + '\n\n' + RMSE + '\n\n' + line)

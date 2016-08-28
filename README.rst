@@ -52,7 +52,7 @@ Source code can be directly downloaded from GitHub:
 
 	http://github.com/FluvialSeds/rampedpyrox
 
-Binaries can be installed through the Python package index
+Binaries can be installed through the Python package index (coming soon)
 
 	``pip install rampedpyrox``
 

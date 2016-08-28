@@ -6,6 +6,7 @@ Ramped PyrOx classes
 	rampedpyrox.RealData
 	rampedpyrox.ModeledData
 	rampedpyrox.LaplaceTransform
+	rampedpyrox.EnergyComplex
 
 Ramped PyrOx methods
 --------------------

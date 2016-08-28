@@ -185,7 +185,7 @@ def _calc_R13_CO2(R13_peak, lt, ec):
 	
 	#extract 12C and 13C Ea Gaussian peaks and scale to correct heights
 	C12_peaks_scl = ec.peaks
-	C13_peaks_scl = ec.peaks_13*R13_peak
+	C13_peaks_scl = ec._peaks_13*R13_peak
 
 	#sum to create scaled phi_hat arrays
 	phi_hat_12_scl = np.sum(C12_peaks_scl,axis=1)

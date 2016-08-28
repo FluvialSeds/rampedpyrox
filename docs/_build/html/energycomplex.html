@@ -24,8 +24,6 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="rampedpyrox 0.1.1 documentation" href="index.html" />
-    <link rel="next" title="Isotope Result" href="isotoperesult.html" />
-    <link rel="prev" title="Laplace Transform" href="laplacetransform.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -68,77 +66,167 @@ calculated automatically), and plots resulting Ea distribution.</p>
 </div>
 <div class="section" id="module-rampedpyrox.core.energycomplex">
 <span id="module-reference"></span><h2>Module Reference<a class="headerlink" href="#module-rampedpyrox.core.energycomplex" title="Permalink to this headline">¶</a></h2>
-<p>Energycomplex module for deconvolving a given Ea distribution into individual
-Gaussian peaks.</p>
+<p>Energycomplex module for deconvolving a given Ea distribution, phi, into
+individual Gaussian peaks.</p>
 <ul class="simple">
-<li>TODO: Make legend more pythonic.</li>
-<li>TODO: Fix how _peak_indices sorts to select first nPeaks.</li>
-<li>TODO: Include references for finding peak indices.</li>
+<li>TODO: Update how _peak_indices sorts to select first nPeaks.</li>
 </ul>
 <dl class="class">
 <dt id="rampedpyrox.core.energycomplex.EnergyComplex">
 <em class="property">class </em><code class="descclassname">rampedpyrox.core.energycomplex.</code><code class="descname">EnergyComplex</code><span class="sig-paren">(</span><em>eps</em>, <em>phi</em>, <em>nPeaks='auto'</em>, <em>thres=0.05</em>, <em>combine_last=None</em>, <em>DEa=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/energycomplex.html#EnergyComplex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex" title="Permalink to this definition">¶</a></dt>
-<dd><p>Class for storing Ea distribution and calculating peak deconvolution.</p>
+<dd><p>Class for storing Ea distribution and performing Gaussian deconvolution.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>eps</strong> (<em>np.ndarray</em>) &#8211; Array of Ea values.</li>
-<li><strong>phi</strong> (<em>np.ndarray</em>) &#8211; Array of the pdf of the distribution of Ea.</li>
-<li><strong>nPeaks</strong> (<em>int or str</em>) &#8211; Number of Gaussians to use in deconvolution,
-either an integer or &#8216;auto&#8217;. Defaults to &#8216;auto&#8217;.</li>
-<li><strong>thres</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Threshold for peak detection cutoff. Thres is the relative
-height of the global maximum under which no peaks will be detected.</li>
-<li><strong>combine_last</strong> (<em>int or None</em>) &#8211; Number of peaks to combine at the end of
-the run (necessary if there is not enough isotope resolution at the
-high temperature range, as is often the case with real data).
-Defaults to None.</li>
-<li><strong>DEa</strong> (<em>int, float, or np.ndarray</em>) &#8211; DEa values, either a scalar or vector
-of length nPeaks (in units of kJ!). If using nPeaks = &#8216;auto&#8217;, leave
-DEa as a scalar to avoid issues with array length. Defaults to 0.</li>
+<li><strong>eps</strong> (<em>np.ndarray</em>) &#8211; Array of Ea values (in kJ/mol), length nE.</li>
+<li><strong>phi</strong> (<em>np.ndarray</em>) &#8211; Array of the pdf of the discretized distribution of Ea, f(Ea).</li>
+<li><strong>nPeaks</strong> (<em>int or str</em>) &#8211; Number of Gaussians to use in deconvolution, either an integer or
+&#8216;auto&#8217;. Defaults to &#8216;auto&#8217;.</li>
+<li><strong>thres</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Threshold for peak detection cutoff. <cite>thres</cite> is the relative height of
+the global maximum under which no peaks will be detected. Defaults to
+0.05 (i.e. 5 percent of the highest peak).</li>
+<li><strong>combine_last</strong> (<em>int or None</em>) &#8211; Number of peaks to combine at the end of the run (necessary if there
+is not enough isotope resolution at the high temperature range, as is
+often the case with Ramped PyrOx samples). Defaults to None.</li>
+<li><strong>DEa</strong> (<em>int, float, or np.ndarray</em>) &#8211; DEa values (the difference in Ea between 12C- and 13C-containing
+molecules) for each Gaussian peak (in kJ/mol), either a scalar or
+vector of length nPeaks. If using nPeaks = &#8216;auto&#8217;, leave DEa as a
+scalar to avoid issues with array length. Defaults to 0.</li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>ec</strong> &#8211; <code class="docutils literal"><span class="pre">EnergyComplex</span></code> object.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">rp.EnergyComplex</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
 <li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If phi and eps vectors are not the same length.</li>
-<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <code class="docutils literal"><span class="pre">nPeaks</span></code> is greater than the total number of peaks detected.</li>
-<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <code class="docutils literal"><span class="pre">nPeaks</span></code> is not &#8216;auto&#8217; or int.</li>
-<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <code class="docutils literal"><span class="pre">DEa</span></code> is not int, float, or np.ndarray of length nPeaks.</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <cite>nPeaks</cite> is greater than the total number of peaks detected (if
+<cite>nPeaks</cite> is not &#8216;auto&#8217;).</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <cite>nPeaks</cite> is not &#8216;auto&#8217; or int.</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> &#8211; If <cite>DEa</cite> is not int, float, or np.ndarray of length nPeaks.</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Raises warning if <code class="docutils literal"><span class="pre">scipy.optimize.least_squares</span></code> cannot converge on a
+best-fit solution.</p>
+</div>
+<p class="rubric">Notes</p>
+<p>Peaks are selected according to changes in curvature in the
+<cite>phi</cite> array. Each bounded section with a negative second derivative (i.e.
+concave down) and <cite>phi</cite> value above <cite>thres</cite> is considered a unique peak.
+If <cite>nPeaks</cite> is not &#8216;auto&#8217;, these peaks are sorted according to decreasing
+peak heights and the first <cite>nPeaks</cite> peaks are saved.</p>
+<p>During peak deconvolution, <cite>mu</cite> values are bounded to be within each
+unique concave down region of <cite>phi</cite>, <cite>sigma</cite> values are bounded to be
+below 1/2 of the total <cite>eps</cite> range, and <cite>height</cite> values are bounded to be
+non-negative.</p>
+<p>Peak deconvolution performed here implements the
+<code class="docutils literal"><span class="pre">scipy.optimize.least_squares</span></code> method using the &#8216;Trust Region
+Reflective&#8217; algorithm, as this algorithm is able to handle bounded
+parameters much better than the Levenberg-Marquardt algorithm.</p>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<dl class="last docutils">
+<dt><a class="reference internal" href="_generated/rampedpyrox.LaplaceTransform.calc_EC_inv.html#rampedpyrox.LaplaceTransform.calc_EC_inv" title="rampedpyrox.LaplaceTransform.calc_EC_inv"><code class="xref py py-class docutils literal"><span class="pre">rampedpyrox.LaplaceTransform.calc_EC_inv</span></code></a></dt>
+<dd>Method to generate <cite>phi</cite> vector inputted into <code class="docutils literal"><span class="pre">rp.EnergyComplex</span></code>.</dd>
+</dl>
+</div>
 <p class="rubric">Examples</p>
-<p>Running a thermogram through the inverse model and deconvolving:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#assuming a LaplaceTransform object lt and RealData object rd</span>
-<span class="n">phi</span><span class="p">,</span><span class="n">resid_err</span><span class="p">,</span><span class="n">rgh_err</span><span class="p">,</span><span class="n">omega</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">calc_fE_inv</span><span class="p">(</span><span class="n">rd</span><span class="p">,</span><span class="n">omega</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">)</span>
+<p>Running a thermogram through the inverse model and deconvolving using a
+<code class="docutils literal"><span class="pre">rp.LaplaceTransform</span></code> isntance (lt) and <code class="docutils literal"><span class="pre">rp.RealData</span></code> instance (rd):</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">phi</span><span class="p">,</span><span class="n">resid_err</span><span class="p">,</span><span class="n">rgh_err</span><span class="p">,</span><span class="n">omega</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">calc_fE_inv</span><span class="p">(</span><span class="n">rd</span><span class="p">,</span><span class="n">omega</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">)</span>
 
 <span class="n">ec</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">EnergyComplex</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span><span class="n">phi</span><span class="p">,</span>
         <span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
         <span class="n">thres</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span>
         <span class="n">combine_last</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
         <span class="n">DEa</span><span class="o">=</span><span class="mf">0.0018</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Plotting resulting f(Ea) distribution and each individual peak:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#load modules</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
-<span class="c1">#plot results and print summary</span>
-<span class="n">ax</span> <span class="o">=</span> <span class="n">ec</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<span class="c1">#generate axis handle</span>
+<span class="n">fig</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># plot thermogram</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">ec</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Returning peak summary data from <code class="docutils literal"><span class="pre">rp.EnergyComplex</span></code> instance (ec):</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#print summary</span>
 <span class="n">ec</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>References:</p>
-<p class="rubric">Notes</p>
-<p>All results are bounded to be non-negative, and mu values are bounded to be
-within the concave down regions of the Ea distribution. This class
-implements the scipy.optimize.least_squares method using the &#8216;Trust Region
-Reflective&#8217; algorithm, as this algorithm is able to handle bounded
-parameters much better than the Levenberg-Marquardt algorithm.</p>
+<dl class="attribute">
+<dt id="rampedpyrox.core.energycomplex.EnergyComplex.eps">
+<code class="descname">eps</code><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.eps" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.ndarray</em> &#8211; Array of Ea values (in kJ/mol), length nE.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rampedpyrox.core.energycomplex.EnergyComplex.height">
+<code class="descname">height</code><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.height" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.ndarray</em> &#8211; Array of resulting Gaussian peak heights (unitless), length nPeak.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rampedpyrox.core.energycomplex.EnergyComplex.mu">
+<code class="descname">mu</code><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.mu" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.ndarray)</em> &#8211; Array of resulting Gaussian peak means (in kJ), length nPeak.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rampedpyrox.core.energycomplex.EnergyComplex.peaks">
+<code class="descname">peaks</code><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.peaks" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.ndarray</em> &#8211; Array of individual estimated Ea Gaussian peaks. Shape is
+[len(eps) x len(mu)].</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rampedpyrox.core.energycomplex.EnergyComplex.phi">
+<code class="descname">phi</code><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.phi" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.ndarray</em> &#8211; Array of the pdf of the discretized distribution of Ea, f(Ea).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rampedpyrox.core.energycomplex.EnergyComplex.phi_hat">
+<code class="descname">phi_hat</code><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.phi_hat" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.ndarray</em> &#8211; Array of the estimated pdf of the discretized distribution of Ea,
+f(Ea), using the inputted Gaussian peaks.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rampedpyrox.core.energycomplex.EnergyComplex.phi_rmse">
+<code class="descname">phi_rmse</code><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.phi_rmse" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>float</em> &#8211; RMSE value of the estimated <cite>phi_hat</cite> array to <cite>phi</cite> &#8211; that is, the
+Gaussian peak deconvolution RMSE.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rampedpyrox.core.energycomplex.EnergyComplex.rel_area">
+<code class="descname">rel_area</code><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.rel_area" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.ndarray</em> &#8211; Array of relative contributions of each peak to <cite>phi_hat</cite>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rampedpyrox.core.energycomplex.EnergyComplex.sigma">
+<code class="descname">sigma</code><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.sigma" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.ndarray</em> &#8211; Array of resulting Gaussian peak standard deviations (in kJ), length
+nPeak.</p>
+</dd></dl>
+
+<p class="rubric">References</p>
+<p>B. de Caprariis et al. (2012) Double-Gaussian distributed activation
+energy model for coal devolatilization. <em>Energy &amp; Fuels</em>, <strong>26</strong>,
+6153-6159.</p>
+<p>B. Cramer (2004) Methane generation from coal during open system
+pyrolysis investigated by isotope specific, Gaussian distributed reaction
+kinetics. <em>Organic Geochemistry</em>, <strong>35</strong>, 379-392.</p>
 <dl class="method">
 <dt id="rampedpyrox.core.energycomplex.EnergyComplex.plot">
 <code class="descname">plot</code><span class="sig-paren">(</span><em>ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/energycomplex.html#EnergyComplex.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.plot" title="Permalink to this definition">¶</a></dt>
@@ -147,32 +235,21 @@ parameters much better than the Levenberg-Marquardt algorithm.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>ax</strong> (<em>None or matplotlib.axis</em>) &#8211; Axis to plot on. If None,</li>
-<li><strong>an axis object to return. Defaults to None.</strong> (<em>creates</em>) &#8211; </li>
-</ul>
-</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ax</strong> (<em>None or matplotlib.axis</em>) &#8211; Axis to plot on. If <cite>None</cite>, automatically creates a
+<code class="docutils literal"><span class="pre">matplotlip.axis</span></code> instance to return. Defaults to <cite>None</cite>.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>ax</strong> &#8211; Updated axis with plotted data.</p>
-</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>ax</strong> &#8211; Updated axis instance with plotted data.</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">matplotlib.axis</p>
-</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">matplotlib.axis</td>
 </tr>
 </tbody>
 </table>
-<p class="rubric">Examples</p>
-<p>Basic implementation:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#assuming EnergyComplex object ec</span>
-<span class="n">ax</span> <span class="o">=</span> <span class="n">ec</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
-</pre></div>
-</div>
 </dd></dl>
 
 <dl class="method">
 <dt id="rampedpyrox.core.energycomplex.EnergyComplex.summary">
 <code class="descname">summary</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rampedpyrox/core/energycomplex.html#EnergyComplex.summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rampedpyrox.core.energycomplex.EnergyComplex.summary" title="Permalink to this definition">¶</a></dt>
-<dd><p>Prints a summary of the EnergyComplex object.</p>
+<dd><p>Prints a summary of the <code class="docutils literal"><span class="pre">rp.EnergyComplex</span></code> instance.</p>
 </dd></dl>
 
 </dd></dl>
@@ -202,8 +279,6 @@ parameters much better than the Levenberg-Marquardt algorithm.</p>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="laplacetransform.html" title="previous chapter">Laplace Transform</a></li>
-      <li>Next: <a href="isotoperesult.html" title="next chapter">Isotope Result</a></li>
   </ul></li>
 </ul>
 </div>
