@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="rampedpyrox 0.1.1 documentation" href="#" />
-    <link rel="next" title="Ramped PyrOx classes" href="package_reference.html" />
+    <link rel="next" title="Package Reference Documentation" href="package_reference.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -43,92 +43,70 @@
   <div class="section" id="welcome-to-the-rampedpyrox-documentation">
 <h1>Welcome to the RampedPyrox documentation<a class="headerlink" href="#welcome-to-the-rampedpyrox-documentation" title="Permalink to this headline">¶</a></h1>
 <p><code class="docutils literal"><span class="pre">rampedpyrox</span></code> is a Python package for analyzing the results from ramped-
-temperature instruments such as RampedPyrox, RockEval, pyrolysis gc (pyGC),
-thermogravimitry (TGA), etc. Rampedpyrox deconvolves Gaussian activiation energy
-peaks within a given sample using a Distributed Activation Energy Model (DAEM) and
-calculates the corresponding stable-carbon and radiocarbon isotope values for each peak.</p>
+temperature instruments such as Ramped PyrOx, RockEval, pyrolysis gc (pyGC),
+thermogravimitry (TGA), etc. <code class="docutils literal"><span class="pre">rampedpyrox</span></code> uses a first-order Distributed
+Activation Energy Model (DAEM) to inversely determine the activation energy
+(Ea) distribution corresponding to a sample&#8217;s thermogram and to deconvolve
+the Ea distribution into a discrete number of Gaussian peaks. Additionally,
+for isotope-enabled instruments such as Ramped PyrOx and pyGC-IRMS,
+<code class="docutils literal"><span class="pre">rampedpyrox</span></code> calculates the best-fit stable carbon and radiocarbon value
+for each Gaussian Ea peak.</p>
+<div class="section" id="package-information">
+<h2>Package information<a class="headerlink" href="#package-information" title="Permalink to this headline">¶</a></h2>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Authors:</th><td class="field-body">Jordon D. Hemingway &lt;<a class="reference external" href="mailto:jordonhemingway&#37;&#52;&#48;gmail&#46;com">jordonhemingway<span>&#64;</span>gmail<span>&#46;</span>com</a>&gt;</td>
+<tr class="field-odd field"><th class="field-name">Authors:</th><td class="field-body">Jordon D. Hemingway (<a class="reference external" href="mailto:jhemingway&#37;&#52;&#48;whoi&#46;edu">jhemingway<span>&#64;</span>whoi<span>&#46;</span>edu</a>)</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Version:</th><td class="field-body">0.1.1 (Pre-release 27 August 2016)</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">License:</th><td class="field-body">MIT License</td>
+<tr class="field-odd field"><th class="field-name">License:</th><td class="field-body">GNU GPL v3 (or greater)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">url:</th><td class="field-body"><a class="reference external" href="http://github.com/FluvialSeds/rampedpyrox">http://github.com/FluvialSeds/rampedpyrox</a></td>
 </tr>
 </tbody>
 </table>
-<div class="section" id="minimal-examples">
-<h2>Minimal examples<a class="headerlink" href="#minimal-examples" title="Permalink to this headline">¶</a></h2>
-<p>The following examples should guide you through setting up a thermogram,
-calculating activation energy (Ea) distributions, deconvolving into Gaussians,
-and calculating isotope values.</p>
-<p>Importing data into a thermogram object and plotting:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#load modules</span>
-<span class="kn">import</span> <span class="nn">rampedpyrox</span> <span class="k">as</span> <span class="nn">rp</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-
-<span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;/path_to_folder_containing_data/data.csv&#39;</span>
-<span class="n">nT</span> <span class="o">=</span> <span class="mi">250</span> <span class="c1">#number of timepoints</span>
-<span class="n">rd</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">RealData</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">nT</span><span class="o">=</span><span class="n">nT</span><span class="p">)</span>
-<span class="n">ax</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
-</pre></div>
 </div>
-<p>Note that <code class="docutils literal"><span class="pre">data</span></code> can also be inputted as a <code class="docutils literal"><span class="pre">pandas.Dataframe</span></code> and must contain
-&#8216;date_time&#8217;, &#8216;CO2_scaled&#8217;, and &#8216;temp&#8217; columns.</p>
-<p>Calculating the Laplace Transform object and plotting the L-curve:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#load modules</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-
-<span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span><span class="mi">350</span><span class="p">)</span> <span class="c1">#Ea range to calculate over</span>
-<span class="n">logk0</span> <span class="o">=</span> <span class="mi">10</span> <span class="c1">#pre-exponential (Arrhenius) factor</span>
-<span class="n">lt</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">LaplaceTransform</span><span class="p">(</span><span class="n">rd</span><span class="o">.</span><span class="n">t</span><span class="p">,</span><span class="n">rd</span><span class="o">.</span><span class="n">Tau</span><span class="p">,</span><span class="n">eps</span><span class="p">,</span><span class="n">logk0</span><span class="p">)</span>
-<span class="n">omega</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">plot_L_curve</span><span class="p">(</span><span class="n">rd</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Running a thermogram through the inverse model and deconvolving Ea distribution:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">phi</span><span class="p">,</span><span class="n">resid_err</span><span class="p">,</span><span class="n">rgh_err</span><span class="p">,</span><span class="n">omega</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">calc_fE_inv</span><span class="p">(</span><span class="n">tg</span><span class="p">,</span><span class="n">omega</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">)</span>
-<span class="n">ec</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">EnergyComplex</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span><span class="n">phi</span><span class="p">,</span><span class="n">nPeaks</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span><span class="n">combine_last</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-<span class="n">ax</span> <span class="o">=</span> <span class="n">ec</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
-</pre></div>
-</div>
-<p>Forward-modeling the resulting Ea distribution:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#store in ModeledData object</span>
-<span class="n">md</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">calc_TG_fwd</span><span class="p">(</span><span class="n">ec</span><span class="p">)</span>
-<span class="n">md</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
-</pre></div>
-</div>
-<p>Calculating the isotope composition of each peak:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#save string pointing to isotope data</span>
-<span class="n">iso_data</span> <span class="o">=</span> <span class="s1">&#39;/path_to_folder_containing_data/isotope_data.csv&#39;</span>
-
-<span class="c1">#create IsotopeResult object using data and ModeledResult object md</span>
-<span class="n">ir</span> <span class="o">=</span> <span class="n">rp</span><span class="o">.</span><span class="n">IsotopeResult</span><span class="p">(</span><span class="n">iso_data</span><span class="p">,</span><span class="n">md</span><span class="p">)</span>
-
-<span class="c1">#view results</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">ir</span><span class="o">.</span><span class="n">Fm_peak</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">ir</span><span class="o">.</span><span class="n">d13C_peak</span><span class="p">)</span>
-</pre></div>
-</div>
+<div class="section" id="package-features">
+<h2>Package features<a class="headerlink" href="#package-features" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal"><span class="pre">rampedpyrox</span></code> contains the following features:</p>
+<ul class="simple">
+<li>Stores and plots thermogram data</li>
+<li>Performs first-order DAEM inverse model<ul>
+<li>Smoothes f(Ea) using Tikhonov Regularization<ul>
+<li>Automated or user-defined regularization value</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Deconvolves f(Ea) distribution into Gaussian Peaks<ul>
+<li>Automated or user-defined peak number selection</li>
+</ul>
+</li>
+<li>Calculates isotope values for each f(Ea) Gaussian peak<ul>
+<li>Allows for isotope determination of combined peaks</li>
+<li>Determines peak radiocarbon (Fm) values</li>
+<li>Determines peak stable-carbon (<sup>13</sup>C) values</li>
+<li>Accounts for the kinetic isotope effect (KIE) during heating<ul>
+<li>Allows for unique KIE compensation for each peak</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Calculates and stores model performance metrics</li>
+<li>Determines peak shape and isotope value uncertainty using Monte Carlo resampling</li>
+</ul>
 </div>
 </div>
 <div class="section" id="table-of-contents">
 <h1>Table of contents<a class="headerlink" href="#table-of-contents" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="package_reference.html">Ramped PyrOx classes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="_generated/rampedpyrox.RealData.html">rampedpyrox.RealData</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_generated/rampedpyrox.ModeledData.html">rampedpyrox.ModeledData</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_generated/rampedpyrox.LaplaceTransform.html">rampedpyrox.LaplaceTransform</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_generated/rampedpyrox.EnergyComplex.html">rampedpyrox.EnergyComplex</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_generated/rampedpyrox.IsotopeResult.html">rampedpyrox.IsotopeResult</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="package_reference.html#ramped-pyrox-methods">Ramped PyrOx methods</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="_generated/rampedpyrox.calc_A.html">rampedpyrox.calc_A</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_generated/rampedpyrox.calc_L_curve.html">rampedpyrox.calc_L_curve</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_generated/rampedpyrox.blank_correct.html">rampedpyrox.blank_correct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="package_reference.html">Package Reference Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="package_reference.html#ramped-pyrox-classes">Ramped PyrOx classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="package_reference.html#ramped-pyrox-methods">Ramped PyrOx methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="package_reference.html#references">References</a></li>
 </ul>
 </li>
 </ul>
@@ -152,7 +130,8 @@ and calculating isotope values.</p>
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Welcome to the RampedPyrox documentation</a><ul>
-<li><a class="reference internal" href="#minimal-examples">Minimal examples</a></li>
+<li><a class="reference internal" href="#package-information">Package information</a></li>
+<li><a class="reference internal" href="#package-features">Package features</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#table-of-contents">Table of contents</a></li>
@@ -162,7 +141,7 @@ and calculating isotope values.</p>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="#">Documentation overview</a><ul>
-      <li>Next: <a href="package_reference.html" title="next chapter">Ramped PyrOx classes</a></li>
+      <li>Next: <a href="package_reference.html" title="next chapter">Package Reference Documentation</a></li>
   </ul></li>
 </ul>
 </div>

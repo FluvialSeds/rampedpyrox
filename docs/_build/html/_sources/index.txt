@@ -7,74 +7,61 @@ Welcome to the RampedPyrox documentation
 ========================================
 
 ``rampedpyrox`` is a Python package for analyzing the results from ramped-
-temperature instruments such as RampedPyrox, RockEval, pyrolysis gc (pyGC), 
-thermogravimitry (TGA), etc. Rampedpyrox deconvolves Gaussian activiation energy 
-peaks within a given sample using a Distributed Activation Energy Model (DAEM) and 
-calculates the corresponding stable-carbon and radiocarbon isotope values for each peak.
+temperature instruments such as Ramped PyrOx, RockEval, pyrolysis gc (pyGC), 
+thermogravimitry (TGA), etc. ``rampedpyrox`` uses a first-order Distributed 
+Activation Energy Model (DAEM) to inversely determine the activation energy
+(Ea) distribution corresponding to a sample's thermogram and to deconvolve
+the Ea distribution into a discrete number of Gaussian peaks. Additionally, 
+for isotope-enabled instruments such as Ramped PyrOx and pyGC-IRMS, 
+``rampedpyrox`` calculates the best-fit stable carbon and radiocarbon value
+for each Gaussian Ea peak.
 
+Package information
+-------------------
 :Authors:
-	Jordon D. Hemingway <jordonhemingway@gmail.com>
+	Jordon D. Hemingway (jhemingway@whoi.edu)
 
 :Version:
 	0.1.1 (Pre-release 27 August 2016)
 
 :License:
-	MIT License
+	GNU GPL v3 (or greater)
 
+:url:
+	http://github.com/FluvialSeds/rampedpyrox
 
-Minimal examples
+Package features
 ----------------
-The following examples should guide you through setting up a thermogram,
-calculating activation energy (Ea) distributions, deconvolving into Gaussians,
-and calculating isotope values.
+``rampedpyrox`` contains the following features:
 
-Importing data into a thermogram object and plotting::
+* Stores and plots thermogram data
 
-	#load modules
-	import rampedpyrox as rp
-	import matplotlib.pyplot as plt
+* Performs first-order DAEM inverse model
 
-	data = '/path_to_folder_containing_data/data.csv'
-	nT = 250 #number of timepoints
-	rd = rp.RealData(data,nT=nT)
-	ax = rd.plot(xaxis='time')
+  * Smoothes f(Ea) using Tikhonov Regularization
 
-Note that ``data`` can also be inputted as a ``pandas.Dataframe`` and must contain
-'date_time', 'CO2_scaled', and 'temp' columns.
+    * Automated or user-defined regularization value
 
-Calculating the Laplace Transform object and plotting the L-curve::
+* Deconvolves f(Ea) distribution into Gaussian Peaks
 
-	#load modules
-	import numpy as np
+  * Automated or user-defined peak number selection
 
-	eps = np.arange(50,350) #Ea range to calculate over
-	logk0 = 10 #pre-exponential (Arrhenius) factor
-	lt = rp.LaplaceTransform(rd.t,rd.Tau,eps,logk0)
-	omega,ax = lt.plot_L_curve(rd)
+* Calculates isotope values for each f(Ea) Gaussian peak
 
-Running a thermogram through the inverse model and deconvolving Ea distribution::
+  * Allows for isotope determination of combined peaks
 
-	phi,resid_err,rgh_err,omega = lt.calc_fE_inv(tg,omega='auto')
-	ec = rp.EnergyComplex(eps,phi,nPeaks='auto',combine_last=None)
-	ax = ec.plot()
+  * Determines peak radiocarbon (Fm) values
 
-Forward-modeling the resulting Ea distribution::
-	
-	#store in ModeledData object
-	md = lt.calc_TG_fwd(ec)
-	md.plot()
+  * Determines peak stable-carbon (:sup:`13`\ C) values
 
-Calculating the isotope composition of each peak::
+  * Accounts for the kinetic isotope effect (KIE) during heating
 
-	#save string pointing to isotope data
-	iso_data = '/path_to_folder_containing_data/isotope_data.csv'
+    * Allows for unique KIE compensation for each peak
 
-	#create IsotopeResult object using data and ModeledResult object md
-	ir = rp.IsotopeResult(iso_data,md)
+* Calculates and stores model performance metrics
 
-	#view results
-	print(ir.Fm_peak)
-	print(ir.d13C_peak)
+* Determines peak shape and isotope value uncertainty using Monte Carlo resampling
+
 
 Table of contents
 =================
