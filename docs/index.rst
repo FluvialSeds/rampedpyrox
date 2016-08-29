@@ -16,6 +16,19 @@ for isotope-enabled instruments such as Ramped PyrOx and pyGC-IRMS,
 ``rampedpyrox`` calculates the best-fit stable carbon and radiocarbon value
 for each Gaussian Ea peak.
 
+When analyzing data with ``rampedpyrox`` to be used in a peer-reviewed
+journal, please cite this package as:
+
+J.D. Hemingway. *rampedpyrox*: open-source tools for thermoanalytical data
+analysis, 2016-, http://github.com/FluvialSeds/rampedpyrox [online; accessed
+|date|]
+
+Additionally, please cite the following peer-reviewed manuscript describing
+the deveoping of the ``rampedpyrox`` package:
+
+J.D. Hemingway et al. **(in prep)** Ramped-temperature decomposition kinetics
+of organic matter using an inverse reactive continuum model.
+
 Package information
 -------------------
 :Authors:
@@ -69,6 +82,8 @@ Table of contents
 .. toctree::
    :maxdepth: 2
 
+   walkthrough
+   model_dev
    package_reference
 
 
@@ -78,4 +93,9 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+
+
+
+.. |date| date::
 

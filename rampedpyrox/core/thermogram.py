@@ -391,12 +391,20 @@ class ModeledData(Thermogram):
 
 		#calculate tg contribution for each peak
 		_,nPeak = np.shape(gp)
-		dt_mat = np.gradient(np.outer(t,np.ones(nPeak)),axis=0)
+		
+		#dt_mat = np.gradient(np.outer(t,np.ones(nPeak)),axis=0)
+		#not python2 compatible. Use this instead:
+		dt_mat = np.gradient(np.outer(t,np.ones(nPeak)))[0]
+
 		dTau_mat = np.outer(self.Taudot_t,np.ones(nPeak))
 		
 		#define public attributes
 		self.gp = gp
-		self.gpdot_t = np.gradient(gp,axis=0)/dt_mat #second-1
+		
+		#self.gpdot_t = np.gradient(gp,axis=0)/dt_mat #second-1
+		#not python2 compatible. Use the following:
+		self.gpdot_t = np.gradient(gp)[0]/dt_mat #second-1
+		
 		self.gpdot_Tau = self.gpdot_t/dTau_mat #Kelvin-1
 
 		#store peak data in dataframe

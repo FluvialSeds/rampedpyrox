@@ -699,14 +699,14 @@ class LaplaceTransform(object):
 		return ModeledData(self.t, self.Tau, g_hat, gp)
 
 
-	def plot_L_curve(self, tg, ax=None, log_om_min=-3, log_om_max=2, nOm=100):
+	def plot_L_curve(self, rd, ax=None, log_om_min=-3, log_om_max=2, nOm=100):
 		'''
 		Calculates the L curve w.r.t. a given ``rp.RealData`` instance and 
 		plots the result.
 
 		Parameters
 		----------
-		tg : rp.RealData
+		rd : rp.RealData
 			``rp.RealData`` instance containing the thermogram to use for the
 			inverse model.
 
@@ -735,7 +735,7 @@ class LaplaceTransform(object):
 		'''
 
 		#calculate L curve
-		om_best,resid_vec,rgh_vec,omega_vec = calc_L_curve(self.A, tg.g, 
+		om_best,resid_vec,rgh_vec,omega_vec = calc_L_curve(self.A, rd.g, 
 			log_om_min=log_om_min, 
 			log_om_max=log_om_max, 
 			nOm=nOm)

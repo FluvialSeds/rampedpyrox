@@ -88,7 +88,11 @@ def _calc_cont_ptf(lt, ec, t0_frac, tf_frac):
 
 	#take the gradient to calculate the thermograms (per timestep!)
 	tot = -np.gradient(g) #fraction/timestep
-	peaks = -np.gradient(g_peak, axis=0) #fraction/timestep (each peak)
+	
+	#peaks = -np.gradient(g_peak, axis=0) #fraction/timestep (each peak)
+	#not python2 compatible. Use the following instead:
+	peaks = -np.gradient(g_peak)[0] #fraction/timestep (each peak)
+
 
 	#pre-allocate cont_ptf matrix and index arrays
 	cont_ptf = np.zeros([nFrac,nPeak])
