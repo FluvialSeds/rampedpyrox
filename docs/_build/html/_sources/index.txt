@@ -24,7 +24,7 @@ analysis, 2016-, http://github.com/FluvialSeds/rampedpyrox [online; accessed
 |date|]
 
 Additionally, please cite the following peer-reviewed manuscript describing
-the deveoping of the ``rampedpyrox`` package:
+the deveoping of the package:
 
 J.D. Hemingway et al. **(in prep)** Ramped-temperature decomposition kinetics
 of organic matter using an inverse reactive continuum model.

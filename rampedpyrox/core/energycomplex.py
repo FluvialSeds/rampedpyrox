@@ -654,7 +654,7 @@ class EnergyComplex(object):
 		line = '==========================================================='
 		pi = 'Peak information for each deconvolved peak:'
 		note = 'NOTE: Combined peaks are reported separately in this table!'
-		RMSE = 'Deconvolution RMSE = %.2f x 10^6' %(self.phi_rmse*1e6)
+		RMSE = 'Deconvolution RMSE = %.2f x 10^-6' %(self.phi_rmse*1e6)
 
 		print(title + '\n\n' + line + '\n' + pi + '\n\n' + note + '\n')
 		print(df)
