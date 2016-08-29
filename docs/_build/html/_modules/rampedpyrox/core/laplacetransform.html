@@ -185,7 +185,7 @@
 <span class="c1">## PUBLIC FUNCTIONS ##</span>
 
 <span class="c1">#define function to calculate A matrix for ``LaplaceTransform``</span>
-<div class="viewcode-block" id="calc_A"><a class="viewcode-back" href="../../../laplacetransform.html#rampedpyrox.calc_A">[docs]</a><span class="k">def</span> <span class="nf">calc_A</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">logk0</span><span class="p">):</span>
+<div class="viewcode-block" id="calc_A"><a class="viewcode-back" href="../../../_generated/rampedpyrox.calc_A.html#rampedpyrox.calc_A">[docs]</a><span class="k">def</span> <span class="nf">calc_A</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Tau</span><span class="p">,</span> <span class="n">eps</span><span class="p">,</span> <span class="n">logk0</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Calculates the Laplace transform matrix A assuming a first-order DAEM.</span>
 <span class="sd">	Called by ``rp.LaplaceTransform.__init__()``.</span>
@@ -311,7 +311,7 @@
 	<span class="k">return</span> <span class="n">A</span></div>
 
 <span class="c1">#define function to calculate L curve</span>
-<div class="viewcode-block" id="calc_L_curve"><a class="viewcode-back" href="../../../laplacetransform.html#rampedpyrox.calc_L_curve">[docs]</a><span class="k">def</span> <span class="nf">calc_L_curve</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">log_om_min</span><span class="o">=-</span><span class="mi">3</span><span class="p">,</span> <span class="n">log_om_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">nOm</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+<div class="viewcode-block" id="calc_L_curve"><a class="viewcode-back" href="../../../_generated/rampedpyrox.calc_L_curve.html#rampedpyrox.calc_L_curve">[docs]</a><span class="k">def</span> <span class="nf">calc_L_curve</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">log_om_min</span><span class="o">=-</span><span class="mi">3</span><span class="p">,</span> <span class="n">log_om_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">nOm</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Calculates the L curve for a given matrix `A` and fraction of carbon</span>
 <span class="sd">	remaining `g`.</span>
@@ -450,7 +450,7 @@
 
 	<span class="k">return</span> <span class="n">om_best</span><span class="p">,</span> <span class="n">resid_vec</span><span class="p">,</span> <span class="n">rgh_vec</span><span class="p">,</span> <span class="n">omega_vec</span> </div>
 
-<div class="viewcode-block" id="calc_Wabha"><a class="viewcode-back" href="../../../laplacetransform.html#rampedpyrox.calc_Wabha">[docs]</a><span class="k">def</span> <span class="nf">calc_Wabha</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">omega</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">calc_Wabha</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">omega</span><span class="p">):</span>
 	<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Currently unused. Testing alternate methods of choosing best-fit omega.</span>
 
@@ -488,10 +488,10 @@
 	<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">x</span><span class="p">),</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 	<span class="n">tau</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">nT</span><span class="p">)</span> <span class="o">-</span> <span class="n">X</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
 
-	<span class="k">return</span> <span class="n">RSS</span><span class="o">/</span><span class="n">tau</span></div>
+	<span class="k">return</span> <span class="n">RSS</span><span class="o">/</span><span class="n">tau</span>
 	
 
-<div class="viewcode-block" id="LaplaceTransform"><a class="viewcode-back" href="../../../laplacetransform.html#rampedpyrox.LaplaceTransform">[docs]</a><span class="k">class</span> <span class="nc">LaplaceTransform</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="LaplaceTransform"><a class="viewcode-back" href="../../../_generated/rampedpyrox.LaplaceTransform.html#rampedpyrox.LaplaceTransform">[docs]</a><span class="k">class</span> <span class="nc">LaplaceTransform</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 	<span class="n">__doc__</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
 <span class="s1">	Class for storing the A matrix and calculating forward/inverse results.</span>
 
@@ -652,7 +652,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">Tau</span> <span class="o">=</span> <span class="n">Tau</span> <span class="c1">#Kelvin</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span> <span class="c1">#kJ</span>
 
-<div class="viewcode-block" id="LaplaceTransform.calc_EC_inv"><a class="viewcode-back" href="../../../laplacetransform.html#rampedpyrox.LaplaceTransform.calc_EC_inv">[docs]</a>	<span class="k">def</span> <span class="nf">calc_EC_inv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tg</span><span class="p">,</span> <span class="n">omega</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="LaplaceTransform.calc_EC_inv"><a class="viewcode-back" href="../../../_generated/rampedpyrox.LaplaceTransform.calc_EC_inv.html#rampedpyrox.LaplaceTransform.calc_EC_inv">[docs]</a>	<span class="k">def</span> <span class="nf">calc_EC_inv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tg</span><span class="p">,</span> <span class="n">omega</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Calculates the Energy Complex for a given thermogram (inverse model).</span>
 
@@ -715,7 +715,7 @@
 
 		<span class="k">return</span> <span class="n">phi</span><span class="p">,</span> <span class="n">resid_err</span><span class="p">,</span> <span class="n">rgh_err</span><span class="p">,</span> <span class="n">om_best</span></div>
 
-<div class="viewcode-block" id="LaplaceTransform.calc_TG_fwd"><a class="viewcode-back" href="../../../laplacetransform.html#rampedpyrox.LaplaceTransform.calc_TG_fwd">[docs]</a>	<span class="k">def</span> <span class="nf">calc_TG_fwd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ec</span><span class="p">):</span>
+<div class="viewcode-block" id="LaplaceTransform.calc_TG_fwd"><a class="viewcode-back" href="../../../_generated/rampedpyrox.LaplaceTransform.calc_TG_fwd.html#rampedpyrox.LaplaceTransform.calc_TG_fwd">[docs]</a>	<span class="k">def</span> <span class="nf">calc_TG_fwd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ec</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Calculates the Thermogram for a given EnergyComplex (forward model).</span>
 
@@ -742,14 +742,14 @@
 		<span class="k">return</span> <span class="n">ModeledData</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tau</span><span class="p">,</span> <span class="n">g_hat</span><span class="p">,</span> <span class="n">gp</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="LaplaceTransform.plot_L_curve"><a class="viewcode-back" href="../../../laplacetransform.html#rampedpyrox.LaplaceTransform.plot_L_curve">[docs]</a>	<span class="k">def</span> <span class="nf">plot_L_curve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tg</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_om_min</span><span class="o">=-</span><span class="mi">3</span><span class="p">,</span> <span class="n">log_om_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">nOm</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+<div class="viewcode-block" id="LaplaceTransform.plot_L_curve"><a class="viewcode-back" href="../../../_generated/rampedpyrox.LaplaceTransform.plot_L_curve.html#rampedpyrox.LaplaceTransform.plot_L_curve">[docs]</a>	<span class="k">def</span> <span class="nf">plot_L_curve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rd</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_om_min</span><span class="o">=-</span><span class="mi">3</span><span class="p">,</span> <span class="n">log_om_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">nOm</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
 		<span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Calculates the L curve w.r.t. a given ``rp.RealData`` instance and </span>
 <span class="sd">		plots the result.</span>
 
 <span class="sd">		Parameters</span>
 <span class="sd">		----------</span>
-<span class="sd">		tg : rp.RealData</span>
+<span class="sd">		rd : rp.RealData</span>
 <span class="sd">			``rp.RealData`` instance containing the thermogram to use for the</span>
 <span class="sd">			inverse model.</span>
 
@@ -778,7 +778,7 @@
 <span class="sd">		&#39;&#39;&#39;</span>
 
 		<span class="c1">#calculate L curve</span>
-		<span class="n">om_best</span><span class="p">,</span><span class="n">resid_vec</span><span class="p">,</span><span class="n">rgh_vec</span><span class="p">,</span><span class="n">omega_vec</span> <span class="o">=</span> <span class="n">calc_L_curve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">tg</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> 
+		<span class="n">om_best</span><span class="p">,</span><span class="n">resid_vec</span><span class="p">,</span><span class="n">rgh_vec</span><span class="p">,</span><span class="n">omega_vec</span> <span class="o">=</span> <span class="n">calc_L_curve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">rd</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> 
 			<span class="n">log_om_min</span><span class="o">=</span><span class="n">log_om_min</span><span class="p">,</span> 
 			<span class="n">log_om_max</span><span class="o">=</span><span class="n">log_om_max</span><span class="p">,</span> 
 			<span class="n">nOm</span><span class="o">=</span><span class="n">nOm</span><span class="p">)</span>

@@ -434,12 +434,20 @@
 
 		<span class="c1">#calculate tg contribution for each peak</span>
 		<span class="n">_</span><span class="p">,</span><span class="n">nPeak</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">gp</span><span class="p">)</span>
-		<span class="n">dt_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nPeak</span><span class="p">)),</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+		
+		<span class="c1">#dt_mat = np.gradient(np.outer(t,np.ones(nPeak)),axis=0)</span>
+		<span class="c1">#not python2 compatible. Use this instead:</span>
+		<span class="n">dt_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nPeak</span><span class="p">)))[</span><span class="mi">0</span><span class="p">]</span>
+
 		<span class="n">dTau_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Taudot_t</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nPeak</span><span class="p">))</span>
 		
 		<span class="c1">#define public attributes</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">gp</span> <span class="o">=</span> <span class="n">gp</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">gpdot_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">gp</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">/</span><span class="n">dt_mat</span> <span class="c1">#second-1</span>
+		
+		<span class="c1">#self.gpdot_t = np.gradient(gp,axis=0)/dt_mat #second-1</span>
+		<span class="c1">#not python2 compatible. Use the following:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">gpdot_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">gp</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">dt_mat</span> <span class="c1">#second-1</span>
+		
 		<span class="bp">self</span><span class="o">.</span><span class="n">gpdot_Tau</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpdot_t</span><span class="o">/</span><span class="n">dTau_mat</span> <span class="c1">#Kelvin-1</span>
 
 		<span class="c1">#store peak data in dataframe</span>
