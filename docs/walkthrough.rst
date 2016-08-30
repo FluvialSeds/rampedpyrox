@@ -125,7 +125,10 @@ and generate an ``rp.RealData`` instance containing the thermogram data.
 It is important to keep in mind that your thermogram will be down-sampled to
 `nT` points in order to smooth out high-frequency noise and to keep Laplace
 transform matrices to a manageable size for inversion (see `Generating the
-f(Ea) distribution`_ below)::
+f(Ea) distribution`_ below). Additionally, normally distributed noise can be 
+generated for estimating uncertainty (see 
+`Monte Carlo uncertainty estimation`). Here, I'll leave the ``add_noise_pct`` 
+flag at the default value of `0` (*i.e.* no noise)::
 
 	#load modules
 	import rampedpyrox as rp
@@ -134,7 +137,7 @@ f(Ea) distribution`_ below)::
 	nT = 250
 
 	#save to RealData instance
-	rd = rp.RealData(all_data, nT=nT)
+	rd = rp.RealData(all_data, nT=nT, add_noise_pct=0)
 
 Plot the thermogram against temperature [3]_ or time::
 
@@ -153,8 +156,6 @@ Plot the thermogram against temperature [3]_ or time::
 Resulting plot looks like this:
 
 |realdata|
-
-.. Generating the f(Ea) distribution:
 
 Generating the f(Ea) distribution
 ---------------------------------
@@ -220,7 +221,6 @@ instance (see `Generating and plotting f(Ea)`_ below), as this region
 typically contains low isotope resolution. Alternatively, you can increase 
 `omega` (a value of ~1-5 will result in ~5-6 Gaussian peaks for most samples).
 
-.. Generating and plotting f(Ea):
 
 Generating and plotting f(Ea)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -286,8 +286,8 @@ Resulting plots are shown side-by-side:
 |phis|
 
 Note that the number of 'Individual Fitted Gaussians' reported in the legend 
-is before the ``combine_last`` flag has been implemented. The last 2 peaks in 
-each of these plots are combined in the plot.
+is before the ``combine_last`` flag has been implemented. The last 2 peaks 
+are combined in the plot.
 
 A summary of the Gaussian peaks can be printed with the ``summary`` method::
 
@@ -323,13 +323,13 @@ Forward modeling estimated thermogram
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Once the ``rp.EnergyComplex`` instance has been created, you can use the 
 ``calc_TG_fwd`` method to forward model the estimated thermogram and store in 
-a ``rp.ModeledData`` instance. Here, I'll forward model the results from the 
+an ``rp.ModeledData`` instance. Here, I'll forward model the results from the 
 ``omega = 3`` energy complex::
 
 	md = lt.calc_TG_fwd(ec_3)
 
 Similar to ``rp.RealData``, you can plot this thermogram against temperature 
-or time, and even overlay the true thermogram::
+[3]_ or time, and can even overlay the true thermogram::
 
 	#make a figure
 	fig,ax = plt.subplots(1,2)
@@ -377,11 +377,83 @@ Which will print a table similar to:
 
 Determining peak isotope composition
 ------------------------------------
+At this point, the thermogram has been deconvolved into energy complexes 
+according to the DAEM and the isotope composition of each energy complex can 
+be determined using the `sum_data` file imported previously (see `Importing 
+Isotope Data` above). Isotope results are stored in an ``rp.IsotopeResult`` 
+class instance.
+
+If the sample was run on the NOSAMS Ramped PyrOx instrument, setting
+``blank_corr = True`` and an appropriate value for ``mass_rsd`` will 
+automatically blank-correct values according to the blank carbon estimation 
+of Hemingway et al. **(in prep)** [9]_. Additionally, setting 
+``add_noise = True`` will generate normally distributed uncertainty in 
+isotope values using the inputted isotope uncertainty (see `Monte Carlo 
+uncertainty estimation` below for further details).
+
+Estimate isotope values using `sum_data`::
+
+	ir = rp.IsotopeResult(sum_data,lt, ec, 
+ 		blk_corr=True,
+ 		mass_rsd=0.01,
+ 		add_noise=False)
+
+You can print the estimates like this::
+
+	ir.summary()
+
+Which prints a table similar to:
+
++------------------------------------------------------------+
+|Isotope and mass estimates for each deconvolved peak:       |
++============================================================+
+|NOTE: Combined peak results are repeated in summary table!  |
++-----+--------------------+-------------------+-------------+
+|     |      mass (ugC)    |        d13C       |      Fm     |
++-----+--------------------+-------------------+-------------+
+|  1  |      84.555698     |     -30.843315    |   0.929585  |
++-----+--------------------+-------------------+-------------+
+|  2  |      146.389053    |     -28.449830    |   0.776570  |
++-----+--------------------+-------------------+-------------+
+|  3  |      156.773838    |     -25.998722    |   0.460255  |
++-----+--------------------+-------------------+-------------+
+|  4  |      127.339722    |     -26.188432    |   0.176751  |
++-----+--------------------+-------------------+-------------+
+|  5  |      266.096470    |     -23.059327    |   0.000000  |
++-----+--------------------+-------------------+-------------+
+|  6  |      32.907006     |     -24.495371    |   0.058753  |
++-----+--------------------+-------------------+-------------+
+|  7  |      33.612607     |     -24.495371    |   0.058753  |
++-----+--------------------+-------------------+-------------+
+
+You can also print the regression RMSEs::
+	
+	print(ir.RMSEs)
+
+Which results in something similar to:
+
++------+------------+
+|      |    RMSE    |
++======+============+
+| mass |  3.536239  |
++------+------------+
+| d13C |  0.149527  |
++------+------------+
+| Fm   |  0.015916  |
++------+------------+
 
 
-.. Kinetic Isotope Effect (KIE):
 Kinetic Isotope Effect (KIE)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+While the KIE has no effect on Fm values, as they are fractionation-corrected 
+by definition [10]_, the above caclulation explicitly incorporates 
+mass-dependent kinetic fractionation effects when calculating stable-carbon 
+isotope ratios by using the `DEa` value inputted into the ``rp.EnergyComplex``
+instance. While the KIE is potentially important during the pyrolysis of 
+organic matter to form hydrocarbons over geologic timescales [8]_, the 
+magnitude of this effect is likely minimal within the NOSAMS Ramped PyrOx 
+instrument [9]_ and will therefore lead to small corrections in isotope 
+values (*i.e.* less than 1 per mille).
 
 Monte Carlo uncertainty estimation
 ----------------------------------
@@ -431,10 +503,14 @@ Saving the output
 
 .. [8] See Cramer, (2004), *Org. Geochem.*, **35**, 379-392 for a discussion 
 	on the relationship between Gaussian Ea peak shape and organic carbon 
-	complexity.
+	complexity, as well as the KIE.
 
 .. [9] Hemingway et al., (2016), *Radiocarbon*, **in prep** determine that a 
 	DEa value of 1.8J/mol best explains the NOSAMS Ramped PyrOx stable-carbon 
-	isotope KIE.
+	isotope KIE, in addition to determining the blank carbon contribution for 
+	this instrument.
+
+.. [10] Stuiver and Polach (1977), *Radiocarbon*, **19(3)**, 355-363 is 
+	generally accepted as the standard reference on radiocarbon notation.
 
 
