@@ -1,6 +1,9 @@
 '''
 ``isotoperesult`` module for calculating the isotope composition of individual
 Ea peaks within a sample. Stores data in a ``IsotopeResult`` instance.
+
+* TODO: Update plotting function
+* TODO: Update summary functionality
 '''
 
 from __future__ import print_function

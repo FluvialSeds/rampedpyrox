@@ -3,6 +3,9 @@
 individual Gaussian peaks.
 
 * TODO: Update how _peak_indices sorts to select first nPeaks.
+* TODO: Update plotting function
+* TODO: Update peak combination functionality
+* TODO: Update summary functionality
 '''
 
 from __future__ import print_function

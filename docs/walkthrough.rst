@@ -428,7 +428,9 @@ Which prints a table similar to:
 
 You can also print the regression RMSEs::
 	
+	#in python3
 	print(ir.RMSEs)
+
 
 Which results in something similar to:
 

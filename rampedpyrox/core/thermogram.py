@@ -2,6 +2,9 @@
 ``thermogram`` module for storing and plotting thermogram data, either as a
 ``RealData`` instance (i.e. collected from an actual instrument) or a 
 ``ModeledData`` instance (i.e. results from inverse model).
+
+* TODO: Update plotting function
+* TODO: Update summary functionality
 '''
 
 from __future__ import print_function
