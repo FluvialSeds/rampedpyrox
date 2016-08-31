@@ -1,8 +1,10 @@
 '''
 This module contains the TimeData superclass and all corresponding subclasses.
+
+* TODO: Add summary method
 '''
 
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 import warnings
 
@@ -88,6 +90,8 @@ class TimeData(object):
 		gam = np.sum(cmpt, axis=1)
 		pt = [_derivatize(col, self.t) for col in cmpt.T]
 		pT = [_derivatize(col, self.T) for col in cmpt.T]
+		rcs = norm((self.g - gam)/self.g_std)/self.dof
+		rmse = norm(self.g - gam)/nt**0.5
 
 		#calculate derived attributes and store
 		self.dgamdt = _derivatize(gam, self.t)
@@ -95,11 +99,87 @@ class TimeData(object):
 		self.dcmptdt = np.column_stack(pt)
 		self.dcmptdT = np.column_stack(pT)
 		self.gam = gam
-		self.red_chi_sq = norm((self.g - gam)/self.g_std)/self.dof
-		self.RMSE = norm(self.g - gam)/nt**0.5
+		self.red_chi_sq = rcs
+		self.RMSE = rmse
 	
-	def plot(self):
-		raise NotImplementedError
+	#define plotting method
+	def plot(self, ax=None, xaxis='time', yaxis='rate'):
+		'''
+		Method for plotting ``TimeData`` instance data.
+		'''
+		
+		#check that axis are appropriate strings
+		if xaxis not in ['time','temp']:
+			raise ValueError('xaxis does not accept %r.' \
+				'Must be either "time" or "temp"' %xaxis)
+
+		elif yaxis not in ['fraction','rate']:
+			raise ValueError('yaxis does not accept %r.' \
+				'Must be either "rate" or "fraction"' %yaxis)
+
+		#create axis if necessary
+		if ax is None:
+			_, ax = plt.subplots(1,1)
+
+		#create a nested dict to keep track of cases for real data
+		rd = {'time': {'fraction' : (self.t, self.g),
+						'rate' : (self.t, -self.dgdt)},
+			'temp': {'fraction' : (self.T, self.g),
+						'rate' : (self.T, -self.dgdT)}}
+
+		#create a nested dict to keep track of axis labels
+		labs = {'time': {'fraction' : ('time (s)', 'g (unitless)'),
+						'rate' : ('time (s)', r'fraction/time $(s^{-1})$')},
+			'temp' : {'fraction' : ('temp (K)', 'g (unitless)'),
+						'rate' : ('temp (K)', r'fraction/temp $(K^{-1})$')}}
+
+		#plot real data
+		ax.plot(rd[xaxis][yaxis][0], rd[xaxis][yaxis][1],
+			linewidth=2,
+			color='k',
+			label='Real Data')
+
+		#label axes
+		ax.set_xlabel(labs[xaxis][yaxis][0])
+		ax.set_ylabel(labs[xaxis][yaxis][1])
+
+		#add model-estimated data if it exists
+		if hasattr(self, 'cmpt'):
+
+			#create a nested dict to keep track of cases of modeled data
+			md = {'time': {'fraction' : (self.gam, self.cmpt),
+							'rate' : (-self.dgamdt, -self.dcmptdt)},
+				'temp': {'fraction' : (self.gam, self.cmpt),
+							'rate' : (-self.dgamdT, -self.dcmptdT)}}
+
+			#plot the model-estimated total
+			ax.plot(rd[xaxis][yaxis][0], md[xaxis][yaxis][0],
+				linewidth=1.5,
+				color='r',
+				label='Modeled Data')
+
+			#plot individual components as shaded regions
+			for cpt in md[xaxis][yaxis][1].T:
+
+				ax.fill_between(rd[xaxis][yaxis][0], 0, cpt,
+					color='k',
+					alpha=0.2,
+					label='Components (n=%.0f)' %self.nPeak)
+
+		#remove duplicate legend entries
+		han, lab = ax.get_legend_handles_labels()
+		h_list, l_list = [], []
+		
+		for h, l in zip(han, lab):
+			if l not in l_list:
+				h_list.append(h)
+				l_list.append(l)
+		
+		ax.legend(h_list,l_list, 
+			loc='best',
+			frameon=False)
+
+		return ax
 
 	def summary(self):
 		raise NotImplementedError
@@ -133,15 +213,87 @@ class RpoThermogram(TimeData):
 
 	Raises
 	------
+	TypeError
+		If `t` and `T` are not array-like.
+
+	TypeError
+		If `g`, `g_std`, or `T_std` are not scalar or array-like.
+
+	ValueError
+		If any of `T`, `g`, `g_std`, or `T_std` are not length nt.
 
 	Notes
 	-----
 
 	See Also
 	--------
+	Daem
+		``Model`` subclass used to generate the Laplace transform for RPO
+		data and translate between time- and Ea-space.
+
+	EnergyComplex
+		``RateData`` subclass for storing, deconvolving, and analyzing RPO
+		rate data.
 
 	Examples
 	--------
+	Generating a bare-bones thermogram containing only `t` and `T`::
+
+		#import modules
+		import numpy as np
+		import rampedpyrox as rp
+
+		#generate arbitrary data
+		t = np.arange(1,100) #100 second experiment
+		beta = 0.5 #K/second
+		T = beta*t + 273.15 #K
+
+		#create instance
+		tg = rp.RpoThermogram(t,T)
+
+	This bare-bones thermogram can be used later to project a ``Daem``
+	instance onto any arbitrary time-temperature history.
+
+	Generating a real thermogram using an RPO output .csv file and the
+	``RpoThermogram.from_csv`` class method::
+
+		#import modules
+		import rampedpyrox as rp
+
+		#create path to data file
+		file = 'path_to_folder_containing_data/data.csv'
+
+		#create instance
+		tg = rp.RpoThermogram.from_csv(file,
+			nt = 250,
+			ppm_CO2_err = 5,
+			T_err = 3)
+
+	Manually adding some model-estimated component data as `cmpt`::
+
+		#assuming cmpt has been generating using a Daem model
+		tg.input_estimated(cmpt, 'Daem')
+
+	Plotting the resulting true and estimated thermograms::
+
+		#import additional modules
+		import matplotlib.pyplot as plt
+
+		#create figure
+		fig, ax = plt.subplots(1,2)
+
+		#plot resultint rates against time and temp
+		ax[0] = tg.plot(ax = ax[0], 
+			xaxis = 'time', 
+			yaxis = 'rate')
+		
+		ax[1] = tg.plot(ax = ax[1], 
+			xaxis = 'temp', 
+			yaxis = 'rate')
+
+	Generating a summary of the analysis::
+
+		tg.summary()
 
 	Attributes
 	----------
@@ -288,10 +440,6 @@ class RpoThermogram(TimeData):
 
 		See Also
 		--------
-
-		Examples
-		--------
-
 		'''
 
 		#extract data from file
@@ -308,12 +456,16 @@ class RpoThermogram(TimeData):
 		Parameters
 		----------
 		cmpt : array-like
+			Array of the estimated fraction of carbon remaining in each 
+			component at each timepoint. Shape [nt x nPeak].
 
 		model_type : str
+			The type of inverse model used to generate estimate data. Warns
+			if an isothermal model.
 
 		Warnings
 		--------
-		Raises warning if using an isothermal model type for an RPO run.
+		Warns if using an an isothermal model type for an RPO run.
 
 		Raises
 		------
@@ -331,14 +483,63 @@ class RpoThermogram(TimeData):
 
 		See Also
 		--------
-
-		Examples
-		--------
 		'''
 
 		#warn if using isothermal model
-		if model_type not in ('Daem'):
+		if model_type not in ['Daem']:
 			warnings.warn('Attempting to use isothermal model for RPO run!')
 
 		super(RpoThermogram, self).input_estimated(cmpt, model_type)
+
+	#define plotting method
+	def plot(self, ax=None, xaxis='time', yaxis='rate'):
+		'''
+		Plots the true and model-estimated thermograms (including individual 
+		peaks) against time or temp.
+
+		Keyword Arguments
+		-----------------
+		ax : None or matplotlib.axis
+			Axis to plot on. If `None`, automatically creates a
+			``matplotlip.axis`` instance to return. Defaults to None.
+
+		xaxis : str
+			Sets the x axis unit, either 'time' or 'temp'. Defaults to 'time'.
+
+		yaxis : str
+			Sets the y axis unit, either 'fraction' or 'rate'. Defaults to 
+			'rate'.
+
+		Returns
+		-------
+		ax : matplotlib.axis
+			Updated axis instance with plotted data.
+
+		Raises
+		------
+		ValueError
+			If `xaxis` is not 'time' or 'temp'.
+
+		ValueError
+			if `yaxis` is not 'fraction' or 'rate'.
+		'''
+
+		ax = super(RpoThermogram, self).plot(ax=ax, xaxis=xaxis, yaxis=yaxis)
+
+		return ax
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

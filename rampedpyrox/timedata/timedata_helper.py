@@ -54,7 +54,7 @@ def _assert_lent(array, nt):
 		return np.array(array)
 	
 	else:
-		raise TypeError('array bust be scalar, array-like, or None')
+		raise TypeError('array must be scalar or array-like')
 
 #function to numerically derivatize an array wrt another array
 def _derivatize(num, denom):
