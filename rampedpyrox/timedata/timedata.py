@@ -1,49 +1,61 @@
 '''
-This module contains the TimeData superclass and all corresponding subclasses
-(e.g. RpoThermogram).
+This module contains the TimeData superclass and all corresponding subclasses.
 '''
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
+#import matplotlib.pyplot as plt
+#import numpy as np
+#import pandas as pd
 
 from timedata_helper import(
-	_rpo_extract_tg,
+	_assert_lent,
+	_derivatize,
+	# _rpo_extract_tg,
 	)
 
 
 class TimeData(object):
 	'''
-	Class to store time data. Intended for subclassing, do not call directly.
+	Class to store time-dependent data. Intended for subclassing, do not call
+	directly.
 	'''
 
-	def __init__(self, dgdt, dgdt_std, g, g_std, add_noise, nt, t, T):
+	def __init__(self, t, T, **kwargs):
 
-		#set public attributes
-		self.add_noise = add_noise
-		self.dgdt = dgdt #fraction/second
-		self.dgdt_std = dgdt_std #fraction/second
-		self.g = g #fraction
-		self.g_std = g_std #fraction
+		#store args
+		nt = len(t)
 		self.nt = nt
-		self.t = t #seconds
-		self.T = T #Kelvin
+		self.t = t #s
+		self.T = _assert_lent(T, nt) #K
 
-	def __setattr__(self, name, value):
-		'''
-		Use lazy attributes to add modeled data later.
-		'''
+		#unpack keyword only args
+		g = kwargs.pop('g', None) #frac
+		g_std = kwargs.pop('g_std', None) #frac
+		T_std = kwargs.pop('T_std', None) #K
+		if kwargs:
+			raise TypeError('Unexpected **kwargs: %r' %kwargs)
 
-		if name in ('gam','dgamdt', 'dgamdT', 'peaks') \
-			and len(value) != self.nt:
-			raise ValueError('%s must have length nt' % name)
+		#store keyword only args
+		self.g = _assert_lent(g, nt) #fraction
+		self.g_std = _assert_lent(g_std, nt) #fraction
+		self.T_std = _assert_lent(T_std, nt) #fraction
 
-		super(TimeData, self).__setattr__(name, value)
+		#store calculated args
+		self.dgdt = _derivatize(g,t)
+		self.dTdt = _derivatize(T,t)
 
+	@classmethod
+	def from_csv(cls, file, nt):
+		raise NotImplementedError
 
-#	def plot(self):
+	def input_estimated(self, peak, model_type):
+		raise NotImplementedError
+	
+	def plot(self):
+		raise NotImplementedError
 
-#	def summary(self):
+	def summary(self):
+		raise NotImplementedError
+
 
 
 class RpoThermogram(TimeData):
@@ -116,12 +128,23 @@ class RpoThermogram(TimeData):
 	dgdT_std : np.ndarray
 		Standard deviation of `dtdT`. Length nt.
 
+	dpeakdt : np.ndarray
+		Array of the derivative of the estimated fraction of carbon remaining
+		in each peak with respect to time at each timepoint, in 
+		fraction/second. Shape [nt x nPeak].
+
+	dpeakdT : np.ndarray
+		Array of the derivative of the estimated fraction of carbon remaining
+		in each peak with respect to temperature at each timepoint, in 
+		fraction/Kelvin. Shape [nt x nPeak].
+
 	dof : int
 		Degrees of freedom of model fit, defined as ``nt - 3*nPeak``.
 
 	dTdt : np.ndarray
 		Array of the derivative of temperature with respect to time (*i.e.*
-		the ramp rate) at each timepoint, in Kelvin/second. Length nt.
+		the instantaneous ramp rate) at each timepoint, in Kelvin/second.
+		Length nt.
 
 	g : np.ndarray
 		Array of the true fraction of carbon remaining at each timepoint.
@@ -137,8 +160,15 @@ class RpoThermogram(TimeData):
 	model_type : str
 		The inverse model used to calculate estimated thermogram.
 
+	nPeak : int
+		Number of Gaussian peaks in estimated thermogram
+
 	nt : int
 		Number of timepoints.
+
+	peak : np.ndarray
+		Array of the estimated fraction of carbon remaining in each peak at 
+		each timepoint. Shape [nt x nPeak].
 
 	ppm_CO2_err : int or float
 		The CO2 concentration standard deviation, in ppm. Used with 
@@ -169,16 +199,26 @@ class RpoThermogram(TimeData):
 		dTdt = np.gradient(T)/np.gradient(t)
 
 		#initialize the superclass
-		super(RpoThermogram, self).__init__(dgdt, dgdt_std, g, g_std,
-			add_noise, nt, t, T)
+		super(RpoThermogram, self).__init__(dgdt, dgdt_std, g, g_std, nt, t,
+			T, add_noise=add_noise)
 
-		#set additional public attributes
+		#set RpoThermogram-specific public attributes
 		self.dgdT = dgdt/dTdt #fration/Kelvin
 		self.dTdt = dTdt #Kelvin/second
 		self.ppm_CO2_err = ppm_CO2_err #ppm
 		self.T_err = T_err #Kelvin
 
+	@classmethod
+	def from_csv(cls, file, nt=250):
 
+		#ensure everything is in the right format
+
+		#extract data from all_data.csv file
+
+
+		tg = cls()
+
+		return tg
 
 
 
