@@ -2,6 +2,7 @@
 This module contains the TimeData superclass and all corresponding subclasses.
 
 * TODO: Add summary method
+* TODO: Ensure manually inputted data is ``rparray`` type
 '''
 
 import matplotlib.pyplot as plt
@@ -10,9 +11,17 @@ import warnings
 
 from numpy.linalg import norm
 
+from rampedpyrox.core.array_classes import(
+	rparray
+	)
+
+from rampedpyrox.core.core_functions import(
+	derivatize
+	)
+
 from rampedpyrox.timedata.timedata_helper import(
-	_assert_lent,
-	_derivatize,
+	_plot_dicts,
+	_rem_dup_leg,
 	_rpo_extract_tg,
 	)
 
@@ -23,30 +32,27 @@ class TimeData(object):
 	directly.
 	'''
 
-	def __init__(self, t, T, **kwargs):
+	def __init__(self, t, T, g=0, g_std=0, T_std=0, **kwargs):
+
+		#pop kwargs
+		sf = kwargs.pop('sig_figs', 10)
+		if kwargs:
+			raise TypeError(
+				'Unexpected **kwargs: %r' % kwargs)
 
 		#store attributes
 		nt = len(t)
 		self.nt = nt
-		self.t = np.array(t) #s
-		self.T = _assert_lent(T, nt) #K
-
-		#unpack keyword only args
-		g = kwargs.pop('g', np.zeros(nt)) #frac
-		g_std = kwargs.pop('g_std', np.zeros(nt)) #frac
-		T_std = kwargs.pop('T_std', np.zeros(nt)) #K
-		if kwargs:
-			raise TypeError('Unexpected **kwargs: %r' %kwargs)
-
-		#store keyword only args as attributes
-		self.g = _assert_lent(g, nt) #fraction
-		self.g_std = _assert_lent(g_std, nt) #fraction
-		self.T_std = _assert_lent(T_std, nt) #K
+		self.t = rparray(t, nt, sig_figs=1) #s
+		self.T = rparray(T, nt, sig_figs=3) #K
+		self.g = rparray(g, nt, sig_figs=sf) #fraction
+		self.g_std = rparray(g_std, nt, sig_figs=sf) #fraction
+		self.T_std = rparray(T_std, nt, sig_figs=3) #K
 
 		#store calculated attributes
-		self.dgdt = _derivatize(g,t)
-		self.dgdT = _derivatize(g,T)
-		self.dTdt = _derivatize(T,t)
+		self.dgdt = self.g.derivatize(t, sig_figs=sf)
+		self.dgdT = self.g.derivatize(T, sig_figs=sf)
+		self.dTdt = self.T.derivatize(t, sig_figs=3)
 
 	#define class method for creating instance directly from .csv file
 	@classmethod
@@ -54,31 +60,30 @@ class TimeData(object):
 		raise NotImplementedError
 
 	#define method for inputting the results from a model fit
-	def input_estimated(self, cmpt, model_type):
+	def input_estimated(self, cmpt, model_type, **kwargs):
 		'''
 		Method to input modeled estimate data into ``TimeData`` instance and
 		calculate corresponding statistics.
 		'''
-		
-		#check inputted data types
-		if not isinstance(cmpt, (list, np.ndarray)):
-			raise TypeError('cmpt must be array-like.')
 
-		elif not isinstance(model_type, str):
-			raise TypeError('model_type must be string')
-		
-		elif isinstance(cmpt, list):
-			#ensure ndarray
-			cmpt = np.array(cmpt)
+		#pop kwargs
+		sf = kwargs.pop('sig_figs', 10)
+		if kwargs:
+			raise TypeError(
+				'Unexpected **kwargs: %r' % kwargs)
 
-		#check dimensionality and make 2d if necessary
-		if cmpt.ndim == 1:
-			cmpt = np.reshape(cmpt, (len(cmpt), 1))
+		#check model_type type
+		if not isinstance(model_type, str):
+			raise TypeError(
+				'model_type must be string')
 
-		#check length is nt
-		nt, nPeak = np.shape(cmpt)
-		if nt != self.nt:
-			raise ValueError('cmpt array must have length nt')
+		#ensure type and size
+		nt = self.nt
+		cmpt = rparray(cmpt, nt, sig_figs=sf)
+
+		#force to be 2d (for derivatives and sums, below)
+		nPeak = int(cmpt.size/nt)
+		cmpt = cmpt.reshape(nt, nPeak)
 
 		#store attributes
 		self.dof = nt - 3*nPeak
@@ -88,27 +93,25 @@ class TimeData(object):
 
 		#generate necessary arrays
 		gam = np.sum(cmpt, axis=1)
-		pt = [_derivatize(col, self.t) for col in cmpt.T]
-		pT = [_derivatize(col, self.T) for col in cmpt.T]
 		rcs = norm((self.g - gam)/self.g_std)/self.dof
 		rmse = norm(self.g - gam)/nt**0.5
 
 		#calculate derived attributes and store
-		self.dgamdt = _derivatize(gam, self.t)
-		self.dgamdT = _derivatize(gam, self.T)
-		self.dcmptdt = np.column_stack(pt)
-		self.dcmptdT = np.column_stack(pT)
+		self.dgamdt = gam.derivatize(self.t, sig_figs=sf)
+		self.dgamdT = gam.derivatize(self.T, sig_figs=sf)
+		self.dcmptdt = cmpt.derivatize(self.t, sig_figs=sf)
+		self.dcmptdT = cmpt.derivatize(self.T, sig_figs=sf)
 		self.gam = gam
 		self.red_chi_sq = rcs
-		self.RMSE = rmse
+		self.rmse = rmse
 	
 	#define plotting method
-	def plot(self, ax=None, xaxis='time', yaxis='rate'):
+	def plot(self, ax=None, xaxis='time', yaxis='rate', **kwargs):
 		'''
 		Method for plotting ``TimeData`` instance data.
 		'''
 		
-		#check that axis are appropriate strings
+		#check that axes are appropriate strings
 		if xaxis not in ['time','temp']:
 			raise ValueError('xaxis does not accept %r.' \
 				'Must be either "time" or "temp"' %xaxis)
@@ -121,17 +124,9 @@ class TimeData(object):
 		if ax is None:
 			_, ax = plt.subplots(1,1)
 
-		#create a nested dict to keep track of cases for real data
-		rd = {'time': {'fraction' : (self.t, self.g),
-						'rate' : (self.t, -self.dgdt)},
-			'temp': {'fraction' : (self.T, self.g),
-						'rate' : (self.T, -self.dgdT)}}
-
-		#create a nested dict to keep track of axis labels
-		labs = {'time': {'fraction' : ('time (s)', 'g (unitless)'),
-						'rate' : ('time (s)', r'fraction/time $(s^{-1})$')},
-			'temp' : {'fraction' : ('temp (K)', 'g (unitless)'),
-						'rate' : ('temp (K)', r'fraction/temp $(K^{-1})$')}}
+		#extract label and real data dicts
+		rd = _plot_dicts('rpo_rd', self)
+		labs = _plot_dicts('rpo_labs', self)
 
 		#plot real data
 		ax.plot(rd[xaxis][yaxis][0], rd[xaxis][yaxis][1],
@@ -146,11 +141,8 @@ class TimeData(object):
 		#add model-estimated data if it exists
 		if hasattr(self, 'cmpt'):
 
-			#create a nested dict to keep track of cases of modeled data
-			md = {'time': {'fraction' : (self.gam, self.cmpt),
-							'rate' : (-self.dgamdt, -self.dcmptdt)},
-				'temp': {'fraction' : (self.gam, self.cmpt),
-							'rate' : (-self.dgamdT, -self.dcmptdT)}}
+			#extract modeled data dict
+			md = _plot_dicts('rpo_md', self)
 
 			#plot the model-estimated total
 			ax.plot(rd[xaxis][yaxis][0], md[xaxis][yaxis][0],
@@ -164,18 +156,13 @@ class TimeData(object):
 				ax.fill_between(rd[xaxis][yaxis][0], 0, cpt,
 					color='k',
 					alpha=0.2,
-					label='Components (n=%.0f)' %self.nPeak)
+					label='Components (n=%.0f)' %self.nPeak,
+					**kwargs)
 
 		#remove duplicate legend entries
-		han, lab = ax.get_legend_handles_labels()
-		h_list, l_list = [], []
+		han_list, lab_list = _rem_dup_leg(ax)
 		
-		for h, l in zip(han, lab):
-			if l not in l_list:
-				h_list.append(h)
-				l_list.append(l)
-		
-		ax.legend(h_list,l_list, 
+		ax.legend(han_list,lab_list, 
 			loc='best',
 			frameon=False)
 
@@ -200,16 +187,20 @@ class RpoThermogram(TimeData):
 
 	Keyword Arguments
 	-----------------
-	g : array-like or None
+	g : scalar or array-like
 		Array of the true fraction of carbon remaining at each timepoint,
 		with length nt. Defaults to zeros.
 
-	g_std : array-like or None
+	g_std : scalar or array-like
 		Standard deviation of `g`, with length nt. Defaults to zeros.
 
-	T_std : array-like or None
+	T_std : scalar or array-like
 		The temperature standard deviation, with length nt, in Kelvin. Used
 		for Monte Carlo simulations. Defaults to zeros.
+
+	sig_figs : int
+		The number of significant figures to use for g, g_std, etc. arrays.
+		Defaults to 10.
 
 	Raises
 	------
@@ -297,34 +288,34 @@ class RpoThermogram(TimeData):
 
 	Attributes
 	----------
-	cmpt : np.ndarray
+	cmpt : rp.rparray
 		Array of the estimated fraction of carbon remaining in each component 
 		at each timepoint. Shape [nt x nPeak].
 
-	dcmptdt : np.ndarray
+	dcmptdt : rp.rparray
 		Array of the derivative of the estimated fraction of carbon remaining
 		in each component with respect to time at each timepoint, in 
 		fraction/second. Shape [nt x nPeak].
 
-	dcmptdT : np.ndarray
+	dcmptdT : rp.rparray
 		Array of the derivative of the estimated fraction of carbon remaining
 		in each component with respect to temperature at each timepoint, in 
 		fraction/Kelvin. Shape [nt x nPeak].
 
-	dgamdt : np.ndarray
+	dgamdt : rp.rparray
 		Array of the derivative of the estimated fraction of carbon remaining
 		with respect to time at each timepoint, in fraction/second. Length nt.
 
-	dgamdT : np.ndarray
+	dgamdT : rp.rparray
 		Array of the derivative of the estimated fraction of carbon remaining
 		with respect to temperature at each timepoint, in fraction/Kelvin.
 		Length nt.
 
-	dgdt : np.ndarray
+	dgdt : rp.rparray
 		Array of the derivative of the true fraction of carbon remaining with
 		respect to time at each timepoint, in fraction/second. Length nt.
 
-	dgdT : np.ndarray
+	dgdT : rp.rparray
 		Array of the derivative of the true fraction of carbon remaining with 
 		respect to temperature at each timepoint, in fraction/Kelvin.
 		Length nt.
@@ -332,19 +323,19 @@ class RpoThermogram(TimeData):
 	dof : int
 		Degrees of freedom of model fit, defined as ``nt - 3*nPeak``.
 
-	dTdt : np.ndarray
+	dTdt : rp.rparray
 		Array of the derivative of temperature with respect to time (*i.e.*
 		the instantaneous ramp rate) at each timepoint, in Kelvin/second.
 		Length nt.
 
-	g : np.ndarray
+	g : rp.rparray
 		Array of the true fraction of carbon remaining at each timepoint.
 		Length nt.
 
-	g_std : np.ndarray
+	g_std : rp.rparray
 		Array of the standard deviation of `g`. Length nt.
 
-	gam : np.ndarray
+	gam : rp.rparray
 		Array of the estimated fraction of carbon remaining at each timepoint.
 		Length nt.
 
@@ -364,27 +355,33 @@ class RpoThermogram(TimeData):
 	RMSE : float
 		The RMSE between true and estimated thermogram.
 
-	t : np.ndarray
+	t : rp.rparray
 		Array of timep, in seconds. Length nt.
 
-	T : np.ndarray
+	T : rp.rparray
 		Array of temperature, in Kelvin. Length nt.
 
-	T_std : np.ndarray
+	T_std : rp.rparray
 		Array of the standard deviation of `T`. Length nt.
 	'''
 
-	def __init__(self, t, T, **kwargs):
+	def __init__(self, t, T, g=0, g_std=0, T_std=0, **kwargs):
 
-		#ensure T is array-like
-		if not isinstance(T, (list, np.ndarray)):
-			raise TypeError('RPO run must contain temp array (NOT scalar!)')
+		#ensure T is continuously increasing
+		dTdt = derivatize(T, t, sig_figs=3)
+		if any(dTdt <= 0):
+			raise ValueError(
+				'T must be continuously increasing!')
 
-		super(RpoThermogram, self).__init__(t, T, **kwargs)
+		super(RpoThermogram, self).__init__(t, T, 
+			g=g, 
+			g_std=g_std, 
+			T_std=T_std, 
+			*kwargs)
 
 	#define class method for creating instance directly from .csv file
 	@classmethod
-	def from_csv(cls, file, nt=250, ppm_CO2_err=5, T_err=3):
+	def from_csv(cls, file, nt=250, ppm_CO2_err=5, T_err=3, **kwargs):
 		'''
 		Class method to directly import RPO data from a .csv file and create
 		an ``RpoThermogram`` class instance.
@@ -407,6 +404,10 @@ class RpoThermogram(TimeData):
 		T_err : int or float
 			The uncertainty in the RPO instrument temperature, in Kelvin.
 			Used to calculate `T_std` array. Defaults to 3.
+
+		sig_figs : int
+			The number of significant figures to use for g, g_std, etc. 
+			arrays. Defaults to 10.
 		
 		Raises
 		------
@@ -445,10 +446,10 @@ class RpoThermogram(TimeData):
 		#extract data from file
 		g, g_std, t, T = _rpo_extract_tg(file, nt, ppm_CO2_err)
 
-		return cls(t, T, g=g, g_std=g_std, T_std=T_err)
+		return cls(t, T, g=g, g_std=g_std, T_std=T_err, **kwargs)
 
 	#define method for inputting model-estimate data
-	def input_estimated(self, cmpt, model_type):
+	def input_estimated(self, cmpt, model_type, **kwargs):
 		'''
 		Inputs the results of an inverse model into the ``RpoThermogram``
 		instance and calculates statistics.
@@ -462,6 +463,12 @@ class RpoThermogram(TimeData):
 		model_type : str
 			The type of inverse model used to generate estimate data. Warns
 			if an isothermal model.
+
+		Keyword Arguments
+		-----------------
+		sig_figs : int
+			The number of significant figures to use for g, g_std, etc. 
+			arrays. Defaults to 10.
 
 		Warnings
 		--------
@@ -487,12 +494,14 @@ class RpoThermogram(TimeData):
 
 		#warn if using isothermal model
 		if model_type not in ['Daem']:
-			warnings.warn('Attempting to use isothermal model for RPO run!')
+			warnings.warn(
+				'Attempting to use isothermal model for RPO run!')
 
-		super(RpoThermogram, self).input_estimated(cmpt, model_type)
+		super(RpoThermogram, self).input_estimated(cmpt, model_type, 
+			**kwargs)
 
 	#define plotting method
-	def plot(self, ax=None, xaxis='time', yaxis='rate'):
+	def plot(self, ax=None, xaxis='time', yaxis='rate', **kwargs):
 		'''
 		Plots the true and model-estimated thermograms (including individual 
 		peaks) against time or temp.
@@ -510,6 +519,9 @@ class RpoThermogram(TimeData):
 			Sets the y axis unit, either 'fraction' or 'rate'. Defaults to 
 			'rate'.
 
+		**kwargs:
+			Matplotlib **kwargs for individual peaks (``plt.fill_between``)
+
 		Returns
 		-------
 		ax : matplotlib.axis
@@ -524,7 +536,10 @@ class RpoThermogram(TimeData):
 			if `yaxis` is not 'fraction' or 'rate'.
 		'''
 
-		ax = super(RpoThermogram, self).plot(ax=ax, xaxis=xaxis, yaxis=yaxis)
+		ax = super(RpoThermogram, self).plot(ax=ax, 
+			xaxis=xaxis, 
+			yaxis=yaxis,
+			**kwargs)
 
 		return ax
 

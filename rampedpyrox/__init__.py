@@ -1,7 +1,7 @@
 '''
 Rampedpyrox module
 
-.. moduleautho:: Jordon D. Hemingway <jordonhemingway@gmail.com>
+.. moduleauthor:: Jordon D. Hemingway <jordonhemingway@gmail.com>
 
 '''
 

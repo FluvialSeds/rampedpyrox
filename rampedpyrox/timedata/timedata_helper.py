@@ -2,116 +2,87 @@
 This module contains helper functions for timedata classes.
 '''
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from scipy.interpolate import interp1d
 
-#function to ensure all arrays are of length nt
-def _assert_lent(array, nt):
+#helper functions
+
+#define function to pull plotting dicts
+def _plot_dicts(case, td):
 	'''
-	Helper function to ensure all arrays are of length nt.
+	Function to access different plotting dicts.
 
 	Parameters
 	----------
-	array : scalar or array-like
-		Array to ensure is length nt. If scalar, returns array of repeated
-		scalar value.
+	case : str
+		The case that defines the dict to pull.
+		Acceptable strings:
+			'rpo_rd',
+			'rpo_labs',
+			'rpo_md'
 
-	nt : int
-		Length of array to ensure
+	td : TimeData or subclass
+		``TimeData`` instance containing the data to plot
 
 	Returns
 	-------
-	array : np.ndarray
-		Array of length nt.
-
-	Raises
-	------
-	TypeError
-		If `array` is not scalar or array-like.
-
-	TypeError
-		If `nt` is not int.
-
-	ValueError
-		If `array` is array-like but not of length nt.
-
+	pl_dict : dict
+		The resulting dictionary containing plotting info.
 	'''
 
-	#check nt is int
-	if not isinstance(nt, int):
-		raise TypeError('nt must be int')
+	if case == 'rpo_md':
+		#create a nested dict to keep track of cases of modeled data
+		pl_dict = {'time': {'fraction' : (td.gam, td.cmpt),
+						'rate' : (-td.dgamdt, -td.dcmptdt)},
+			'temp': {'fraction' : (td.gam, td.cmpt),
+						'rate' : (-td.dgamdT, -td.dcmptdT)}}
 
-	#ensure array is the right length
-	if isinstance(array, (int, float)):
-		return array*np.ones(nt)
+	elif case == 'rpo_labs':
+		#create a nested dict to keep track of axis labels
+		pl_dict = {'time': {'fraction' : ('time (s)', 'g (unitless)'),
+						'rate' : ('time (s)', r'fraction/time $(s^{-1})$')},
+			'temp' : {'fraction' : ('temp (K)', 'g (unitless)'),
+						'rate' : ('temp (K)', r'fraction/temp $(K^{-1})$')}}
 
-	elif isinstance(array, (list, np.ndarray)):
-		if len(array) != nt:
-			raise ValueError('array must have length nt')
+	elif case == 'rpo_rd':
+		#create a nested dict to keep track of cases for real data
+		pl_dict = {'time': {'fraction' : (td.t, td.g),
+						'rate' : (td.t, -td.dgdt)},
+			'temp': {'fraction' : (td.T, td.g),
+						'rate' : (td.T, -td.dgdT)}}
 
-		return np.array(array)
-	
-	else:
-		raise TypeError('array must be scalar or array-like')
+	return pl_dict
 
-#function to numerically derivatize an array wrt another array
-def _derivatize(num, denom):
+#define function to remove duplicate legend entries
+def _rem_dup_leg(ax):
 	'''
-	Helper function to calculate derivatives.
+	Removes duplicate legend entries.
 
 	Parameters
 	----------
-	num : scalar or array-like
-		Numerator of derivative function, length nt.
-
-	denom : array-like
-		Denominator of derivative function, length nt. Returns array of zeros
-		if `denom` is not continuously increasing.
+	ax : plt.axishandle
+		Axis handle containing entries to remove.
 
 	Returns
 	-------
-	dndd : np.ndarray
-		Derivative of `num` wrt `denom`. Returns an array of zeros of
-		length nt if `num` is a scalar or if `denom` is not continuously
-		increasing.
+	han_list : list
+		List of axis handles.
 
-	Raises
-	------
-	TypeError
-		If `num` is not scalar or array-like.
-	
-	TypeError
-		If `denom` is not array-like.
-
-	ValueError
-		If `num` and `denom` are both array-like but have different lengths.
+	lab_list : list
+		List of axis handle labels.
 	'''
+	han, lab = ax.get_legend_handles_labels()
+	han_list, lab_list = [], []
+	
+	for h, l in zip(han, lab):
+		if l not in lab_list:
+			han_list.append(h)
+			lab_list.append(l)
 
-	#check inputted data types and raise appropriate errors
-	if not isinstance(num, (int, float, list, np.ndarray)):
-		raise TypeError('num bust be scalar or array-like')
-
-	elif not isinstance(denom, (list, np.ndarray)):
-		raise TypeError('denom bust be array-like')
-
-	#take gradients, and clean-up if necessary
-	try:
-		dn = np.gradient(num)
-	except ValueError:
-		dn = np.zeros(len(denom))
-
-	dd = np.gradient(denom)
-
-	#check lengths and continuously increasing denom
-	if len(dn) != len(dd):
-		raise ValueError('num and denom arrays must have same length')
-
-	elif any(dd) <= 0:
-		return np.zeros(len(denom))
-
-	return np.array(dn/dd)
+	return han_list, lab_list
 
 #define function to extract variables from .csv file
 def _rpo_extract_tg(file, nt, err):
@@ -205,14 +176,4 @@ def _rpo_extract_tg(file, nt, err):
 	g_std = 0.5*(fg_p(t) - fg_m(t))
 	
 	return g, g_std, t, T
-
-
-
-
-
-
-
-
-
-
 

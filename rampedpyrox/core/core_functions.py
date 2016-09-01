@@ -48,8 +48,13 @@ def derivatize(num, denom, sig_figs=6):
 
 	If `denom` is a scalar, resulting array will be all ``np.inf``.
 	
-	If both `self` and `denom` are scalars, resulting array will be all
+	If both `num` and `denom` are scalars, resulting array will be all
 	``np.nan``.
+
+	If either `num` or `self` are 1d and the other is 2d, derivative
+	will be calculated column-wise. If both are 2d, each column will
+	be derivatized separately.
+
 	'''
 
 	#make sure num is the right length and type
