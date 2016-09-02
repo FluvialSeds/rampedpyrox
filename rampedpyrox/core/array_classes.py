@@ -143,10 +143,10 @@ class rparray(np.ndarray):
 
 		See Also
 		--------
-		np.gradient
+		numpy.gradient
 			The method used to calculate derivatives
 
-		rp.derivatize
+		rampedpyrox.derivatize
 			Package method of ``derivatize``.
 
 		Notes
@@ -184,9 +184,6 @@ class rparray(np.ndarray):
 			dndd = np.column_stack(col_der)
 
 		return rparray(dndd, n, sig_figs=sig_figs)
-
-
-
 
 
 

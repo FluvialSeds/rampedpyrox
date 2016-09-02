@@ -7,20 +7,26 @@ Ramped PyrOx classes
 .. autosummary::
 	:toctree: _generated/
 
-	rampedpyrox.RealData
-	rampedpyrox.ModeledData
-	rampedpyrox.LaplaceTransform
-	rampedpyrox.EnergyComplex
-	rampedpyrox.IsotopeResult
+..	rampedpyrox.RealData
+..	rampedpyrox.ModeledData
+..	rampedpyrox.LaplaceTransform
+..	rampedpyrox.EnergyComplex
+..	rampedpyrox.IsotopeResult
+	rampedpyrox.RpoThermogram
+	rampedpyrox.Daem
+	rampedpyrox.rparray
 
 Ramped PyrOx methods
 --------------------
 .. autosummary::
 	:toctree: _generated/
 
-	rampedpyrox.calc_A
+..	rampedpyrox.calc_A
+..	rampedpyrox.calc_L_curve
+..	rampedpyrox.blank_correct
+
 	rampedpyrox.calc_L_curve
-	rampedpyrox.blank_correct
+	rampedpyrox.derivatize
 
 References
 ----------

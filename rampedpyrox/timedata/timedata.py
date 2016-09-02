@@ -2,7 +2,7 @@
 This module contains the TimeData superclass and all corresponding subclasses.
 
 * TODO: Add summary method
-* TODO: Ensure manually inputted data is ``rparray`` type
+* TODO: Plotting kwargs
 '''
 
 import matplotlib.pyplot as plt
@@ -11,14 +11,17 @@ import warnings
 
 from numpy.linalg import norm
 
+#import container classes
 from rampedpyrox.core.array_classes import(
 	rparray
 	)
 
+#import package-level functions
 from rampedpyrox.core.core_functions import(
 	derivatize
 	)
 
+#import helper functions
 from rampedpyrox.timedata.timedata_helper import(
 	_plot_dicts,
 	_rem_dup_leg,
@@ -33,8 +36,38 @@ class TimeData(object):
 	'''
 
 	def __init__(self, t, T, g=0, g_std=0, T_std=0, **kwargs):
+		'''
+		Initialize the superclass.
 
-		#pop kwargs
+		Parameters
+		----------
+		t : array-like
+			Array of timep, in seconds. Length nt.
+
+		T : array-like
+			Array of temperature, in Kelvin. Length nt.
+
+		Keyword Arguments
+		-----------------
+		g : scalar or array-like
+			Array of the true fraction of carbon remaining at each timepoint,
+			with length nt. Defaults to zeros.
+
+		g_std : scalar or array-like
+			Standard deviation of `g`, with length nt. Defaults to zeros.
+
+		T_std : scalar or array-like
+			The temperature standard deviation, with length nt, in Kelvin. 
+			Used for Monte Carlo simulations. Defaults to zeros.
+
+		sig_figs : int
+			The number of significant figures to use for g, g_std, etc. 
+			arrays. Defaults to 10.
+		'''
+
+		#pop acceptable kwargs:
+		#	sig_figs
+
 		sf = kwargs.pop('sig_figs', 10)
 		if kwargs:
 			raise TypeError(
@@ -59,14 +92,37 @@ class TimeData(object):
 	def from_csv(cls, file):
 		raise NotImplementedError
 
+	#define method for creating ratedata instance
+	# i.e. "running the inverse model"
+	def calc_ratedata(cls, model):
+		raise NotImplementedError
+
 	#define method for inputting the results from a model fit
 	def input_estimated(self, cmpt, model_type, **kwargs):
 		'''
 		Method to input modeled estimate data into ``TimeData`` instance and
 		calculate corresponding statistics.
+
+		Parameters
+		----------
+		cmpt : array-like
+			Array of fraction of each component remaining at each timestep.
+			Gets converted to 2d rparray.
+
+		model_type : str
+			String of the model type used. Acceptable values:
+				Daem
+
+		Keyword Arguments
+		-----------------
+		sig_figs : int
+			The number of significant figures to use for g, g_std, etc. 
+			arrays. Defaults to 10.
 		'''
 
-		#pop kwargs
+		#pop acceptable kwargs:
+		#	sig_figs
+
 		sf = kwargs.pop('sig_figs', 10)
 		if kwargs:
 			raise TypeError(
@@ -106,54 +162,53 @@ class TimeData(object):
 		self.rmse = rmse
 	
 	#define plotting method
-	def plot(self, ax=None, xaxis='time', yaxis='rate', **kwargs):
+	def plot(self, ax=None, labs=None, md=None, rd=None, **kwargs):
 		'''
 		Method for plotting ``TimeData`` instance data.
-		'''
-		
-		#check that axes are appropriate strings
-		if xaxis not in ['time','temp']:
-			raise ValueError('xaxis does not accept %r.' \
-				'Must be either "time" or "temp"' %xaxis)
 
-		elif yaxis not in ['fraction','rate']:
-			raise ValueError('yaxis does not accept %r.' \
-				'Must be either "rate" or "fraction"' %yaxis)
+		Keyword Arguments
+		-----------------
+		axis : mpl.axishandle or None
+			Axis handle to plot on.
+
+		labs : tuple
+			Tuple of axis labels, in the form (x_label, y_label).
+
+		md : tuple or None
+			Tuple of modeled data, in the form 
+			(x_data, sum_y_data, cmpt_y_data). Defaults to None.
+
+		rd : tuple
+			Tuple of real data, in the form (x_data, y_data).
+		'''
 
 		#create axis if necessary
 		if ax is None:
 			_, ax = plt.subplots(1,1)
 
-		#extract label and real data dicts
-		rd = _plot_dicts('rpo_rd', self)
-		labs = _plot_dicts('rpo_labs', self)
-
 		#plot real data
-		ax.plot(rd[xaxis][yaxis][0], rd[xaxis][yaxis][1],
+		ax.plot(rd[0], rd[1],
 			linewidth=2,
 			color='k',
 			label='Real Data')
 
 		#label axes
-		ax.set_xlabel(labs[xaxis][yaxis][0])
-		ax.set_ylabel(labs[xaxis][yaxis][1])
+		ax.set_xlabel(labs[0])
+		ax.set_ylabel(labs[1])
 
 		#add model-estimated data if it exists
-		if hasattr(self, 'cmpt'):
-
-			#extract modeled data dict
-			md = _plot_dicts('rpo_md', self)
+		if md is not None:
 
 			#plot the model-estimated total
-			ax.plot(rd[xaxis][yaxis][0], md[xaxis][yaxis][0],
+			ax.plot(md[0], md[1],
 				linewidth=1.5,
 				color='r',
 				label='Modeled Data')
 
 			#plot individual components as shaded regions
-			for cpt in md[xaxis][yaxis][1].T:
+			for cpt in md[2].T:
 
-				ax.fill_between(rd[xaxis][yaxis][0], 0, cpt,
+				ax.fill_between(md[0], 0, cpt,
 					color='k',
 					alpha=0.2,
 					label='Components (n=%.0f)' %self.nPeak,
@@ -180,7 +235,7 @@ class RpoThermogram(TimeData):
 	Parameters
 	----------
 	t : array-like
-		Array of timep, in seconds. Length nt.
+		Array of time, in seconds. Length nt.
 
 	T : array-like
 		Array of temperature, in Kelvin. Length nt.
@@ -205,13 +260,18 @@ class RpoThermogram(TimeData):
 	Raises
 	------
 	TypeError
-		If `t` and `T` are not array-like.
+		If `t` is not array-like.
 
 	TypeError
-		If `g`, `g_std`, or `T_std` are not scalar or array-like.
+		If `g`, `g_std`, `T`, or `T_std` are not scalar or array-like.
 
 	ValueError
 		If any of `T`, `g`, `g_std`, or `T_std` are not length nt.
+
+	Warnings
+	--------
+	If attempting to use isothermal data to create an ``RpoThermogram``
+	instance.
 
 	Notes
 	-----
@@ -273,7 +333,7 @@ class RpoThermogram(TimeData):
 		#create figure
 		fig, ax = plt.subplots(1,2)
 
-		#plot resultint rates against time and temp
+		#plot resulting rates against time and temp
 		ax[0] = tg.plot(ax = ax[0], 
 			xaxis = 'time', 
 			yaxis = 'rate')
@@ -367,11 +427,12 @@ class RpoThermogram(TimeData):
 
 	def __init__(self, t, T, g=0, g_std=0, T_std=0, **kwargs):
 
-		#ensure T is continuously increasing
-		dTdt = derivatize(T, t, sig_figs=3)
-		if any(dTdt <= 0):
-			raise ValueError(
-				'T must be continuously increasing!')
+		#warn if T is scalar
+		if isinstance(T, (int, float)):
+			warnings.warn((
+				"Attempting to use isothermal data for RPO run! T is a scalar"
+				"value of: %.1f. Consider using an isothermal model type" 
+				"instead." % T))
 
 		super(RpoThermogram, self).__init__(t, T, 
 			g=g, 
@@ -448,6 +509,11 @@ class RpoThermogram(TimeData):
 
 		return cls(t, T, g=g, g_std=g_std, T_std=T_err, **kwargs)
 
+	#define method for creating ratedata instance
+	# i.e. "running the inverse model"
+	def calc_ratedata(cls, model):
+		raise NotImplementedError
+
 	#define method for inputting model-estimate data
 	def input_estimated(self, cmpt, model_type, **kwargs):
 		'''
@@ -494,8 +560,10 @@ class RpoThermogram(TimeData):
 
 		#warn if using isothermal model
 		if model_type not in ['Daem']:
-			warnings.warn(
-				'Attempting to use isothermal model for RPO run!')
+			warnings.warn((
+				"Attempting to use isothermal model for RPO run!"
+				"Model type: %s. Consider using non-isothermal model"
+				"such as 'Daem' instead." % model_type))
 
 		super(RpoThermogram, self).input_estimated(cmpt, model_type, 
 			**kwargs)
@@ -520,7 +588,7 @@ class RpoThermogram(TimeData):
 			'rate'.
 
 		**kwargs:
-			Matplotlib **kwargs for individual peaks (``plt.fill_between``)
+			Matplotlib **kwargs.
 
 		Returns
 		-------
@@ -536,18 +604,40 @@ class RpoThermogram(TimeData):
 			if `yaxis` is not 'fraction' or 'rate'.
 		'''
 
+		#check that axes are appropriate strings
+		if xaxis not in ['time','temp']:
+			raise ValueError((
+				"xaxis does not accept %r."
+				"Must be either 'time' or 'temp'" %xaxis))
+
+		elif yaxis not in ['fraction','rate']:
+			raise ValueError((
+				"yaxis does not accept %r."
+				"Must be either 'rate' or 'fraction'" %yaxis))
+
+		#convert `xaxis` and `yaxis` to approrpiate dicts, extract data
+		rpo_rd = _plot_dicts('rpo_rd', self)
+		rpo_labs = _plot_dicts('rpo_labs', self)
+
+		rd = (rpo_rd[xaxis][yaxis][0], rpo_rd[xaxis][yaxis][1])
+		labs = (rpo_labs[xaxis][yaxis][0], rpo_labs[xaxis][yaxis][1])
+
+		#check if modeled data exist
+		if hasattr(self, 'cmpt'):
+			#extract modeled data dict
+			rpo_md = _plot_dicts('rpo_md', self)
+			md = (rd[0], rpo_md[xaxis][yaxis][0], rpo_md[xaxis][yaxis][1])
+
+		else:
+			md = None
+
 		ax = super(RpoThermogram, self).plot(ax=ax, 
-			xaxis=xaxis, 
-			yaxis=yaxis,
+			md=md,
+			labs=labs, 
+			rd=rd,
 			**kwargs)
 
 		return ax
-
-
-
-
-
-
 
 
 
