@@ -12,6 +12,41 @@ from rampedpyrox.core.array_classes import(
 	rparray
 	)
 
+#define a function to generate estimated time data from model and ratedata
+def _calc_cmpt(model, ratedata):
+	'''
+	Calculates the timedata for a given reactive continuum of rates (or Ea,
+	for Daem) ``RateData`` and ``Model`` isntance.
+
+	Parameters
+	----------
+	model : rp.Model
+		The model instance used to calculate the forward model.
+
+	ratedata : rp.RateData
+		The ratedata instance containing the reactive continuum data.
+
+	Returns
+	-------
+	cmpt : rp.rparray
+		A 2d rparray of the fraction of each component remaining at each
+		timepoint. To be passed into ``tg.TimeData.forward_model()``.
+
+	Raises
+	------
+	ValueError
+		If nEa is not the same in Model and RateData.
+	'''
+
+	#raise ValueError if not the right shape
+	if model.nEa != ratedata.nEa:
+		raise ValueError((
+			"Cannot combine model with nEa = %r and RateData with nEa = %r."
+			"Check that RateData was not created using a different model"
+			% (model.nEa, ratedata.nEa)))
+
+	return np.inner(model.A, ratedata.peaks.T)
+
 #define a function to generate estimated rate data from model and timedata
 def _calc_phi(model, timedata, omega):
 	'''

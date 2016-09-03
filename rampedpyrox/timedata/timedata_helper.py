@@ -35,10 +35,10 @@ def _plot_dicts(case, td):
 
 	if case == 'rpo_md':
 		#create a nested dict to keep track of cases of modeled data
-		pl_dict = {'time': {'fraction' : (td.gam, td.cmpt),
-						'rate' : (-td.dgamdt, -td.dcmptdt)},
-			'temp': {'fraction' : (td.gam, td.cmpt),
-						'rate' : (-td.dgamdT, -td.dcmptdT)}}
+		pl_dict = {'time': {'fraction' : (td.t, td.gam, td.cmpt),
+						'rate' : (td.t, -td.dgamdt, -td.dcmptdt)},
+			'temp': {'fraction' : (td.T, td.gam, td.cmpt),
+						'rate' : (td.T, -td.dgamdT, -td.dcmptdT)}}
 
 	elif case == 'rpo_labs':
 		#create a nested dict to keep track of axis labels

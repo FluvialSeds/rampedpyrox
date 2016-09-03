@@ -58,7 +58,7 @@ def calc_L_curve(model, timedata, ax=None, plot=False, **kwargs):
 
 	See Also
 	--------
-	rampedpyrox.Daem.plot_L_curve
+	Daem.plot_L_curve
 		Instance method for ``plot_L_curve``.
 
 	References

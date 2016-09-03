@@ -6,6 +6,54 @@ running the DAEM inverse model, peak-fitting the activation energy (Ea)
 probability density function, determining the isotope composition of each Ea 
 Gaussian peak, and performing Monte Carlo uncertainty estimates.
 
+
+Quick guide
+-----------
+
+Basic runthrough::
+
+	#import modules
+	import matplotlib.pyplot as plt
+	import pandas as pd
+	import rampedpyrox as rp
+	import matplotlib.pyplot as plt
+
+	#generate string to data
+	tg_data = '/folder_containing_data/data.csv'
+	iso_data = '/folder_containing_data/iso_data.csv'
+
+	#make thermogram
+	tg = rp.RpoThermogram.from_csv(tg_data)
+
+	#generate daem model
+	daem = rp.Daem.from_timedata(tg)
+
+	#calculate rate data
+	ec = rp.EnergyComplex.inverse_model(tg, daem)
+
+	#add estimated data back to tg
+	tg.forward_model(ec, daem)
+
+	#calculate isotope estimates
+	iso = tg.RpoIsotopes.from_csv(iso_data)
+	iso.fit(tg)
+
+	#save summary reports
+	rp.save_summaries(tg, ec, iso, 'summary_file.csv')
+
+	#generate Monte Carlo uncertainty estimates 
+	res = rp.RpoMC(tg, daem, ec, iso, 
+		nIter = 10000, 
+		include_temp = True)
+
+
+Estimate some other time-temperature history::
+	
+	tg_geo = rp.RpoThermogram(t_geo, T_geo)
+	daem_geo = rp.Daem.from_timedata(tg_geo)
+	tg_geo.forward_model(ec, daem_geo)
+
+
 Downloading the package
 -----------------------
 

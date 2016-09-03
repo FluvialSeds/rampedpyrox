@@ -57,7 +57,7 @@ class rparray(np.ndarray):
 
 	References
 	----------
-	van der Walt et al. (2011). *The NumPy Array: A Structure for Efficient 
+	van der Walt et al. (2011). The NumPy Array: A Structure for Efficient 
 		Numerical Computation, *Computing in Science & Engineering*, **13**, 
 		22-30, DOI:10.1109/MCSE.2011.37
 
@@ -146,7 +146,7 @@ class rparray(np.ndarray):
 		numpy.gradient
 			The method used to calculate derivatives
 
-		rampedpyrox.derivatize
+		derivatize
 			Package method of ``derivatize``.
 
 		Notes

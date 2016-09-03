@@ -18,9 +18,9 @@ from rampedpyrox.timedata.timedata import(
 	RpoThermogram,
 	)
 
-# from rampedpyrox.ratedata.ratedata import(
-# 	EnergyComplex,
-# 	)
+from rampedpyrox.ratedata.ratedata import(
+	EnergyComplex,
+	)
 
 #import helper functions
 from rampedpyrox.model.model_helper import(
@@ -34,7 +34,7 @@ class Model(object):
 	directly.
 	'''
 
-	def __init__(self, A, t, T):
+	def __init__(self, A, model_type, t, T):
 		'''
 		Initialize the superclass.
 
@@ -43,6 +43,9 @@ class Model(object):
 		A : 2d array-like
 			Array of the transform matrix to convert from time to rate space.
 			Rows are timepoints and columns are rates. Shape [nt x nk].
+
+		model_type : str
+			A string of the model type
 
 		t : array-like
 			Array of time, in seconds. Length nt.
@@ -59,6 +62,7 @@ class Model(object):
 
 		#store attributes
 		self.A = A
+		self.model_type = model_type
 		self.nt = nt
 		self.t = t
 		self.T = T
@@ -117,7 +121,7 @@ class Model(object):
 
 		See Also
 		--------
-		rampedpyrox.plot_L_curve
+		plot_L_curve
 			Package method for ``plot_L_curve``.
 
 		References
@@ -222,9 +226,9 @@ class LaplaceTransform(Model):
 	do not call directly.
 	'''
 
-	def __init__(self, A, t, T):
+	def __init__(self, A, model_type, t, T):
 
-		super(LaplaceTransform, self).__init__(A, t, T)
+		super(LaplaceTransform, self).__init__(A, model_type, t, T)
 
 	@classmethod
 	def from_timedata(self):
@@ -428,11 +432,13 @@ class Daem(LaplaceTransform):
 
 		#calculate A matrix
 		A = _rpo_calc_A(Ea, log10k0, t, T)
+		model_type = 'Daem'
 
-		super(Daem, self).__init__(A, t, T)
+		super(Daem, self).__init__(A, model_type, t, T)
 
 		#store Daem-specific attributes
 		nEa = len(Ea)
+		self.log10k0 = log10k0
 		self.Ea = rparray(Ea, nEa)
 		self.nEa = nEa
 

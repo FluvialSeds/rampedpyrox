@@ -28,6 +28,11 @@ from rampedpyrox.model.model import (
 	Daem
 	)
 
+#import ratedata classes
+from rampedpyrox.ratedata.ratedata import (
+	EnergyComplex
+	)
+
 #import package-level classes
 from rampedpyrox.core.array_classes import (
 	rparray
