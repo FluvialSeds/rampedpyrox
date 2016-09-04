@@ -8,11 +8,7 @@ defined!
 import matplotlib.pyplot as plt
 import numpy as np
 
-#import container classes
-from rampedpyrox.core.array_classes import(
-	rparray
-	)
-
+# FIX CYCLICAL IMPORT ERROR!
 #import other rampedpyrox classes
 from rampedpyrox.timedata.timedata import(
 	RpoThermogram,
@@ -23,6 +19,12 @@ from rampedpyrox.ratedata.ratedata import(
 	)
 
 #import helper functions
+from rampedpyrox.core.core_functions import(
+	assert_len,
+	derivatize,
+	round_to_sigfig,
+	)
+
 from rampedpyrox.model.model_helper import(
 	_calc_phi,
 	_rpo_calc_A,
@@ -56,9 +58,9 @@ class Model(object):
 
 		#ensure data is in the right form
 		nt = len(t)
-		t = rparray(t, nt)
-		T = rparray(T, nt)
-		A = rparray(A, nt)
+		t = assert_len(t, nt)
+		T = assert_len(T, nt)
+		A = assert_len(A, nt)
 
 		#store attributes
 		self.A = A
@@ -78,7 +80,8 @@ class Model(object):
 		raise NotImplementedError
 
 	#define a method for calculating the L curve
-	def calc_L_curve(self, timedata, ax=None, plot=False, **kwargs):
+	def calc_L_curve(self, timedata, ax = None, plot = False, nOm = 150, 
+		om_max = 1e2, om_min = 1e-3,):
 		'''
 		Function to calculate the L-curve for a given model and timedata
 		instance in order to choose the best-fit smoothing parameter, omega.
@@ -99,14 +102,14 @@ class Model(object):
 		plot : Boolean
 			Tells the method to plot the resulting L curve or not.
 
-		om_min : int
-			Minimum omega value to search. Defaults to 1e-3.
+		nOm : int
+			Number of omega values to consider. Defaults to 150.
 
 		om_max : int
 			Maximum omega value to search. Defaults to 1e2.
 
-		nOm : int
-			Number of omega values to consider. Defaults to 150.
+		om_min : int
+			Minimum omega value to search. Defaults to 1e-3.
 
 		Returns
 		-------
@@ -115,14 +118,11 @@ class Model(object):
 
 		axis : None or matplotlib.axis
 			If ``plot=True``, returns an updated axis handle with plot.
-		
-		Notes
-		-----
 
 		See Also
 		--------
 		plot_L_curve
-			Package method for ``plot_L_curve``.
+			Package-level method for ``plot_L_curve``.
 
 		References
 		----------
@@ -140,19 +140,6 @@ class Model(object):
 		1-35.
 		'''
 
-		#pop acceptable kwargs:
-		#	om_min
-		#	om_max
-		#	nOm
-
-		om_min = kwargs.pop('om_min', 1e-3)
-		om_max = kwargs.pop('om_max', 1e2)
-		nOm = kwargs.pop('nOm', 150)
-
-		if kwargs:
-			raise TypeError(
-				'Unexpected **kwargs: %r' % kwargs)
-
 		#define arrays
 		log_om_vec = np.linspace(np.log10(om_min),np.log10(om_max),nOm)
 		om_vec = 10**rparray(log_om_vec, nOm)
@@ -165,13 +152,16 @@ class Model(object):
 			res_vec.append(res)
 			rgh_vec.append(rgh)
 
-		#store logs as rparrays, removing noise after 6 sig figs
-		res_vec = rparray(np.log10(res_vec), nOm, sig_figs=6)
-		rgh_vec = rparray(np.log10(rgh_vec), nOm, sig_figs=6)
+		#store logs as arrays, and remove noise after 6 sig figs
+		res_vec = np.log10(np.array(res_vec))
+		rgh_vec = np.log10(np.array(rgh_vec))
+
+		res_vec = round_to_sigfig(res_vec, 6)
+		rgh_vec = round_to_sigfig(rgh_vec, 6)
 
 		#calculate derivatives and curvature
-		dydx = rgh_vec.derivatize(res_vec)
-		dy2d2x = dydx.derivatize(res_vec)
+		dydx = derivatize(rgh_vec, res_vec)
+		dy2d2x = derivatize(dydx, res_vec)
 
 		k = np.abs(dy2d2x)/(1+dydx**2)**1.5
 

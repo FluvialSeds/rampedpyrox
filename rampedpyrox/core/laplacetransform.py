@@ -131,11 +131,17 @@ def _round_to_sigfig(vec, sig_figs=6):
 	3601-3612.
 	'''
 
-	p = sig_figs
-	order = np.floor(np.log10(vec))
-	vecH = 10**(p-order-1)*vec
-	vec_rnd_log = np.round(vecH)
-	vec_round = vec_rnd_log/10**(p-order-1)
+	#create lambda function for rounding
+	rnd = lambda x, n: round(x, -int(np.floor(np.log10(abs(x)))) + n - 1)
+
+	#use list comprehension to round the vector
+	vec_round = [rnd(x, sig_figs) for x in vec if x != 0]
+
+	# p = sig_figs
+	# order = np.floor(np.log10(vec))
+	# vecH = 10**(p-order-1)*vec
+	# vec_rnd_log = np.round(vecH)
+	# vec_round = vec_rnd_log/10**(p-order-1)
 
 	return vec_round
 

@@ -72,8 +72,8 @@ class rparray(np.ndarray):
 
 	def __new__(cls, data, n, copy=True, order=None, subok=True, sig_figs=6):
 
-		#assert that n and sig_figs are int
-		n = int(n); sig_figs = int(sig_figs)
+		#assert that n is int
+		n = int(n)
 
 		#assert data is in the right form
 		if isinstance(data, (int, float)):
@@ -103,7 +103,11 @@ class rparray(np.ndarray):
 			)
 
 		#round array to sig_figs
-		array = array.round(decimals=sig_figs)
+		if isinstance(sig_figs, (int, float)):
+			array = array.round(decimals = int(sig_figs))
+
+		elif sig_figs is not None:
+			raise TypeError('sig_figs must be int, float, or None')
 
 		#cast ndarray instance onto rparray
 		obj = array.view(cls)
@@ -121,7 +125,7 @@ class rparray(np.ndarray):
 		#set default n value for construction
 		self.n = getattr(obj, 'n', None)
 
-	def derivatize(self, denom, sig_figs=6):
+	def derivatize(self, denom, sig_figs=None):
 		'''
 		Method to calculate derivative of an ``rdarray`` instance with respect
 		to the inputted denominator, `denom`.
@@ -134,7 +138,8 @@ class rparray(np.ndarray):
 		Keyword Arguments
 		-----------------
 		sig_figs : int
-			Number of significant figures to retain. Defaults to 6.
+			Number of significant figures to round to. Defaults to None
+			(i.e. does not round)
 		
 		Returns
 		-------

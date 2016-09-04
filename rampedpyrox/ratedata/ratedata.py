@@ -98,7 +98,7 @@ class RateData(object):
 		#pop acceptable kwargs:
 		#	sig_figs
 
-		sf = kwargs.pop('sig_figs', 10)
+		sf = kwargs.pop('sig_figs', None)
 		if kwargs:
 			raise TypeError(
 				'Unexpected **kwargs: %r' % kwargs)
@@ -187,14 +187,14 @@ class EnergyComplex(RateData):
 		#pop acceptable kwargs:
 		#	sig_figs
 
-		sf = kwargs.pop('sig_figs', 10)
+		sf = kwargs.pop('sig_figs', None)
 		if kwargs:
 			raise TypeError(
 				'Unexpected **kwargs: %r' % kwargs)
 
 		#store activation energy attributes
 		nEa = len(Ea)
-		self.Ea = rparray(Ea, nEa, sig_figs = 3)
+		self.Ea = rparray(Ea, nEa, sig_figs = sf)
 		self.nEa = nEa
 
 		#check if fEa and store

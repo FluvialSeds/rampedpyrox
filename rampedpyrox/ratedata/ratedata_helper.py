@@ -116,15 +116,23 @@ def _gaussian(x, mu, sigma):
 	#check data types and broadcast if necessary
 	if isinstance(mu,(int,float)) and isinstance(sigma,(int,float)):
 		#ensure mu and sigma are floats
-		mu = rparray(mu, 1)
-		sigma = rparray(sigma, 1)
+		mu = float(mu)
+		sigma = float(sigma)
+
+	elif isinstance(mu,np.ndarray) and isinstance(sigma,np.ndarray):
+		if len(mu) is not len(sigma):
+			raise ValueError('mu and sigma arrays must have same length')
+
+		#ensure mu and sigma dtypes are float
+		mu = mu.astype(float)
+		sigma = sigma.astype(float)
+
+		#broadcast x into matrix
+		n = len(mu)
+		x = np.outer(x,np.ones(n))
 
 	else:
-		n = len(mu)
-		mu = rparray(mu, n)
-		sigma = rparray(sigma, n)
-
-		x = np.outer(x, np.ones(n))
+		raise ValueError('mu and sigma must be float, int, or np.ndarray')
 
 	#calculate scalar to make sum equal to unity
 	scalar = (1/np.sqrt(2.*np.pi*sigma**2))
@@ -276,6 +284,7 @@ def _phi_hat(k, mu, sigma, height, peak_shape):
 
 	#scale peaks to inputted height
 	H = np.max(y, axis=0)
+	height = rparray(height, len(height))
 	y_scaled = y*height/H
 
 	#calculate phi_hat

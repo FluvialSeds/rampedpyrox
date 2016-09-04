@@ -28,22 +28,15 @@ def _calc_cmpt(model, ratedata):
 
 	Returns
 	-------
-	cmpt : rp.rparray
+	cmpt : np.ndarray
 		A 2d rparray of the fraction of each component remaining at each
-		timepoint. To be passed into ``tg.TimeData.forward_model()``.
+		timepoint.
 
 	Raises
 	------
 	ValueError
 		If nEa is not the same in Model and RateData.
 	'''
-
-	#raise ValueError if not the right shape
-	if model.nEa != ratedata.nEa:
-		raise ValueError((
-			"Cannot combine model with nEa = %r and RateData with nEa = %r."
-			"Check that RateData was not created using a different model"
-			% (model.nEa, ratedata.nEa)))
 
 	return np.inner(model.A, ratedata.peaks.T)
 
