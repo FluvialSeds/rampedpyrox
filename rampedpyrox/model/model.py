@@ -1,22 +1,12 @@
 '''
 This module contains the Model superclass and all corresponding subclasses.
 
-* TODO: Add ``from_ratedata`` classmethod once rate data classes have been 
-defined!
+* TODO: add modeled L curve method
+
 '''
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-# FIX CYCLICAL IMPORT ERROR!
-#import other rampedpyrox classes
-from rampedpyrox.timedata.timedata import(
-	RpoThermogram,
-	)
-
-from rampedpyrox.ratedata.ratedata import(
-	EnergyComplex,
-	)
 
 #import helper functions
 from rampedpyrox.core.core_functions import(
@@ -44,7 +34,7 @@ class Model(object):
 		----------
 		A : 2d array-like
 			Array of the transform matrix to convert from time to rate space.
-			Rows are timepoints and columns are rates. Shape [nt x nk].
+			Rows are timepoints and columns are k/Ea values. Shape [nt x nk].
 
 		model_type : str
 			A string of the model type
@@ -81,7 +71,7 @@ class Model(object):
 
 	#define a method for calculating the L curve
 	def calc_L_curve(self, timedata, ax = None, plot = False, nOm = 150, 
-		om_max = 1e2, om_min = 1e-3,):
+		om_max = 1e2, om_min = 1e-3):
 		'''
 		Function to calculate the L-curve for a given model and timedata
 		instance in order to choose the best-fit smoothing parameter, omega.
@@ -95,12 +85,13 @@ class Model(object):
 		Keyword Arguments
 		-----------------
 		ax : None or matplotlib.axis
-			Axis to plot on. If `None` and ``plot=True``, automatically 
+			Axis to plot on. If `None` and ``plot = True``, automatically 
 			creates a ``matplotlip.axis`` instance to return. Defaults to 
 			`None`.
 
 		plot : Boolean
-			Tells the method to plot the resulting L curve or not.
+			Tells the method to plot the resulting L curve or not. Defaults to
+			False.
 
 		nOm : int
 			Number of omega values to consider. Defaults to 150.
@@ -117,7 +108,15 @@ class Model(object):
 			The calculated best-fit omega value.
 
 		axis : None or matplotlib.axis
-			If ``plot=True``, returns an updated axis handle with plot.
+			If ``plot = True``, returns an updated axis handle with plot.
+
+		Raises
+		------
+		TypeError
+			If `om_max` or `om_min` are not int or float.
+
+		TypeError
+			If `nOm` is not int.
 
 		See Also
 		--------
@@ -140,9 +139,17 @@ class Model(object):
 		1-35.
 		'''
 
+		#check that nOm, om_max, and om_min are in the right form
+		if not isinstance(om_max, (int, float)):
+			raise TypeError('om_max must be float or int')
+		elif not isinstance(om_min, (int, float)):
+			raise TypeError('om_min must be float or int')
+		elif not isinstance(nOm, int):
+			raise TypeError('nOm must be int')
+
 		#define arrays
-		log_om_vec = np.linspace(np.log10(om_min),np.log10(om_max),nOm)
-		om_vec = 10**rparray(log_om_vec, nOm)
+		log_om_vec = np.linspace(np.log10(om_min), np.log10(om_max), nOm)
+		om_vec = 10**log_om_vec
 
 		res_vec = []; rgh_vec = []
 
@@ -153,8 +160,8 @@ class Model(object):
 			rgh_vec.append(rgh)
 
 		#store logs as arrays, and remove noise after 6 sig figs
-		res_vec = np.log10(np.array(res_vec))
-		rgh_vec = np.log10(np.array(rgh_vec))
+		res_vec = np.log10(res_vec)
+		rgh_vec = np.log10(rgh_vec)
 
 		res_vec = round_to_sigfig(res_vec, 6)
 		rgh_vec = round_to_sigfig(rgh_vec, 6)
@@ -356,9 +363,9 @@ class Daem(LaplaceTransform):
 
 	Attributes
 	----------
-	A : rp.rparray
+	A : np.ndarray
 
-	Ea : rp.rparray
+	Ea : np.ndarray
 		Array of Ea values, in kJ/mol. Length nE.
 
 	nEa : int
@@ -367,10 +374,10 @@ class Daem(LaplaceTransform):
 	nt : int
 		Number of timepoints.
 
-	t : rp.rparray
+	t : np.ndarray
 		Array of timep, in seconds. Length nt.
 
-	T : rp.rparray
+	T : np.ndarray
 		Array of temperature, in Kelvin. Length nt.
 
 	References
@@ -419,7 +426,6 @@ class Daem(LaplaceTransform):
 				"a scalar value of: %.1f. Consider using an isothermal model" 
 				"type instead." % T))
 
-
 		#calculate A matrix
 		A = _rpo_calc_A(Ea, log10k0, t, T)
 		model_type = 'Daem'
@@ -429,12 +435,12 @@ class Daem(LaplaceTransform):
 		#store Daem-specific attributes
 		nEa = len(Ea)
 		self.log10k0 = log10k0
-		self.Ea = rparray(Ea, nEa)
+		self.Ea = assert_len(Ea, nEa)
 		self.nEa = nEa
 
 	@classmethod
-	def from_timedata(cls, timedata, Ea_max=350, Ea_min=50, log10k0=10, 
-		nEa=250):
+	def from_timedata(cls, timedata, Ea_max = 350, Ea_min = 50, log10k0 = 10, 
+		nEa = 250):
 		'''
 		Class method to directly generate a ``Daem`` instance using data
 		stored in a ``TimeData`` instance.
@@ -442,43 +448,47 @@ class Daem(LaplaceTransform):
 		Parameters
 		----------
 		timedata : rp.TimeData
-			Instance of ``TimeData`` subclass containing the time and fraction
-			remaining arrays to use in L curve calculation.
+			Instance of ``TimeData`` subclass containing the time array to use
+			for creating the Daem.
 
 		Keyword Arguments
 		-----------------
 		Ea_max : int
 			The maximum activation energy value to consider, in kJ/mol.
+			Defaults to 350.
 
 		Ea_min : int
 			The minimum activation energy value to consider, in kJ/mol.
+			Defaults to 50.
 
 		log10k0 : scalar, array-like, or lambda function
 			Arrhenius pre-exponential factor, either a constant value, array-
-			likewith length nEa, or a lambda function of Ea. 
+			likewith length nEa, or a lambda function of Ea. Defaults to 10.
 		
 		nEa : int
-			The number of activation energy points.
+			The number of activation energy points. Defaults to 250.
 
 		Raises
 		------
-		ValueError
+		TypeError
 			If log10k0 is not scalar, lambda, or array-like with length nEa.
 
 		Warnings
 		--------
 		If attempting to create a DAEM with an isothermal timedata instance.
 
-		Notes
-		-----
-
 		See Also
 		--------
-
+		from_ratedata
+			Class method to directly generate a ``Daem`` instance using data
+			stored in a ``RateData`` instance.
 		'''
 
+		#import other rampedpyrox classes
+		from .. import timedata as td
+
 		#check that timedata is the right type
-		if not isinstance(timedata, (RpoThermogram)):
+		if not isinstance(timedata, (td.RpoThermogram)):
 			warnings.warn((
 			"Attempting to generate Daem model using a timedata instance of"
 			"class: %s. Consider using RpoThermogram timedata instance"
@@ -491,30 +501,83 @@ class Daem(LaplaceTransform):
 
 		return cls(Ea, log10k0, t, T)
 
-	# @classmethod
-	# def from_ratedata(cls, ratedata, beta=0.08, log10k0=10, nt=250, t0=0, 
-	# 	T0=373, tf=1e4):
-	# 	'''
-	# 	Class method to directly generate a ``Daem`` instance using data
-	# 	stored in a ``RateData`` instance.
-	# 	'''
+	@classmethod
+	def from_ratedata(cls, ratedata, beta = 0.08, log10k0 = 10, nt = 250,
+		t0 = 0, T0 = 373, tf = 1e4):
+		'''
+		Class method to directly generate a ``Daem`` instance using data
+		stored in a ``RateData`` instance.
 
-	# 	#check that ratedata is the right type
-	# 	if not isinstance(ratedata, (EnergyComplex)):
-	# 		raise TypeError((
-	# 			"Attempting to generate Daem model using a ratedata instance"
-	# 			"of class: %s. Only EnergyComplex instances can be used for"
-	# 			"Daem models." % repr(ratedata)))
+		Paramters
+		---------
+		ratedata : rp.RateData
+			Instance of ``RateData`` containing the Ea array to use for
+			creating the Daem. 
 
-	# 	#generate Ea, t, and T array
-	# 	Ea = ratedata.Ea
-	# 	t = np.linspace(t0, tf, nt)
-	# 	T = T0 + beta*t
+		Keyword Arguments
+		-----------------
+		beta : int or float
+			Temperature ramp rate to use in model, in Kelvin/second. Defaults
+			to 0.08.
 
-	# 	return cls(Ea, log10k0, t, T)
+		log10k0 : scalar, array-like, or lambda function
+			Arrhenius pre-exponential factor, either a constant value, array-
+			likewith length nEa, or a lambda function of Ea. Defaults to 10.
 
+		nt : int
+			The number of time points to use. Defaults to 250.
 
+		t0 : int or float
+			The initial time to be used in the model, in seconds. Defaults 
+			to 0.
 
+		T0 : int or float
+			The initial temperature to be used in the model, in Kelvin.
+			Defaults to 373.
+
+		tf : int or float
+			The final time to be used in the model, in seconds. Defaults to
+			10,000.
+
+		Raises
+		------
+		TypeError
+			If beta, t0, T0, or tf are not scalar.
+
+		TypeError
+			If nt is not int.
+
+		TypeError
+			If log10k0 is not scalar, lambda, or array-like with length nEa.
+
+		TypeError
+			If attempting to generate a ``Daem`` instance with a ratedata
+			instance not of type ``EnergyComplex``.
+
+		See Also
+		--------
+		from_timedata
+			Class method to directly generate a ``Daem`` instance using data
+			stored in a ``TimeData`` instance.
+
+		'''
+
+		#import other rampedpyrox classes
+		from .. import ratedata as rd
+
+		#check that ratedata is the right type
+		if not isinstance(ratedata, (rd.EnergyComplex)):
+			raise TypeError((
+				"Attempting to generate Daem model using a ratedata instance"
+				"of type: %s. Only EnergyComplex instances can be used for"
+				"Daem models." % repr(ratedata)))
+
+		#generate Ea, t, and T array
+		Ea = ratedata.Ea
+		t = np.linspace(t0, tf, nt)
+		T = T0 + beta*t
+
+		return cls(Ea, log10k0, t, T)
 
 
 

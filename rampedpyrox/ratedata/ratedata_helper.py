@@ -8,30 +8,78 @@ import warnings
 
 from scipy.optimize import least_squares
 
-#import container classes
-from rampedpyrox.core.array_classes import(
-	rparray
-	)
 
 #define a function to deconvolve phi
-def _deconvolve(k, phi, nPeaks = 'auto', 
-	peak_shape = 'Gaussian', thres = 0.05):
+def _deconvolve(k, phi, nPeaks = 'auto', peak_shape = 'Gaussian', 
+	thres = 0.05):
 	'''
 	Deconvolves phi into individual peaks.
 
 	Parameters
 	----------
+	k : array-like
+		Array of k/Ea values considered in the model.
+
+	phi : array-like
+		Array of a discretized pdf of the distribution of k/Ea values.
 
 	Keyword Arguments
 	-----------------
+	nPeaks : int or 'auto'
+		Tells the program how many peaks to retain after deconvolution.
+		Defaults to 'auto'.
+
+	peak_shape : str
+		Peak shape to use for deconvolved peaks. Acceptable strings are:
+			'Gaussian'
+			'(add more later)'
+		Defaults to 'Gaussian'.
+
+	thres : float
+		Threshold for peak detection cutoff. `thres` is the relative 
+		height of the global maximum under which no peaks will be 
+		detected. Defaults to 0.05 (i.e. 5% of the highest peak).
 
 	Returns
 	-------
+	peaks : np.ndarray
+		2d array of the k/Ea peaks at each point in k.
+
+	peak_info : np.ndarray
+		2d array of the mu, sigma, and height of each peak.
 
 	Raises
 	------
+	TypeError
+		If `nPeaks` is not int or 'auto'.
+
+	ValueError
+		If `peak_shape` is not an acceptable string.
+
+	TypeError
+		If `thres` is not a float.
+
+	Warnings
+	--------
+	Warns if ``scipy.optimize.least_squares`` cannot converge on a solution.
+
+	Notes
+	-----
+	`peak_info` stores the peak information **before** being combined!
 
 	'''
+
+	#assert types
+	if not isinstance(nPeaks, int):
+		if nPeaks not in ['auto', 'Auto']:
+			raise TypeError('nPeaks must be int or "auto"')
+
+	if peak_shape not in ['gaussian','Gaussian']:
+		raise ValueError('peak_shape must be one of: Gaussian, (add more)')
+
+	if not isinstance(thres, float):
+		raise TypeError('thres must be float')
+
 
 	#find peak indices and bounds
 	ind, lb_ind, ub_ind = _peak_indices(phi, nPeaks=nPeaks, thres=thres)
@@ -62,22 +110,18 @@ def _deconvolve(k, phi, nPeaks = 'auto',
 
 	#ensure success
 	if not res.success:
-		warnings.warn('least_squares could not converge on a successful fit')
+		warnings.warn('least_squares could not converge on a successful fit!')
 
 	#extract best-fit parameters
 	mu = res.x[:n]
 	sigma = res.x[n:2*n]
 	height = res.x[2*n:]
 
+	#calculate peak info
+	peak_info = np.column_stack((mu, sigma, height))
+
 	#calculate peak arrays
 	_, peaks = _phi_hat(k, mu, sigma, height, peak_shape)
-	peaks = rparray(peaks, len(k))
-
-	#combine peak_info into pandas dataframe
-	peak_info = np.column_stack((mu, sigma, height))
-	peak_info = pd.DataFrame(peak_info, 
-		columns = ['mu', 'sigma', 'height'],
-		index = np.arange(1,n + 1))
 
 	return peaks, peak_info
 
@@ -101,7 +145,7 @@ def _gaussian(x, mu, sigma):
 
 	Returns
 	-------
-	y : rp.rparray
+	y : np.ndarray
 		Array of resulting y values of shape [len(x) x len(mu)].
 
 	Raises
@@ -114,12 +158,12 @@ def _gaussian(x, mu, sigma):
 	'''
 
 	#check data types and broadcast if necessary
-	if isinstance(mu,(int,float)) and isinstance(sigma,(int,float)):
+	if isinstance(mu, (int, float)) and isinstance(sigma, (int, float)):
 		#ensure mu and sigma are floats
 		mu = float(mu)
 		sigma = float(sigma)
 
-	elif isinstance(mu,np.ndarray) and isinstance(sigma,np.ndarray):
+	elif isinstance(mu, np.ndarray) and isinstance(sigma, np.ndarray):
 		if len(mu) is not len(sigma):
 			raise ValueError('mu and sigma arrays must have same length')
 
@@ -140,7 +184,7 @@ def _gaussian(x, mu, sigma):
 	#calculate Gaussian
 	y = scalar*np.exp(-(x-mu)**2/(2.*sigma**2))
 
-	return y
+	return np.array(y)
 
 #define a function to find the indices of each peak in `k`.
 def _peak_indices(phi, nPeaks='auto', thres=0.05):
@@ -153,7 +197,7 @@ def _peak_indices(phi, nPeaks='auto', thres=0.05):
 		Array of the pdf of the discretized distribution of Ea/k, phi.
 
 	nPeaks : int or str
-		Number of Gaussians to use in deconvolution, either an integer or 
+		Number of peaks to use in deconvolution, either an integer or 
 		'auto'. Defaults to 'auto'.
 
 	thres : float
@@ -163,7 +207,7 @@ def _peak_indices(phi, nPeaks='auto', thres=0.05):
 
 	Returns
 	-------
-	ind : np.ndarray)
+	ind : np.ndarray
 		Array of indices in `phi` containing peak `mu` values.
 
 	lb_ind : np.ndarray
@@ -265,7 +309,7 @@ def _phi_hat(k, mu, sigma, height, peak_shape):
 
 	Returns
 	-------
-	phi_hat : rp.rparray
+	phi_hat : np.ndarray
 		Array of the estimated pdf using the inputted peak parameters.
 
 	y_scaled : np.ndarray
@@ -284,7 +328,6 @@ def _phi_hat(k, mu, sigma, height, peak_shape):
 
 	#scale peaks to inputted height
 	H = np.max(y, axis=0)
-	height = rparray(height, len(height))
 	y_scaled = y*height/H
 
 	#calculate phi_hat
@@ -337,22 +380,6 @@ def _phi_hat_diff(params, k, phi, peak_shape):
 	phi_hat, _ = _phi_hat(k, mu, sigma, height, peak_shape)
 
 	return phi_hat - phi
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

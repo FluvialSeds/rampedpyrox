@@ -60,7 +60,8 @@ def assert_len(data, n):
 	return np.array(data).astype(float)
 
 #define package-level function for calculating L curves
-def calc_L_curve(model, timedata, ax=None, plot=False, **kwargs):
+def calc_L_curve(model, timedata, ax=None, plot=False, nOm = 150, 
+	om_max = 1e2, om_min = 1e-3):
 	'''
 	Function to calculate the L-curve for a given model and timedata
 	instance in order to choose the best-fit smoothing parameter, omega.
@@ -102,8 +103,13 @@ def calc_L_curve(model, timedata, ax=None, plot=False, **kwargs):
 	axis : None or matplotlib.axis
 		If ``plot=True``, returns an updated axis handle with plot.
 	
-	Notes
-	-----
+	Raises
+	------
+	TypeError
+		If `om_max` or `om_min` are not int or float.
+
+	TypeError
+		If `nOm` is not int.
 
 	See Also
 	--------
@@ -126,7 +132,8 @@ def calc_L_curve(model, timedata, ax=None, plot=False, **kwargs):
 	1-35.
 	'''
 
-	return model.calc_L_curve(timedata, ax=ax, plot=plot, **kwargs)
+	return model.calc_L_curve(timedata, ax=ax, plot=plot, nOm = 150, 
+		om_max = 1e2, om_min = 1e-3)
 
 #define function to derivatize an array wrt another array
 def derivatize(num, denom):
@@ -195,11 +202,11 @@ def derivatize(num, denom):
 
 	#note recursive list comprehension when dimensions are different
 	elif num.ndim == 2 and denom.ndim == 1:
-		col_der = [_derivatize(col, denom) for col in num.T]
+		col_der = [derivatize(col, denom) for col in num.T]
 		dndd = np.column_stack(col_der)
 
 	elif num.ndim == 1 and denom.ndim == 2:
-		col_der = [_derivatize(num, col) for col in denom.T]
+		col_der = [derivatize(num, col) for col in denom.T]
 		dndd = np.column_stack(col_der)
 
 	return dndd
@@ -233,15 +240,9 @@ def round_to_sigfig(vec, sig_figs=6):
 	rnd = lambda x, n: round(x, -int(np.floor(np.log10(abs(x)))) + n - 1)
 
 	#use list comprehension to round the vector
-	vec_round = [rnd(x, sig_figs) for x in vec if x != 0]
+	vec_round = [rnd(x, sig_figs) if x != 0 else x for x in vec]
 
-	# p = sig_figs
-	# order = np.floor(np.log10(vec))
-	# vecH = 10**(p-order-1)*vec
-	# vec_rnd_log = np.round(vecH)
-	# vec_round = vec_rnd_log/10**(p-order-1)
-
-	return vec_round
+	return np.array(vec_round)
 
 
 

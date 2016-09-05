@@ -33,13 +33,10 @@ from rampedpyrox.ratedata.ratedata import (
 	EnergyComplex
 	)
 
-#import package-level classes
-from rampedpyrox.core.array_classes import (
-	rparray
-	)
-
 #import package-level functions
 from rampedpyrox.core.core_functions import (
+	assert_len,
 	calc_L_curve,
 	derivatize,
+	round_to_sigfig,
 	)

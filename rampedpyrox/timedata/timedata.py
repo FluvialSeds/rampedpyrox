@@ -8,12 +8,6 @@ import warnings
 
 from numpy.linalg import norm
 
-#FIX THIS FOR CYCLICAL IMPORTING!!
-#import other rampedpyrox classes
-from rampedpyrox.ratedata.ratedata import(
-	EnergyComplex
-	)
-
 #import helper functions
 from rampedpyrox.core.core_functions import(
 	assert_len,
@@ -246,7 +240,7 @@ class TimeData(object):
 			ax.plot(md[0], md[1],
 				linewidth=2,
 				color='r',
-				label='Modeled Data')
+				label='Modeled data')
 
 			#plot individual components as shaded regions
 			for cpt in md[2].T:
@@ -254,7 +248,7 @@ class TimeData(object):
 				ax.fill_between(md[0], 0, cpt,
 					color='k',
 					alpha=0.2,
-					label='Components (n=%.0f)' %self.nPeak)
+					label='Components (n = %.0f)' %self.nPeak)
 
 		#remove duplicate legend entries
 		han_list, lab_list = _rem_dup_leg(ax)
@@ -281,9 +275,9 @@ class RpoThermogram(TimeData):
 
 	Keyword Arguments
 	-----------------
-	g : scalar or array-like
+	g : None or array-like
 		Array of the true fraction of carbon remaining at each timepoint,
-		with length nt. Defaults to zeros.
+		with length nt. Defaults to None.
 
 	g_std : scalar or array-like
 		Standard deviation of `g`, with length nt. Defaults to zeros.
@@ -298,7 +292,10 @@ class RpoThermogram(TimeData):
 		If `t` is not array-like.
 
 	TypeError
-		If `g`, `g_std`, `T`, or `T_std` are not scalar or array-like.
+		If `g_std`, `T`, or `T_std` are not scalar or array-like.
+
+	TypeError
+		If `g` is not None or array-like.
 
 	ValueError
 		If any of `T`, `g`, `g_std`, or `T_std` are not length nt.
@@ -307,9 +304,6 @@ class RpoThermogram(TimeData):
 	--------
 	If attempting to use isothermal data to create an ``RpoThermogram``
 	instance.
-
-	Notes
-	-----
 
 	See Also
 	--------
@@ -443,11 +437,15 @@ class RpoThermogram(TimeData):
 		The inverse model used to calculate estimated thermogram.
 
 	nPeak : int
-		Number of Gaussian peaks in estimated thermogram (*i.e.* number of 
-		components)
+		Number of peaks in estimated thermogram, after being combined (*i.e.* 
+		number of components)
 
 	nt : int
 		Number of timepoints.
+
+	peak_info : pd.DataFrame
+		``pd.DataFrame`` instance containing the forward-modeled peak
+		summary info: t max, T max, max rate, and relative area.
 
 	red_chi_sq : float
 		The reduced chi square metric for the model fit.
@@ -579,8 +577,12 @@ class RpoThermogram(TimeData):
 		input_estimated
 			Method used for inputting model-estimated data
 		'''
+		
+		#import other rampedpyrox classes
+		from .. import ratedata as rd
+
 		#warn if using isothermal model
-		if not isinstance(ratedata, EnergyComplex):
+		if not isinstance(ratedata, rd.EnergyComplex):
 			warnings.warn((
 				"Attempting to use ratedata of type: %s to forward-model"
 				"RPO results! Consider using EnergyComplex instead."
@@ -718,10 +720,6 @@ class RpoThermogram(TimeData):
 			rd = rd)
 
 		return ax
-
-
-
-
 
 
 

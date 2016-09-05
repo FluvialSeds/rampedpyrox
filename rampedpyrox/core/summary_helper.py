@@ -19,7 +19,7 @@ def _timedata_peak_info(timedata):
 
 	Returns
 	-------
-	df : pd.DataFrame
+	peak_info : pd.DataFrame
 		DataFrame instance of resulting peak info.
 
 	Raises
@@ -39,21 +39,65 @@ def _timedata_peak_info(timedata):
 	pd.set_option('precision', 2)
 
 	#calculate peak indices
-	i = np.argmax(-self.dcmptdt, axis=0)
+	i = np.argmax(-timedata.dcmptdt, axis=0)
 
 	#extract info at peaks
-	t_max = self.t[i]
-	T_max = self.T[i]
-	height_t = -self.dcmptdt[i]
-	height_T = -self.dcmptdT[i]
-	rel_area = np.max(self.cmpt, axis=0)
+	t_max = timedata.t[i]
+	T_max = timedata.T[i]
+	height_t = np.diag(-timedata.dcmptdt[i])
+	height_T = np.diag(-timedata.dcmptdT[i])
+	rel_area = timedata.cmpt[0,:]
 
 	peak_info = np.column_stack((t_max, T_max, height_t, height_T, rel_area))
 	peak_info = pd.DataFrame(peak_info, 
-		columns = ['t_max (s)', 'T_max (K)', 'max_rate (frac/s)', \
-			'max_rate (frac/K)','rel. area'],
-		index = np.arange(1, self.nPeak + 1))
+		columns = ['t max (s)', 'T max (K)', 'max rate (frac/s)', \
+			'max rate (frac/K)','rel. area'],
+		index = np.arange(1, timedata.nPeak + 1))
 
+	return peak_info
 
+def _energycomplex_peak_info(ratedata, peak_info):
+	'''
+	Calculates the ``EnergyComplex`` instance peak info and stores as a 
+	``pd.DataFrame``.
 
+	Parameters
+	----------
+	ratedata : rp.EnergyComplex
+		EnergyComplex instance containing peaks to be summarized.
+
+	peak_info : np.ndarray
+		2d array of peak mu, sigma, and height
+
+	Returns
+	-------
+	peak_info : pd.DataFrame
+		DataFrame instance of resulting peak info.
+
+	Raises
+	------
+	AttributeError
+		If EnergyComplex instance does not contain necessary attributes (i.e. if it
+		does not have inputted model-estimated data).
+	'''
+
+	#raise exception if timedata doesn't contain peaks
+	if not hasattr(ratedata, 'peaks'):
+		raise AttributeError((
+			"RateData instance contains no model-fitted data! Run inverse"
+			"model before trying to summarize peaks."))
+
+	#set pandas display options
+	pd.set_option('precision', 2)		
+
+	#calculate relative area and append to peak_info
+	rel_area = np.sum(ratedata.peaks, axis = 0)/np.sum(ratedata.peaks)
+	peak_info = np.column_stack((peak_info, rel_area))
+
+	#combine peak_info into pandas dataframe
+	peak_info = pd.DataFrame(peak_info, 
+		columns = ['mu (kJ)', 'sigma (kJ)', 'height', 'rel. area'],
+		index = np.arange(1, ratedata.nPeak + 1))
+
+	return peak_info
 

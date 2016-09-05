@@ -7,10 +7,13 @@ import numpy as np
 from numpy.linalg import norm
 from scipy.optimize import nnls
 
-#import container classes
-from rampedpyrox.core.array_classes import(
-	rparray
+#import helper functions
+from rampedpyrox.core.core_functions import(
+	assert_len,
+	# derivatize,
+	# round_to_sigfig,
 	)
+
 
 #define a function to generate estimated time data from model and ratedata
 def _calc_cmpt(model, ratedata):
@@ -29,7 +32,7 @@ def _calc_cmpt(model, ratedata):
 	Returns
 	-------
 	cmpt : np.ndarray
-		A 2d rparray of the fraction of each component remaining at each
+		A 2d array of the fraction of each component remaining at each
 		timepoint.
 
 	Raises
@@ -60,7 +63,7 @@ def _calc_phi(model, timedata, omega):
 
 	Returns
 	-------
-	phi : rparray
+	phi : np.ndarray
 		Array of the pdf of the discretized distribution of Ea, f(Ea).
 
 	resid_err : float
@@ -89,11 +92,10 @@ def _calc_phi(model, timedata, omega):
 	rgh = np.inner(R, phi)
 
 	#calculate errors
-	resid_err = norm(timedata.g-g_hat)/nt
+	resid_err = norm(timedata.g - g_hat)/nt
 	rgh_err = norm(rgh)/nk
 
 	return phi, resid_err, rgh_err
-
 
 #define a function to calculate the Tikhonov regularization matrix
 def _calc_R(n):
@@ -107,7 +109,7 @@ def _calc_R(n):
 
 	Returns
 	-------
-	R : rparray
+	R : np.ndarray
 		Regularization matrix of size [n+1 x n].
 
 	References
@@ -127,8 +129,7 @@ def _calc_R(n):
 		if i != 0 and i != n:
 			row[i - 1:i + 1] = c
 
-	return rparray(R, n + 1)
-
+	return R
 
 #define function to calculte the A matrix for Daem models
 def _rpo_calc_A(Ea, log10k0, t, T):
@@ -153,28 +154,28 @@ def _rpo_calc_A(Ea, log10k0, t, T):
 
 	Returns
 	-------
-	A : rparray
-		2d rparray of the Laplace transform for the Daem model. 
+	A : np.ndarray
+		2d array of the Laplace transform for the Daem model. 
 		Shape [nt x nEa].
 	'''
+
 	#set constants
 	nt = len(t)
 	nEa = len(Ea)
 	R = 8.314/1000 #kJ/mol/K
 
 	#get arrays in the right format and ensure lengths
-	Ea = rparray(Ea, nEa) #kJ
-	t = rparray(t, nt) #s
-	T = rparray(T, nt) #K
+	Ea = assert_len(Ea, nEa) #kJ
+	t = assert_len(t, nt) #s
+	T = assert_len(T, nt) #K
 
 	#get log10k0 into the right format
 	if hasattr(log10k0,'__call__'):
 		log10k0 = log10k0(Ea)
-	log10k0 = rparray(log10k0, nEa) 
+	log10k0 = assert_len(log10k0, nEa) 
 	k0 = 10**log10k0 #s-1
 
-	# del_t = t[1]-t[0] #s
-	# del_eps = eps[1]-eps[0] #kJ
+	#calculate time and Ea gradients
 	dt = np.gradient(t)
 	dEa = np.gradient(Ea)
 
@@ -195,7 +196,7 @@ def _rpo_calc_A(Ea, log10k0, t, T):
 
 		#generate A for row i (i.e. for each timepoint) and store in A
 		hE_mat = -k0_mat*dtau*np.exp(-eps_mat/(R*u_mat)) #unitless, [nEa,i]
-		A[i] = np.exp(np.sum(hE_mat,axis=1))*dEa #kJ
+		A[i] = np.exp(np.sum(hE_mat, axis = 1))*dEa #kJ
 
 	return A
 
