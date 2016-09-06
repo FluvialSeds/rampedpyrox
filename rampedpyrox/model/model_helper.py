@@ -10,8 +10,6 @@ from scipy.optimize import nnls
 #import helper functions
 from rampedpyrox.core.core_functions import(
 	assert_len,
-	# derivatize,
-	# round_to_sigfig,
 	)
 
 
@@ -66,10 +64,10 @@ def _calc_f(model, timedata, omega):
 	f : np.ndarray
 		Array of the pdf of the discretized distribution of Ea, f(Ea).
 
-	resid_err : float
+	resid_rmse : float
 		Residual RMSE between true and modeled thermogram.
 
-	rgh_err : float
+	rgh_rmse : float
 		Roughness RMSE from Tikhonov Regularization.
 	'''
 

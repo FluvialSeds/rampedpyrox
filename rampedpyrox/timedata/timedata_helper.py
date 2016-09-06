@@ -97,6 +97,8 @@ def _rpo_extract_tg(file, nt, err):
 	T = fT(t) + 273.15 #convert to K
 	g = 1-fg(t)
 	g_std = 0.5*(fg_p(t) - fg_m(t))
-	
+	g_min = fg_m(t)
+	g_max = fg_p(t)
+
 	return g, g_std, t, T
 

@@ -101,3 +101,80 @@ def _energycomplex_peak_info(ratedata, peak_info):
 
 	return peak_info
 
+def _rpo_isotopes_frac_info(rpoisotopes):
+	'''
+	Calculates the ``RpoIsotopes`` instance fraction info and stores as a
+	``pd.DataFrame`` instance.
+
+	Parameters
+	----------
+	rpoisotopes : rp.RpoIsotopes
+		RpoIsotopes instance containing fractions to be summarized.
+
+	Returns
+	-------
+	frac_info : pd.DataFrame
+		DataFrame instance of resulting fraction info.
+	'''
+
+	#create empty list to store existing data
+	info = []
+
+	#create empty list to store name strings
+	names = []
+
+	#add t_frac
+	info.append(rpoisotopes.t_frac[:,0])
+	info.append(rpoisotopes.t_frac[:,1])
+	names.append('t0 (s)')
+	names.append('tf (s)')
+
+	#go through each measurement and add if it exists
+	if hasattr(rpoisotopes, 'm_frac'):
+		info.append(rpoisotopes.m_frac)
+		info.append(rpoisotopes.m_frac_std)
+		names.append('mass (ugC)')
+		names.append('mass std. (ugC)')
+
+	if hasattr(rpoisotopes, 'd13C_frac'):
+		info.append(rpoisotopes.d13C_frac)
+		info.append(rpoisotopes.d13C_frac_std)
+		names.append('d13C (VPDB)')
+		names.append('d13C std. (VPDB)')
+
+	if hasattr(rpoisotopes, 'Fm_frac'):
+		info.append(rpoisotopes.Fm_frac)
+		info.append(rpoisotopes.Fm_frac_std)
+		names.append('Fm')
+		names.append('Fm std.')
+
+	info = np.column_stack(info)
+	
+	#set pandas display options
+	pd.set_option('precision', 2)
+
+	#store in dataframe
+	frac_info = pd.DataFrame(info,
+		columns = names,
+		index = np.arange(1, rpoisotopes.nFrac + 1))
+
+	return frac_info
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

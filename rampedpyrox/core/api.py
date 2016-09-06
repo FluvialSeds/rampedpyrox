@@ -33,6 +33,11 @@ from rampedpyrox.ratedata.ratedata import (
 	EnergyComplex
 	)
 
+#import results classes
+from rampedpyrox.results.results import (
+	RpoIsotopes
+	)
+
 #import package-level functions
 from rampedpyrox.core.core_functions import (
 	assert_len,

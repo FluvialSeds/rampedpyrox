@@ -535,6 +535,9 @@ class RpoThermogram(TimeData):
 
 		See Also
 		--------
+		RpoIsotopes.from_csv
+			Classmethod for creating ``rp.RpoIsotopes`` instance directly from
+			a .csv file.
 		'''
 
 		#extract data from file

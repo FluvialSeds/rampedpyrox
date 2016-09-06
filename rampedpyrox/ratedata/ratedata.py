@@ -143,7 +143,7 @@ class RateData(object):
 			raise TypeError('omega must be int, float, or "auto"')
 
 		#generate regularized "true" pdf, f
-		f, resid_err, rgh_err = _calc_f(model, timedata, omega)
+		f, resid_rmse, rgh_rmse = _calc_f(model, timedata, omega)
 
 		#create class instance
 		rd = cls(k, f = f)
@@ -157,14 +157,14 @@ class RateData(object):
 		#input estimated data
 		rd.input_estimated(model.model_type, peaks, peak_info, 
 			omega = omega,
-			resid_err = resid_err,
-			rgh_err = rgh_err)
+			resid_rmse = resid_rmse,
+			rgh_rmse = rgh_rmse)
 
 		return rd
 
 	#define a method to input estimated rate data
 	def input_estimated(self, model_type, peaks, omega = None,
-		resid_err = None, rgh_err = None):
+		resid_rmse = None, rgh_rmse = None):
 		'''
 		Inputs estimated data into a ``RateData`` instance.
 
@@ -182,10 +182,10 @@ class RateData(object):
 			Smoothing weighting factor for Tikhonov regularization. Defaults
 			to 'auto'.
 
-		resid_err : float
+		resid_rmse : float
 			Residual RMSE from inverse model.
 
-		rgh_err : float
+		rgh_rmse : float
 			Roughness RMSE from inverse model.
 
 		Raises
@@ -212,8 +212,8 @@ class RateData(object):
 		self.model_type = model_type
 		self.nPeak = nPeak
 		self.peaks = peaks
-		self.resid_err = resid_err
-		self.rgh_err = rgh_err
+		self.resid_rmse = resid_rmse
+		self.rgh_rmse = rgh_rmse
 
 		#calculate phi and store
 		self.phi = np.sum(peaks, axis = 1)
@@ -383,8 +383,8 @@ class EnergyComplex(RateData):
 
 		ec.input_estimated(model_type, phi, peak_info, 
 			omega = None, 
-			resid_err = None,
-			rgh_err = None)
+			resid_rmse = None,
+			rgh_rmse = None)
 
 	Or, insteand run the inversion to generate an energy complex using an 
 	``rp.RpoThermogram`` instance, tg, and a ``Daem`` instance, daem::
@@ -467,12 +467,12 @@ class EnergyComplex(RateData):
 	red_chi_sq : float
 		The reduced chi square metric for the model fit.
 
-	resid_err : float
+	resid_rmse : float
 		The RMSE between the measured thermogram data and the estimated 
 		thermogram using the "true" pdf of Ea, f. Used for determining the
 		best-fit omega value.
 
-	rgh_err :
+	rgh_rmse :
 		The roughness "RMSE". Used for determining best-fit omega value.
 
 	rmse : float
@@ -636,7 +636,7 @@ class EnergyComplex(RateData):
 
 	#define a method to input estimated rate data
 	def input_estimated(self, model_type, peaks, peak_info, omega = None, 
-		resid_err = None, rgh_err = None):
+		resid_rmse = None, rgh_rmse = None):
 		'''
 		Inputs estimated rate data into the ``EnergyComplex`` instance and
 		calculates statistics.
@@ -659,10 +659,10 @@ class EnergyComplex(RateData):
 			Smoothing weighting factor for Tikhonov regularization. Defaults
 			to 'auto'.
 
-		resid_err : float
+		resid_rmse : float
 			Residual RMSE from inverse model.
 
-		rgh_err : float
+		rgh_rmse : float
 			Roughness RMSE from inverse model.
 
 		Raises
@@ -689,8 +689,8 @@ class EnergyComplex(RateData):
 
 		super(EnergyComplex, self).input_estimated(model_type, peaks,
 			omega = omega,
-			resid_err = resid_err,
-			rgh_err = rgh_err)
+			resid_rmse = resid_rmse,
+			rgh_rmse = rgh_rmse)
 
 		#input EnergyComplex peak info
 		self.peak_info = _energycomplex_peak_info(self, peak_info)
