@@ -18,7 +18,7 @@ from rampedpyrox.ratedata.ratedata_helper import(
 	)
 
 from rampedpyrox.model.model_helper import(
-	_calc_phi,
+	_calc_f,
 	)
 
 from rampedpyrox.core.plotting_helper import(
@@ -114,8 +114,8 @@ class RateData(object):
 		Notes
 		-----
 		This method calculates peaks according to changes in curvature in the
-		`phi` array resulting from the inverse model. Each bounded section 
-		with a negative second derivative (i.e. concave down) and `phi` value 
+		`f` array resulting from the inverse model. Each bounded section 
+		with a negative second derivative (i.e. concave down) and `f` value 
 		above `thres` is considered a unique peak. If `nPeaks` is not 'auto', 
 		these peaks are sorted according to decreasing peak heights and the 
 		first `nPeaks` peaks are saved.
@@ -143,7 +143,7 @@ class RateData(object):
 			raise TypeError('omega must be int, float, or "auto"')
 
 		#generate regularized "true" pdf, f
-		f, resid_err, rgh_err = _calc_phi(model, timedata, omega)
+		f, resid_err, rgh_err = _calc_f(model, timedata, omega)
 
 		#create class instance
 		rd = cls(k, f = f)
@@ -573,8 +573,8 @@ class EnergyComplex(RateData):
 		Notes
 		-----
 		This method calculates peaks according to changes in curvature in the
-		`phi` array resulting from the inverse model. Each bounded section 
-		with a negative second derivative (i.e. concave down) and `phi` value 
+		`f` array resulting from the inverse model. Each bounded section 
+		with a negative second derivative (i.e. concave down) and `f` value 
 		above `thres` is considered a unique peak. If `nPeaks` is not 'auto', 
 		these peaks are sorted according to decreasing peak heights and the 
 		first `nPeaks` peaks are saved.

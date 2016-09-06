@@ -44,7 +44,7 @@ def _calc_cmpt(model, ratedata):
 	return np.inner(model.A, ratedata.peaks.T)
 
 #define a function to generate estimated rate data from model and timedata
-def _calc_phi(model, timedata, omega):
+def _calc_f(model, timedata, omega):
 	'''
 	Calculates the reactive continuum of rates (or Ea, for Daem) for a given
 	``TimeData`` and ``Model`` instance.
@@ -63,7 +63,7 @@ def _calc_phi(model, timedata, omega):
 
 	Returns
 	-------
-	phi : np.ndarray
+	f : np.ndarray
 		Array of the pdf of the discretized distribution of Ea, f(Ea).
 
 	resid_err : float
@@ -87,15 +87,15 @@ def _calc_phi(model, timedata, omega):
 		(timedata.g, np.zeros(nk+1)))
 
 	#calculate inverse results and estimated g
-	phi, _ = nnls(A_reg, g_reg)
-	g_hat = np.inner(model.A, phi)
-	rgh = np.inner(R, phi)
+	f, _ = nnls(A_reg, g_reg)
+	g_hat = np.inner(model.A, f)
+	rgh = np.inner(R, f)
 
 	#calculate errors
-	resid_err = norm(timedata.g - g_hat)/nt
-	rgh_err = norm(rgh)/nk
+	resid_rmse = norm(timedata.g - g_hat)/nt**0.5
+	rgh_rmse = norm(rgh)/nk**0.5
 
-	return phi, resid_err, rgh_err
+	return f, resid_rmse, rgh_rmse
 
 #define a function to calculate the Tikhonov regularization matrix
 def _calc_R(n):

@@ -9,18 +9,18 @@ import warnings
 from scipy.optimize import least_squares
 
 
-#define a function to deconvolve phi
-def _deconvolve(k, phi, nPeaks = 'auto', peak_shape = 'Gaussian', 
+#define a function to deconvolve f
+def _deconvolve(k, f, nPeaks = 'auto', peak_shape = 'Gaussian', 
 	thres = 0.05):
 	'''
-	Deconvolves phi into individual peaks.
+	Deconvolves f into individual peaks.
 
 	Parameters
 	----------
 	k : array-like
 		Array of k/Ea values considered in the model.
 
-	phi : array-like
+	f : array-like
 		Array of a discretized pdf of the distribution of k/Ea values.
 
 	Keyword Arguments
@@ -82,13 +82,13 @@ def _deconvolve(k, phi, nPeaks = 'auto', peak_shape = 'Gaussian',
 
 
 	#find peak indices and bounds
-	ind, lb_ind, ub_ind = _peak_indices(phi, nPeaks=nPeaks, thres=thres)
+	ind, lb_ind, ub_ind = _peak_indices(f, nPeaks=nPeaks, thres=thres)
 
 	#calculate initial guess parameters
 	n = len(ind)
 	mu0 = k[ind]
 	sigma0 = 10*np.ones(n) #arbitrarily guess sigma = 10
-	height0 = phi[ind]
+	height0 = f[ind]
 
 	#pack together for least_squares
 	params = np.hstack((mu0,sigma0,height0))
@@ -96,15 +96,15 @@ def _deconvolve(k, phi, nPeaks = 'auto', peak_shape = 'Gaussian',
 	#calculate bounds
 	lb_mu = k[lb_ind]; ub_mu = k[ub_ind]
 	lb_sig = np.zeros(n); ub_sig = np.ones(n)*np.max(k)/2.
-	lb_height = np.zeros(n); ub_height = np.ones(n)*np.max(phi)
+	lb_height = np.zeros(n); ub_height = np.ones(n)*np.max(f)
 
 	lb = np.hstack((lb_mu,lb_sig,lb_height))
 	ub = np.hstack((ub_mu,ub_sig,ub_height))
 	bounds = (lb,ub)
 
 	#run least-squares fit
-	res = least_squares(_phi_hat_diff, params,
-		args=(k, phi, peak_shape),
+	res = least_squares(_f_phi_diff, params,
+		args=(k, f, peak_shape),
 		bounds=bounds,
 		method='trf')
 
@@ -121,7 +121,7 @@ def _deconvolve(k, phi, nPeaks = 'auto', peak_shape = 'Gaussian',
 	peak_info = np.column_stack((mu, sigma, height))
 
 	#calculate peak arrays
-	_, peaks = _phi_hat(k, mu, sigma, height, peak_shape)
+	_, peaks = _calc_phi(k, mu, sigma, height, peak_shape)
 
 	return peaks, peak_info
 
@@ -187,14 +187,14 @@ def _gaussian(x, mu, sigma):
 	return np.array(y)
 
 #define a function to find the indices of each peak in `k`.
-def _peak_indices(phi, nPeaks='auto', thres=0.05):
+def _peak_indices(f, nPeaks='auto', thres=0.05):
 	'''
-	Finds the indices and the bounded range of the mu values for peaks in phi.
+	Finds the indices and the bounded range of the mu values for peaks in f.
 
 	Parameters
 	----------
-	phi : np.ndarray
-		Array of the pdf of the discretized distribution of Ea/k, phi.
+	f : np.ndarray
+		Array of the pdf of the discretized distribution of Ea/k, f.
 
 	nPeaks : int or str
 		Number of peaks to use in deconvolution, either an integer or 
@@ -208,14 +208,14 @@ def _peak_indices(phi, nPeaks='auto', thres=0.05):
 	Returns
 	-------
 	ind : np.ndarray
-		Array of indices in `phi` containing peak `mu` values.
+		Array of indices in `f` containing peak `mu` values.
 
 	lb_ind : np.ndarray
-		Array of indices in `phi` containing the lower bound for each peak
+		Array of indices in `f` containing the lower bound for each peak
 		`mu` value.
 
 	ub_ind : np.ndarray
-		Array of indices in `phi` containing the upper bound for each peak
+		Array of indices in `f` containing the upper bound for each peak
 		`mu` value.
 
 	Raises
@@ -232,27 +232,27 @@ def _peak_indices(phi, nPeaks='auto', thres=0.05):
 	Notes
 	-----
 	This method calculates peaks according to changes in curvature in the
-	`phi` array. Each bounded section with a negative second derivative (i.e.
-	concave down) and `phi` value above `thres` is considered a unique peak.
+	`f` array. Each bounded section with a negative second derivative (i.e.
+	concave down) and `f` value above `thres` is considered a unique peak.
 	If `nPeaks` is not 'auto', these peaks are sorted according to decreasing
 	peak heights and the first `nPeaks` peaks are saved.
 	'''
 
 	#convert thres to absolute value
-	thres = thres*(np.max(phi)-np.min(phi))+np.min(phi)
+	thres = thres*(np.max(f)-np.min(f))+np.min(f)
 
 	#calculate derivatives
-	dphi = np.gradient(phi)
-	d2phi = np.gradient(dphi)
+	df = np.gradient(f)
+	d2f = np.gradient(df)
 
 	#calculate bounds such that second derivative is <= 0
 	lb_ind = np.where(
-		(d2phi <= 0) &
-		(np.hstack([0.,d2phi[:-1]]) > 0))[0]
+		(d2f <= 0) &
+		(np.hstack([0.,d2f[:-1]]) > 0))[0]
 
 	ub_ind = np.where(
-		(d2phi > 0) &
-		(np.hstack([0.,d2phi[:-1]]) <= 0))[0]
+		(d2f > 0) &
+		(np.hstack([0.,d2f[:-1]]) <= 0))[0]
 
 	#remove first UB (initial increase), last LB (final decrease), and check len
 	ub_ind = ub_ind[1:]
@@ -260,25 +260,25 @@ def _peak_indices(phi, nPeaks='auto', thres=0.05):
 	if len(ub_ind) is not len(lb_ind):
 		raise ValueError('UB and LB arrays have different lenghts')
 
-	#find index of minimum d2phi within each bounded range
+	#find index of minimum d2f within each bounded range
 	ind = []
 	for i,j in zip(lb_ind,ub_ind):
-		ind.append(i+np.argmin(d2phi[i:j]))
+		ind.append(i+np.argmin(d2f[i:j]))
 	#convert ind to ndarray
 	ind = np.array(ind)
 
 	#remove peaks below threshold
-	ab = np.where(phi[ind] >= thres)
+	ab = np.where(f[ind] >= thres)
 	ind = ind[ab]; lb_ind = lb_ind[ab]; ub_ind = ub_ind[ab]
 
-	#retain first nPeaks according to decreasing phi[mu]
+	#retain first nPeaks according to decreasing f[mu]
 	if isinstance(nPeaks,int):
 		#check if nPeaks is greater than the total amount of peaks
 		if len(ind) < nPeaks:
 			raise ValueError('nPeaks greater than total detected peaks')
 
-		#sort according to decreasing phi, keep first nPeaks, and re-sort
-		ind_sorted = np.argsort(phi[ind])[::-1]
+		#sort according to decreasing f, keep first nPeaks, and re-sort
+		ind_sorted = np.argsort(f[ind])[::-1]
 		i = np.sort(ind_sorted[:nPeaks])
 
 		ind = ind[i]; lb_ind = lb_ind[i]; ub_ind = ub_ind[i]
@@ -288,10 +288,10 @@ def _peak_indices(phi, nPeaks='auto', thres=0.05):
 
 	return ind, lb_ind, ub_ind
 
-#define function to generate fitted phi distribution, phi_hat
-def _phi_hat(k, mu, sigma, height, peak_shape):
+#define function to generate fitted f distribution, phi
+def _calc_phi(k, mu, sigma, height, peak_shape):
 	'''
-	Calculates phi hat for given parameters and peak shape
+	Calculates phi for given parameters and peak shape
 
 	Parameters
 	----------
@@ -309,10 +309,10 @@ def _phi_hat(k, mu, sigma, height, peak_shape):
 
 	Returns
 	-------
-	phi_hat : np.ndarray
+	phi : np.ndarray
 		Array of the estimated pdf using the inputted peak parameters.
 
-	y_scaled : np.ndarray
+	peaks : np.ndarray
 		Array of individual estimated Ea Gaussian peaks. Shape is 
 		[len(eps) x len(mu)].
 	'''
@@ -328,17 +328,17 @@ def _phi_hat(k, mu, sigma, height, peak_shape):
 
 	#scale peaks to inputted height
 	H = np.max(y, axis=0)
-	y_scaled = y*height/H
+	peaks = y*height/H
 
-	#calculate phi_hat
-	phi_hat = np.sum(y_scaled, axis=1)
+	#calculate phi
+	phi = np.sum(peaks, axis=1)
 
-	return phi_hat, y_scaled
+	return phi, peaks
 
-#define function to calculate the difference between true and estimated phi.
-def _phi_hat_diff(params, k, phi, peak_shape):
+#define function to calculate the difference between true and estimated f(Ea).
+def _f_phi_diff(params, k, f, peak_shape):
 	'''
-	Calculates the difference between phi and phi_hat for scipy least_squares.
+	Calculates the difference between f and phi for scipy least_squares.
 
 	Parameters
 	----------
@@ -349,13 +349,13 @@ def _phi_hat_diff(params, k, phi, peak_shape):
 	k : np.ndarray
 		Array of k/Ea values, length nk.
 
-	phi : np.ndarray
-		Array of the pdf of the discretized distribution of Ea/k, phi.
+	f : np.ndarray
+		Array of the pdf of the discretized distribution of Ea/k, f.
 
 	Returns
 	-------
 	diff : np.ndarray
-		Array of the difference between `phi_hat` and `phi` at each point,
+		Array of the difference between `phi` and `f` at each point,
 		length nk.
 
 	Raises
@@ -376,10 +376,10 @@ def _phi_hat_diff(params, k, phi, peak_shape):
 	height = params[2*n:]
 
 
-	#calculate phi_hat
-	phi_hat, _ = _phi_hat(k, mu, sigma, height, peak_shape)
+	#calculate phi
+	phi, _ = _calc_phi(k, mu, sigma, height, peak_shape)
 
-	return phi_hat - phi
+	return phi - f
 
 
 

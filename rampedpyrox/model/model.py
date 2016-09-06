@@ -1,8 +1,5 @@
 '''
 This module contains the Model superclass and all corresponding subclasses.
-
-* TODO: add modeled L curve method
-
 '''
 
 import matplotlib.pyplot as plt
@@ -16,7 +13,7 @@ from rampedpyrox.core.core_functions import(
 	)
 
 from rampedpyrox.model.model_helper import(
-	_calc_phi,
+	_calc_f,
 	_rpo_calc_A,
 	)
 
@@ -70,8 +67,8 @@ class Model(object):
 		raise NotImplementedError
 
 	#define a method for calculating the L curve
-	def calc_L_curve(self, timedata, ax = None, plot = False, nOm = 150, 
-		om_max = 1e2, om_min = 1e-3):
+	def calc_L_curve(self, timedata, ax = None, nOm = 150, om_max = 1e2, 
+		om_min = 1e-3, plot = False):
 		'''
 		Function to calculate the L-curve for a given model and timedata
 		instance in order to choose the best-fit smoothing parameter, omega.
@@ -89,10 +86,6 @@ class Model(object):
 			creates a ``matplotlip.axis`` instance to return. Defaults to 
 			`None`.
 
-		plot : Boolean
-			Tells the method to plot the resulting L curve or not. Defaults to
-			False.
-
 		nOm : int
 			Number of omega values to consider. Defaults to 150.
 
@@ -101,6 +94,10 @@ class Model(object):
 
 		om_min : int
 			Minimum omega value to search. Defaults to 1e-3.
+
+		plot : Boolean
+			Tells the method to plot the resulting L curve or not. Defaults to
+			False.
 
 		Returns
 		-------
@@ -155,7 +152,7 @@ class Model(object):
 
 		#for each omega value in the vector, calculate the errors
 		for i, w in enumerate(om_vec):
-			_, res, rgh = _calc_phi(self, timedata, w)
+			_, res, rgh = _calc_f(self, timedata, w)
 			res_vec.append(res)
 			rgh_vec.append(rgh)
 
@@ -197,13 +194,15 @@ class Model(object):
 				label=r'best-fit $\omega$')
 
 			#set axis labels and text
-			ax.set_xlabel(r'$log_{10} \parallel A\phi - g \parallel$')
-			ax.set_ylabel(r'$log_{10} \parallel R\phi \parallel$')
+			ax.set_xlabel(r'residual rmse, ' \
+				r'$log_{10} \parallel Af - g \parallel$')
+			ax.set_ylabel(r'roughness rmse, ' \
+				r'$log_{10} \parallel Rf \parallel$')
 
 			label1 = r'best-fit $\omega$ = %.3f' %(om_best)
-			label2 = r'$log_{10} \parallel A\phi - g \parallel$ = %.3f' \
+			label2 = r'$log_{10} \parallel Af - g \parallel$ = %.3f' \
 				%(res_vec[i])
-			label3 = r'$log_{10} \parallel R\phi \parallel$  = %0.3f' \
+			label3 = r'$log_{10} \parallel Rf \parallel$  = %0.3f' \
 				%(rgh_vec[i])
 
 			ax.text(0.5,0.95,label1+'\n'+label2+'\n'+label3,
