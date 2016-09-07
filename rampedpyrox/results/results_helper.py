@@ -9,6 +9,10 @@ import warnings
 from numpy.linalg import norm
 from scipy.optimize import least_squares
 
+from rampedpyrox.ratedata.ratedata_helper import(
+	_calc_phi
+	)
+
 #define a function to convert d13C to 13C/12C ratio.
 def _d13C_to_R13(d13C):
 	'''
@@ -46,6 +50,10 @@ def _kie_d13C(DEa, ind_wgh, model, result, ratedata):
 	ind_wgh : np.ndarray
 		Array of the mass-weighted center indices of each fraction.
 
+	model : rp.Model
+		Model instance containing the proper inversion model.
+		Used to calculate 13C rates.
+
 	result : rp.Result
 		Result instance containing d13C fraction data of interest.
 
@@ -71,11 +79,11 @@ def _kie_d13C(DEa, ind_wgh, model, result, ratedata):
 	----------
 	'''
 
-	#extract shapes
-	_, nPeak = np.shape(ratedata.peaks)
+	#extract shapes -- NPEAKS AFTER COMBINED!
+	_, nPc = np.shape(ratedata.peaks)
 
 	#set initial guess of 0 permille
-	r0 = _d13C_to_R13(np.ones(nPeak))
+	r0 = _d13C_to_R13(np.zeros(nPc))
 
 	#convert fraction d13C to R13
 	R13_frac = _d13C_to_R13(result.d13C_frac)
@@ -135,23 +143,38 @@ def _R13_CO2(DEa, model, R13_peak, ratedata):
 		If `R13C_peak` is not of length nPeak (after `combined`).
 	'''
 
-	#extract shapes and assert type/shape
-	_, nPeak = np.shape(ratedata.peaks)
-
-	if not isinstance(R13_peak, np.ndarray) or len(R13_peak) != nPeak:
-		raise ValueError('R13_peak must be array with len. nPeak (combined)')
+	#extract k/Ea (necessary since models have different nomenclature)
+	if hasattr(ratedata, 'k'):
+		k = ratedata.k
+	elif hasattr(ratedata, 'Ea'):
+		k = ratedata.Ea
 	
-	#extract 12C and 13C peaks and scale to correct heights
-	C12_peaks_scl = ratedata.peaks
-	C13_peaks_scl = (ratedata.peaks + DEa)*R13_peak
+	#extract 12C and 13C peaks from ratedata
+	C12_mu = ratedata._pkinf[:,0]
+	sigma = ratedata._pkinf[:,1]
+	C12_height = ratedata._pkinf[:,2]
 
-	#sum to create scaled phi arrays
-	C12_phi_scl = np.sum(C12_peaks_scl, axis = 1)
-	C13_phi_scl = np.sum(C13_peaks_scl, axis = 1)
+	#if peaks have been combined, repeat R13_peak as necessary
+	if ratedata._cmbd is not None:
+
+		#calculate indices of deleted peaks
+		dp = [val - i for i, val in enumerate(ratedata._cmbd)]
+		dp = np.array(dp) #convert to nparray
+		
+		#insert deleted peaks back in
+		R13_peak = np.insert(R13_peak, dp, R13_peak[dp-1])
+
+	#calculate C13 means and heights
+	C13_mu = C12_mu + DEa
+	C13_height = C12_height*R13_peak
+
+	#calculate the rate distribution for C12 and C13
+	C12_phi, _ = _calc_phi(k, C12_mu, sigma, C12_height, ratedata.peak_shape)
+	C13_phi, _ = _calc_phi(k, C13_mu, sigma, C13_height, ratedata.peak_shape)
 
 	#forward-model 13C and 12C gam
-	C12_gam = np.inner(model.A, C12_phi_scl)
-	C13_gam = np.inner(model.A, C13_phi_scl)
+	C12_gam = np.inner(model.A, C12_phi)
+	C13_gam = np.inner(model.A, C13_phi)
 
 	#convert to 13C and 12C thermograms, and calculate R13_CO2
 	C12_dgamdt = -np.gradient(C12_gam)

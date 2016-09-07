@@ -248,9 +248,19 @@ class RpoIsotopes(Results):
 
 		#raise exception if DEa is not int or array-like with length nPeak
 		if DEa is None:
-			DEa = assert_len(0, timedata.nPeak)
+			DEa = assert_len(0, ratedata.nPeak)
+		
 		else:
-			DEa = assert_len(DEa, timedata.nPeak)
+			try:
+				DEa = assert_len(DEa, ratedata.nPeak)
+			
+			except ValueError:
+				DEa = assert_len(DEa, timedata.nPeak)
+
+				#add DEa for deleted peaks so that len(DEa) = ratedata.nPeak
+				dp = [val - i for i, val in enumerate(ratedata._cmbd)]
+				dp = np.array(dp)
+				DEa = np.insert(DEa, dp, DEa[dp-1])
 
 		#calculate peak contribution to each fraction
 		cont_ptf, ind_min, ind_max, ind_wgh = _rpo_cont_ptf(self, timedata)

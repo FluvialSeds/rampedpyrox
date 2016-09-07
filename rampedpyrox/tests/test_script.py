@@ -39,4 +39,4 @@ ec = rp.EnergyComplex.inverse_model(daem, tg,
 	combined = [(6,7)])
 tg.forward_model(daem, ec)
 ri = rp.RpoIsotopes.from_csv(sum_data)
-ri.fit(daem, ec, tg, DEa = 0.01)
+ri.fit(daem, ec, tg, DEa = 0.0018)

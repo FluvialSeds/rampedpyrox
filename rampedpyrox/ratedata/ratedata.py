@@ -157,14 +157,15 @@ class RateData(object):
 		#input estimated data
 		rd.input_estimated(model.model_type, peaks, peak_info, 
 			omega = omega,
+			peak_shape = peak_shape,
 			resid_rmse = resid_rmse,
 			rgh_rmse = rgh_rmse)
 
 		return rd
 
 	#define a method to input estimated rate data
-	def input_estimated(self, model_type, peaks, omega = None,
-		resid_rmse = None, rgh_rmse = None):
+	def input_estimated(self, model_type, peaks, peak_info, omega = None,
+		peak_shape = 'Gaussian', resid_rmse = None, rgh_rmse = None):
 		'''
 		Inputs estimated data into a ``RateData`` instance.
 
@@ -176,11 +177,20 @@ class RateData(object):
 		peaks : np.ndarray
 			2d array of the pdf of individual peaks at each rate/Ea point.
 
+		peak_info : np.ndarray
+			2d array of peak mean, stdev., and height
+
 		Keyword Arguments
 		-----------------
 		omega : scalar or 'auto'
 			Smoothing weighting factor for Tikhonov regularization. Defaults
 			to 'auto'.
+
+		peak_shape : str
+			Peak shape to use for deconvolved peaks. Acceptable strings are:
+				'Gaussian'
+				'(add more later)'
+			Defaults to 'Gaussian'.
 
 		resid_rmse : float
 			Residual RMSE from inverse model.
@@ -211,9 +221,13 @@ class RateData(object):
 		self.dof = nk - 3*nPeak
 		self.model_type = model_type
 		self.nPeak = nPeak
+		self.peak_shape = peak_shape
 		self.peaks = peaks
 		self.resid_rmse = resid_rmse
 		self.rgh_rmse = rgh_rmse
+
+		#store protected _pkinf attribute (used for isotope calcs.)
+		self._pkinf = peak_info
 
 		#calculate phi and store
 		self.phi = np.sum(peaks, axis = 1)
@@ -499,6 +513,9 @@ class EnergyComplex(RateData):
 		nEa = len(Ea)
 		self.Ea = assert_len(Ea, nEa)
 		self.nEa = nEa
+		
+		#create protected _cmbd attribute to store combined peaks
+		self._cmbd = None
 
 		#check if fEa and store
 		if f is not None:
@@ -630,13 +647,19 @@ class EnergyComplex(RateData):
 				#store column indices to delete
 				del_pks.append(c[1:])
 
+			#flatten del_pks
+			del_pks = [item for sl in del_pks for item in sl]
+
 			ec.peaks = np.delete(pks, del_pks, axis = 1)
+
+			#store combined as protected attribute
+			ec._cmbd = del_pks
 
 		return ec
 
 	#define a method to input estimated rate data
 	def input_estimated(self, model_type, peaks, peak_info, omega = None, 
-		resid_rmse = None, rgh_rmse = None):
+		peak_shape = 'Gaussian', resid_rmse = None, rgh_rmse = None):
 		'''
 		Inputs estimated rate data into the ``EnergyComplex`` instance and
 		calculates statistics.
@@ -658,6 +681,12 @@ class EnergyComplex(RateData):
 		omega : scalar or 'auto'
 			Smoothing weighting factor for Tikhonov regularization. Defaults
 			to 'auto'.
+
+		peak_shape : str
+			Peak shape to use for deconvolved peaks. Acceptable strings are:
+				'Gaussian'
+				'(add more later)'
+			Defaults to 'Gaussian'.
 
 		resid_rmse : float
 			Residual RMSE from inverse model.
@@ -688,7 +717,9 @@ class EnergyComplex(RateData):
 				"such as 'Daem' instead." % model_type))
 
 		super(EnergyComplex, self).input_estimated(model_type, peaks,
+			peak_info,
 			omega = omega,
+			peak_shape = peak_shape,
 			resid_rmse = resid_rmse,
 			rgh_rmse = rgh_rmse)
 
