@@ -8,6 +8,7 @@ import warnings
 
 from numpy.linalg import norm
 from scipy.optimize import least_squares
+from scipy.optimize import nnls
 
 from rampedpyrox.ratedata.ratedata_helper import(
 	_calc_phi
@@ -38,7 +39,7 @@ def _d13C_to_R13(d13C):
 	return R13
 
 #define a function to calculate the d13C of each peak, incorporating any KIE
-def _kie_d13C(DEa, ind_wgh, model, result, ratedata):
+def _kie_d13C(DEa, ind_wgh, model, ratedata, vals):
 	'''
 	Calculates the d13C of each peak, accounting for any KIE fractionation.
 
@@ -86,7 +87,7 @@ def _kie_d13C(DEa, ind_wgh, model, result, ratedata):
 	r0 = _d13C_to_R13(np.zeros(nPc))
 
 	#convert fraction d13C to R13
-	R13_frac = _d13C_to_R13(result.d13C_frac)
+	R13_frac = _d13C_to_R13(vals)
 
 	#perform fit
 	res = least_squares(_R13_diff, r0,
@@ -106,7 +107,7 @@ def _kie_d13C(DEa, ind_wgh, model, result, ratedata):
 	d13C_frac_pred = _R13_to_d13C(R13_frac_pred)
 
 	#calculate err
-	d13C_err = norm(result.d13C_frac - d13C_frac_pred)
+	d13C_err = norm(vals - d13C_frac_pred)
 
 	return d13C_peak, d13C_err
 
@@ -336,7 +337,7 @@ def _rpo_blk_corr(d13C, d13C_std, Fm, Fm_std, m, m_std, t):
 	return d13C_corr, d13C_std_corr, Fm_corr, Fm_std_corr, m_corr, m_std_corr
 
 #define function to peak to fraction contribution.
-def _rpo_cont_ptf(result, timedata):
+def _rpo_cont_ptf(result, timedata, ptf = True):
 	'''
 	Calculates the contribution of each peak to each fraction.
 
@@ -385,6 +386,7 @@ def _rpo_cont_ptf(result, timedata):
 	#extract arrays
 	t_frac = result.t_frac
 	t = timedata.t
+	dt = np.gradient(t).reshape(nt,1)
 	wgh = -timedata.dgamdt
 	peaks = -timedata.dcmptdt
 
@@ -414,8 +416,14 @@ def _rpo_cont_ptf(result, timedata):
 		av = np.average(ind, weights = wgh[ind])
 		ind_wgh.append(int(np.round(av)))
 
-		#calculate peak to fraction contribution
-		ptf_i = np.sum(peaks[ind], axis = 0)/np.sum(wgh[ind])
+		if ptf is True:
+			#calculate peak to fraction contribution
+			ptf_i = np.sum(peaks[ind], axis = 0)/np.sum(wgh[ind])
+
+		else:
+			#calculate contribution of each fraction to each peak
+			ptf_i = np.sum(peaks[ind]*dt[ind], axis = 0)/np.sum(peaks*dt, 
+				axis = 0)
 
 		#store in row i
 		cont_ptf[i] = ptf_i
@@ -533,8 +541,113 @@ def _rpo_extract_iso(file, mass_err):
 
 	return d13C, d13C_std, Fm, Fm_std, m, m_std, t
 
+#define a function to run nnls in Monte Carlo fashion
+def _nnls_MC(cont_ptf, nIter, vals, vals_std):
+	'''
+	Calculates the peak mass or Fm using nnls and Monte Carlo.
+	
+	Parameters
+	----------
+
+	Returns
+	-------
+	'''
+
+	nFrac, nPeak = cont_ptf.shape
+
+	#generate noise matrix
+	noise = np.random.standard_normal(size = (nFrac, nIter))
+	
+	#generate matrix of means and stdevs
+	means = np.outer(vals, np.ones(nIter))
+	stdevs = np.outer(vals_std, np.ones(nIter))
+
+	#add noise
+	vals_MC = means + stdevs*noise
+
+	#pre-allocate results
+	pks = np.zeros([nIter, nPeak])
+	errs = np.zeros(nIter)
+
+	#loop through and store each iteration
+	for i, v in enumerate(vals_MC.T):
+
+		#calculate result
+		res = nnls(cont_ptf, v)
+
+		#store result
+		pks[i] = res[0]
+		errs[i] = res[1]
+
+	#calculate statistics
+	pk_val = np.mean(pks, axis = 0)
+	pk_std = np.std(pks, axis = 0)
+
+	rmse = np.mean(errs)/(nFrac**0.5) 
+
+	return pk_val, pk_std, rmse
+
+#define a function to run _kie_d13C in Monte Carlo fashion
+def _kie_d13C_MC(DEa, ind_wgh, model, nIter, result, ratedata):
+	'''
+	Calculates the d13C using nnls and Monte Carlo.
+	
+	Parameters
+	----------
+
+	Returns
+	-------
+	'''
+
+	#nPeaks AFTER BEING COMBINED!
+	_, nPeak = np.shape(ratedata.peaks)
+	nFrac = result.nFrac
+
+	#extract data
+	vals =  result.d13C_frac
+	vals_std = result.d13C_frac_std
+
+	#generate noise matrix
+	noise = np.random.standard_normal(size = (nFrac, nIter))
+	
+	#generate matrix of means and stdevs
+	means = np.outer(vals, np.ones(nIter))
+	stdevs = np.outer(vals_std, np.ones(nIter))
+
+	#add noise
+	vals_MC = means + stdevs*noise
+
+	#pre-allocate results
+	pks = np.zeros([nIter, nPeak])
+	errs = np.zeros(nIter)
+
+	#loop through and store each iteration
+	for i, v in enumerate(vals_MC.T):
+
+		#calculate result
+		res = _kie_d13C(DEa, ind_wgh, model, ratedata, v)
+
+		#store result
+		pks[i] = res[0]
+		errs[i] = res[1]
+
+	#calculate statistics
+	pk_val = np.mean(pks, axis = 0)
+	pk_std = np.std(pks, axis = 0)
+
+	rmse = np.mean(errs)/(nFrac**0.5) 
+
+	return pk_val, pk_std, rmse
 
 
+
+
+
+
+
+
+
+	
 
 
 

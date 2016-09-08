@@ -724,7 +724,7 @@ class EnergyComplex(RateData):
 			rgh_rmse = rgh_rmse)
 
 		#input EnergyComplex peak info
-		self.peak_info = _energycomplex_peak_info(self, peak_info)
+		self.peak_info = _energycomplex_peak_info(self)
 
 	#define plotting method
 	def plot(self, ax = None):

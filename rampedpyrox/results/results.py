@@ -15,6 +15,8 @@ from rampedpyrox.core.core_functions import(
 
 from rampedpyrox.results.results_helper import(
 	_kie_d13C,
+	_kie_d13C_MC,
+	_nnls_MC,
 	_rpo_blk_corr,
 	_rpo_cont_ptf,
 	_rpo_extract_iso,
@@ -22,7 +24,7 @@ from rampedpyrox.results.results_helper import(
 
 from rampedpyrox.core.summary_helper import(
 	_rpo_isotopes_frac_info,
-	# _rpo_isotopes_peak_info,
+	_rpo_isotopes_peak_info,
 	)
 
 class Results(object):
@@ -212,7 +214,7 @@ class RpoIsotopes(Results):
 
 		return ri
 
-	def fit(self, model, ratedata, timedata, DEa = None):
+	def fit(self, model, ratedata, timedata, DEa = None, nIter = 1):
 		'''
 		Method for fitting results instance to calculate the isotope
 		composition of each peak in a timedata instance.
@@ -255,41 +257,58 @@ class RpoIsotopes(Results):
 				DEa = assert_len(DEa, ratedata.nPeak)
 			
 			except ValueError:
-				DEa = assert_len(DEa, timedata.nPeak)
+				try:
+					DEa = assert_len(DEa, timedata.nPeak)
 
-				#add DEa for deleted peaks so that len(DEa) = ratedata.nPeak
-				dp = [val - i for i, val in enumerate(ratedata._cmbd)]
-				dp = np.array(dp)
-				DEa = np.insert(DEa, dp, DEa[dp-1])
+					#add DEa for deleted peaks so len(DEa) = ratedata.nPeak
+					dp = [val - i for i, val in enumerate(ratedata._cmbd)]
+					dp = np.array(dp)
+					DEa = np.insert(DEa, dp, DEa[dp-1])
+
+				except ValueError:
+					raise ValueError(
+						'DEa must be None, scalar, or array with length nPeak'
+						)
 
 		#calculate peak contribution to each fraction
-		cont_ptf, ind_min, ind_max, ind_wgh = _rpo_cont_ptf(self, timedata)
+		cont_ptf, ind_min, ind_max, ind_wgh = _rpo_cont_ptf(self, timedata, ptf = True)
+		cont_ftp, _, _, _ = _rpo_cont_ptf(self, timedata, ptf = False)
+
+		#solve each isotope/mass, and calculate Monte Carlo uncertainty
+		self.nIter = nIter
 
 		#if has mass, calculate peak mass
 		if hasattr(self, 'm_frac'):
 
-			res_mass = nnls(cont_ptf, self.m_frac)
+			m_peak, m_peak_std, m_rmse = _nnls_MC(cont_ftp, nIter, 
+				self.m_frac, self.m_frac_std)
 
-			self.m_peak = res_mass[0]
-			self.m_rmse = res_mass[1]/(self.nFrac**0.5)
+			self.m_peak = m_peak
+			self.m_peak_std = m_peak_std
+			self.m_rmse = m_rmse
 
 		#if has Fm, calculate peak Fm
 		if hasattr(self, 'Fm_frac'):
 
-			res_14 = nnls(cont_ptf, self.Fm_frac)
-			
-			self.Fm_peak = res_14[0]
-			self.Fm_rmse = res_14[1]/(self.nFrac**0.5)
+			Fm_peak, Fm_peak_std, Fm_rmse = _nnls_MC(cont_ptf, nIter, 
+				self.Fm_frac, self.Fm_frac_std)
+
+			self.Fm_peak = Fm_peak
+			self.Fm_peak_std = Fm_peak_std
+			self.Fm_rmse = Fm_rmse
 
 		#if has d13C, calculate peak d13C
 		if hasattr(self, 'd13C_frac'):
 
-			res_13 = _kie_d13C(DEa, ind_wgh, model, self, ratedata)
+			d13C_peak, d13C_peak_std, d13C_rmse = _kie_d13C_MC(
+				DEa, ind_wgh, model, nIter, self, ratedata)
 
-			self.d13C_peak = res_13[0]
-			self.d13C_rmse = res_13[1]/(self.nFrac**0.5)
+			self.d13C_peak = d13C_peak
+			self.d13C_peak_std = d13C_peak_std
+			self.d13C_rmse = d13C_rmse
 
 		#store results in summary table
+		self.peak_info = _rpo_isotopes_peak_info(ratedata._cmbd, DEa, self)
 
 
 
