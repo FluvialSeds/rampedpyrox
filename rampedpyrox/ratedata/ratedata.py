@@ -155,8 +155,9 @@ class RateData(object):
 			thres = thres)
 
 		#input estimated data
-		rd.input_estimated(model.model_type, peaks, peak_info, 
+		rd.input_estimated(model.model_type, peaks, 
 			omega = omega,
+			peak_info = peak_info,
 			peak_shape = peak_shape,
 			resid_rmse = resid_rmse,
 			rgh_rmse = rgh_rmse)
@@ -164,8 +165,9 @@ class RateData(object):
 		return rd
 
 	#define a method to input estimated rate data
-	def input_estimated(self, model_type, peaks, peak_info, omega = None,
-		peak_shape = 'Gaussian', resid_rmse = None, rgh_rmse = None):
+	def input_estimated(self, model_type, peaks, omega = None, 
+		peak_info = None, peak_shape = 'Gaussian', resid_rmse = None, 
+		rgh_rmse = None):
 		'''
 		Inputs estimated data into a ``RateData`` instance.
 
@@ -534,10 +536,11 @@ class EnergyComplex(RateData):
 		Parameters
 		----------
 		model : rp.Model
-			``Model`` instance containing the A matrix to use for inversion.
+			``rp.Model`` instance containing the A matrix to use for 
+			inversion.
 
 		timedata : rp.TimeData
-			``TimeData`` instance containing the timeseries data to invert.
+			``rp.TimeData`` instance containing the timeseries data to invert.
 
 		Keyword Arguments
 		-----------------
@@ -658,8 +661,9 @@ class EnergyComplex(RateData):
 		return ec
 
 	#define a method to input estimated rate data
-	def input_estimated(self, model_type, peaks, peak_info, omega = None, 
-		peak_shape = 'Gaussian', resid_rmse = None, rgh_rmse = None):
+	def input_estimated(self, model_type, peaks, omega = None, 
+		peak_info = None, peak_shape = 'Gaussian', resid_rmse = None, 
+		rgh_rmse = None):
 		'''
 		Inputs estimated rate data into the ``EnergyComplex`` instance and
 		calculates statistics.
@@ -717,14 +721,15 @@ class EnergyComplex(RateData):
 				"such as 'Daem' instead." % model_type))
 
 		super(EnergyComplex, self).input_estimated(model_type, peaks,
-			peak_info,
 			omega = omega,
+			peak_info = peak_info,
 			peak_shape = peak_shape,
 			resid_rmse = resid_rmse,
 			rgh_rmse = rgh_rmse)
 
 		#input EnergyComplex peak info
-		self.peak_info = _energycomplex_peak_info(self)
+		if peak_info is not None:
+			self.peak_info = _energycomplex_peak_info(self)
 
 	#define plotting method
 	def plot(self, ax = None):

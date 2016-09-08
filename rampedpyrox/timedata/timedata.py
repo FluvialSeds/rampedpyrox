@@ -2,6 +2,12 @@
 This module contains the TimeData superclass and all corresponding subclasses.
 '''
 
+from __future__ import print_function
+
+__docformat__ = 'restructuredtext en'
+__all__ = ['RpoThermogram']
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
@@ -98,10 +104,10 @@ class TimeData(object):
 		Parameters
 		----------
 		model : rp.Model
-			The model instance used to calculate the forward model.
+			``rp.Model`` instance used to calculate the forward model.
 
 		ratedata : rp.RateData
-			The ratedata instance containing the reactive continuum data.
+			``rp.Ratedata instance containing the reactive continuum data.
 
 		Warnings
 		--------
@@ -283,8 +289,8 @@ class RpoThermogram(TimeData):
 		Standard deviation of `g`, with length nt. Defaults to zeros.
 
 	T_std : scalar or array-like
-		The temperature standard deviation, with length nt, in Kelvin. Used
-		for Monte Carlo simulations. Defaults to zeros.
+		The temperature standard deviation, with length nt, in Kelvin. 
+		Defaults to zeros.
 
 	Raises
 	------
@@ -341,7 +347,7 @@ class RpoThermogram(TimeData):
 		import rampedpyrox as rp
 
 		#create path to data file
-		file = 'path_to_folder_containing_data/data.csv'
+		file = 'path_to_folder_containing_data/thermogram_data.csv'
 
 		#create instance
 		tg = rp.RpoThermogram.from_csv(file,

@@ -1,6 +1,6 @@
-rampedpyrox.rparray.reshape
+rampedpyrox.RpoIsotopes.fit
 ===========================
 
 .. currentmodule:: rampedpyrox
 
-.. automethod:: rparray.reshape
+.. automethod:: RpoIsotopes.fit

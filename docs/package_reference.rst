@@ -9,7 +9,8 @@ Ramped PyrOx classes
 
 	rampedpyrox.RpoThermogram
 	rampedpyrox.Daem
-	rampedpyrox.rparray
+	rampedpyrox.EnergyComplex
+	rampedpyrox.RpoIsotopes
 
 Ramped PyrOx methods
 --------------------

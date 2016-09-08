@@ -1,9 +1,9 @@
-#script to run thermogram deconvolution
+# script to run thermogram deconvolution
 import rampedpyrox as rp
 import numpy as np
 import matplotlib.pyplot as plt
 
-#plt.close('all')
+# plt.close('all')
 
 # rd = rp.RealData('test_data/5C_min_true.csv',nT=250)
 # eps = np.arange(50,350,.5)
@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 # md = lt.calc_TG_fwd(ec)
 
 
-# # ir = rp.IsotopeResult('test_data/5C_min_sum.csv',lt, ec, 
+# # ir = rp.IsotopeResult('test_data/5C_min_sum.csv',lt, ec,
 # #  	blk_corr=True,
 # #  	mass_rsd=0.01,
 # #  	add_noise=True)
@@ -31,32 +31,32 @@ import matplotlib.pyplot as plt
 data = 'test_data/5C_min_true.csv'
 sum_data = 'test_data/5C_min_sum.csv'
 
-tg = rp.RpoThermogram.from_csv(data, 
-	nt = 250,
-	ppm_CO2_err = 5,
-	T_err = 3)
+tg = rp.RpoThermogram.from_csv(data,
+                               nt=250,
+                               ppm_CO2_err=5,
+                               T_err=3)
 
-daem = rp.Daem.from_timedata(tg, 
-	# log10k0 = lambda x: 0.02*x + 5,
-	log10k0 = 10,
-	Ea_max = 350, 
-	Ea_min = 50,
-	nEa = 400)
+daem = rp.Daem.from_timedata(tg,
+                             # log10k0 = lambda x: 0.02*x + 5,
+                             log10k0=10,
+                             Ea_max=400,
+                             Ea_min=50,
+                             nEa=400)
 
 ec = rp.EnergyComplex.inverse_model(daem, tg,
-	combined = [(1,2),(6,7)],
-	nPeaks = 'auto',
-	omega = 3,
-	peak_shape = 'Gaussian',
-	thres = 0.02,
-	)
+                                    combined=[(6, 7)],
+                                    nPeaks='auto',
+                                    omega=3,
+                                    peak_shape='Gaussian',
+                                    thres=0.02,
+                                    )
 
 tg.forward_model(daem, ec)
 
 ri = rp.RpoIsotopes.from_csv(sum_data,
-	blk_corr = True,
-	mass_err = 0.01)
+                             blk_corr=True,
+                             mass_err=0.01)
 
-ri.fit(daem, ec, tg, 
-	DEa = None,
-	nIter = 10)
+ri.fit(daem, ec, tg,
+       DEa=None,
+       nIter=10)

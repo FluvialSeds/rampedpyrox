@@ -52,20 +52,21 @@ def _kie_d13C(DEa, ind_wgh, model, ratedata, vals):
 		Array of the mass-weighted center indices of each fraction.
 
 	model : rp.Model
-		Model instance containing the proper inversion model.
+		``rp.Model`` instance containing the proper inversion model.
 		Used to calculate 13C rates.
 
-	result : rp.Result
-		Result instance containing d13C fraction data of interest.
+	ratedata : rp.RateData
+		``rp.Ratedata`` instance containing the rate distribution leading
+		to the KIE.
 
-	timedata : rp.TimeData
-		TimeData instance containing timedata of interest.
+	vals : np.ndarray
+		Array of fraction d13C values, length `nFrac`.
 
 	Returns
 	-------
 	d13C_peak : np.ndarray
 		Best-fit peak 13C/12C ratios for each peak as determined by
-		``scipy.optimize.least_squares()`` and converted to d13C VPDB scale.
+		``scipy.optimize.least_squares`` and converted to d13C VPDB scale.
 
 	d13C_err : float
 		Fitting err determined as ``norm(Ax-b)``, and converted
@@ -75,9 +76,6 @@ def _kie_d13C(DEa, ind_wgh, model, ratedata, vals):
 	--------
 	Raises warning if ``scipy.optimize.least_squares`` cannot converge on a
 	best-fit solution.
-
-	References
-	----------
 	'''
 
 	#extract shapes -- NPEAKS AFTER COMBINED!
@@ -90,13 +88,16 @@ def _kie_d13C(DEa, ind_wgh, model, ratedata, vals):
 	R13_frac = _d13C_to_R13(vals)
 
 	#perform fit
-	res = least_squares(_R13_diff, r0,
+	res = least_squares(
+		_R13_diff, 
+		r0,
 		bounds = (0, np.inf),
 		args = (DEa, ind_wgh, model, R13_frac, ratedata))
 
 	#ensure success
 	if not res.success:
-		warnings.warn('R13 peak calc. could not converge on a successful fit')
+		warnings.warn((
+			'R13 peak calc. could not converge on a successful fit'))
 
 	#extract best-fit result
 	R13_peak = res.x
@@ -111,6 +112,153 @@ def _kie_d13C(DEa, ind_wgh, model, ratedata, vals):
 
 	return d13C_peak, d13C_err
 
+#define a function to run _kie_d13C in Monte Carlo fashion
+def _kie_d13C_MC(DEa, ind_wgh, model, nIter, result, ratedata):
+	'''
+	Calculates the d13C of each peak, accounting for any KIE fractionation,
+	and bootstraps uncertainty.
+
+	Parameters
+	----------
+	DEa : np.ndarray
+		Array of DEa values (in kJ/mol) for each peak in timedata.
+
+	ind_wgh : np.ndarray
+		Array of the mass-weighted center indices of each fraction.
+
+	model : rp.Model
+		``rp.Model`` instance containing the proper inversion model.
+		Used to calculate 13C rates.
+
+	nIter : int
+		The number of times to iterate.
+
+	result : rp.Result
+		``rp.Result`` instance containing the fraction isotopes used for
+		deconvolution.
+
+	ratedata : rp.RateData
+		``rp.Ratedata`` instance containing the rate distribution leading
+		to the KIE.
+
+	Returns
+	-------
+	pk_val : np.ndarray
+		Resulting estimated peak isotope values, length `nPeak` (after 
+		combined).
+
+	pk_std : np.ndarray
+		Resulting estimated peak isotope stdev., length `nPeak` (after 
+		combined).
+
+	rmse : float
+		Average RMSE between the measured and predicted fraction isotopes.
+	'''
+
+	#nPeaks AFTER BEING COMBINED!
+	_, nPeak = np.shape(ratedata.peaks)
+	nFrac = result.nFrac
+
+	#extract data
+	vals =  result.d13C_frac.reshape(nFrac, 1)
+	vals_std = result.d13C_frac_std.reshape(nFrac, 1)
+
+	#generate noise matrix
+	noise = np.random.standard_normal(size = (nFrac, nIter))
+	
+	#generate noisy fraction isotoes
+	vals_MC = vals + vals_std*noise
+
+	#pre-allocate results
+	pks = np.zeros([nIter, nPeak])
+	errs = np.zeros(nIter)
+
+	#loop through and store each iteration
+	for i, v in enumerate(vals_MC.T):
+
+		#calculate result
+		res = _kie_d13C(DEa, ind_wgh, model, ratedata, v)
+
+		#store result
+		pks[i] = res[0]
+		errs[i] = res[1]
+
+	#calculate statistics
+	pk_val = np.mean(pks, axis = 0)
+	pk_std = np.std(pks, axis = 0)
+
+	rmse = np.mean(errs)/(nFrac**0.5) 
+
+	return pk_val, pk_std, rmse
+
+#define a function to run nnls in Monte Carlo fashion
+def _nnls_MC(cont, nIter, vals, vals_std):
+	'''
+	Calculates the peak mass or Fm using nnls and Monte Carlo.
+	
+	Parameters
+	----------
+	cont : np.ndarray
+		2d array of the contribution of each peak to each fraction (for Fm) or
+		of each fraction to each peak (for mass)
+
+	nIter : int
+		The number of times to iterate.
+
+	vals : np.ndarray
+		Array of the isotope/mass values, length `nFrac`.
+
+	vals_std :
+		Array of the isotope/mass standard deviations, length `nFrac`.
+
+	Returns
+	-------
+	pk_val : np.ndarray
+		Resulting estimated peak isotope/mass values, length `nPeak` (after 
+		combined).
+
+	pk_std : np.ndarray
+		Resulting estimated peak isotope/mass stdev., length `nPeak` (after 
+		combined).
+
+	rmse : float
+		Average RMSE between the measured and predicted fraction isotopes/
+		masses.
+	'''
+
+	nFrac, nPeak = cont.shape
+
+	#generate noise matrix
+	noise = np.random.standard_normal(size = (nFrac, nIter))
+	
+	#generate noisy fraction isotopes
+	vals = vals.reshape(nFrac, 1)
+	vals_std = vals_std.reshape(nFrac, 1)
+
+	vals_MC = vals + vals_std*noise
+
+	#pre-allocate results
+	pks = np.zeros([nIter, nPeak])
+	errs = np.zeros(nIter)
+
+	#loop through and store each iteration
+	for i, v in enumerate(vals_MC.T):
+
+		#calculate result
+		res = nnls(cont, v)
+
+		#store result
+		pks[i] = res[0]
+		errs[i] = res[1]
+
+	#calculate statistics
+	pk_val = np.mean(pks, axis = 0)
+	pk_std = np.std(pks, axis = 0)
+
+	rmse = np.mean(errs)/(nFrac**0.5) 
+
+	return pk_val, pk_std, rmse
+
 #define a function to calculate CO2 13C/12C ratios.
 def _R13_CO2(DEa, model, R13_peak, ratedata):
 	'''
@@ -123,25 +271,21 @@ def _R13_CO2(DEa, model, R13_peak, ratedata):
 		Array of DEa values (in kJ/mol) for each peak, length nPeak.
 
 	model : rp.Model
-
+		``rp.Model`` instance containing the model to generate forward-
+		modeled 12C and 13C decomposition rates.
 
 	R13_peak : np.ndarray
-		13C/12C ratio for each peak, length nPeak.
+		13C/12C ratio for each peak, length `nPeak`.
 
 	ratedata : rp.RateData
-		RateData instance containing the k/Ea distribution to use for
+		``rp.RateData`` instance containing the k/Ea distribution to use for
 		calculating the KIE.
 
 	Returns
 	-------
 	R13_CO2 : np.ndarray
 		Array of 13C/12C ratio of instantaneously eluted CO2 at each 
-		timepoint, length nt.
-
-	Raises
-	------
-	ValueError
-		If `R13C_peak` is not of length nPeak (after `combined`).
+		timepoint, length `nt`.
 	'''
 
 	#extract k/Ea (necessary since models have different nomenclature)
@@ -170,8 +314,19 @@ def _R13_CO2(DEa, model, R13_peak, ratedata):
 	C13_height = C12_height*R13_peak
 
 	#calculate the rate distribution for C12 and C13
-	C12_phi, _ = _calc_phi(k, C12_mu, sigma, C12_height, ratedata.peak_shape)
-	C13_phi, _ = _calc_phi(k, C13_mu, sigma, C13_height, ratedata.peak_shape)
+	C12_phi, _ = _calc_phi(
+		k, 
+		C12_mu, 
+		sigma, 
+		C12_height, 
+		ratedata.peak_shape)
+
+	C13_phi, _ = _calc_phi(
+		k, 
+		C13_mu, 
+		sigma, 
+		C13_height, 
+		ratedata.peak_shape)
 
 	#forward-model 13C and 12C gam
 	C12_gam = np.inner(model.A, C12_phi)
@@ -194,15 +349,23 @@ def _R13_diff(R13_peak, DEa, ind_wgh, model, R13_frac, ratedata):
 	R13_peak : np.ndarray
 		13C/12C ratio for each peak, length nPeaks.
 
-	R13_frac : np.ndarray
-		Array of 13C/12C ratios for each fraction, length nFrac.
+	DEa : np.ndarray
+		Array of DEa values (in kJ/mol) for each peak in timedata.
 
 	ind_wgh : np.ndarray
 		Index in ``timedata.t`` corresponding to the mass-weighted mean time
 		for each fraction. Length nFrac.
 
-	timedata : rp.TimeData
-		TimeData instance containing the timedata of interest.
+	model : rp.Model
+		``rp.Model`` instance containing the proper inversion model.
+		Used to calculate 13C rates.
+
+	R13_frac : np.ndarray
+		Array of 13C/12C ratios for each fraction, length nFrac.
+
+	ratedata : rp.RateData
+		``rp.Ratedata`` instance containing the rate distribution leading
+		to the KIE.
 
 	Returns
 	-------
@@ -211,7 +374,11 @@ def _R13_diff(R13_peak, DEa, ind_wgh, model, R13_frac, ratedata):
 		fraction, length nFrac.
 	'''
 
-	R13_CO2 = _R13_CO2(DEa, model, R13_peak, ratedata)
+	R13_CO2 = _R13_CO2(
+		DEa, 
+		model, 
+		R13_peak, 
+		ratedata)
 
 	R13_diff = R13_CO2[ind_wgh] - R13_frac
 
@@ -221,8 +388,6 @@ def _R13_diff(R13_peak, DEa, ind_wgh, model, R13_frac, ratedata):
 def _R13_to_d13C(R13):
 	'''
 	Converts 13R values to d13C values using VPDB standard.
-	Called by ``IsotopeResult.__init__()``.
-	Called by ``_fit_R13_peak()``.
 
 	Parameters
 	----------
@@ -248,19 +413,19 @@ def _rpo_blk_corr(d13C, d13C_std, Fm, Fm_std, m, m_std, t):
 
 	Parameters
 	----------
-	d13C : np.ndarray
+	d13C : None or np.ndarray
 		Array of d13C values for each fraction, length nFrac.
 	
 	d13C_std : np.ndarray
 		Array of d13C stdev. for each fraction, length nFrac.
 
-	Fm : np.ndarray
+	Fm : None or np.ndarray
 		Array of Fm values for each fraction, length nFrac.
 
 	Fm_std : np.ndarray
 		Array of Fm stdev. for each fraction, length nFrac.
 
-	m : np.ndarray
+	m : None or np.ndarray
 		Array of masses (ugC) for each fraction, length nFrac.
 
 	m_std : np.ndarray
@@ -271,19 +436,19 @@ def _rpo_blk_corr(d13C, d13C_std, Fm, Fm_std, m, m_std, t):
 
 	Returns
 	-------
-	d13C_corr : np.ndarray
+	d13C_corr : None or np.ndarray
 		Array of corrected d13C values for each fraction, length nFrac.
 	
 	d13C_std_corr : np.ndarray
 		Array of corrected d13C stdev. for each fraction, length nFrac.
 
-	Fm_corr : np.ndarray
+	Fm_corr : None or np.ndarray
 		Array of corrected Fm values for each fraction, length nFrac.
 
 	Fm_std_corr : np.ndarray
 		Array of corrected Fm stdev. for each fraction, length nFrac.
 
-	m_corr : np.ndarray
+	m_corr : None or np.ndarray
 		Array of corrected masses (ugC) for each fraction, length nFrac.
 
 	m_std_corr : np.ndarray
@@ -313,33 +478,64 @@ def _rpo_blk_corr(d13C, d13C_std, Fm, Fm_std, m, m_std, t):
 	#perform blank correction
 
 	#correct mass
-	m_corr = m - bl_mass
-	m_std_corr = norm([m_std, dt*bl_flux_std], axis = 0)
+	if m is not None:
+
+		m_corr = m - bl_mass
+		m_std_corr = norm(
+			[m_std, dt*bl_flux_std], 
+			axis = 0)
+
+	else:
+		m_corr = None
+		m_std_corr = 0
 
 	#correct d13C
-	dt1 = d13C_std
-	dt2 = dt*bl_d13C*bl_flux_std/m
-	dt3 = bl_mass*bl_d13C_std/m
-	dt4 = bl_mass*bl_d13C*m_std_corr/(m_corr**2)
+	if d13C is not None:
+
+		dt1 = d13C_std
+		dt2 = dt*bl_d13C*bl_flux_std/m
+		dt3 = bl_mass*bl_d13C_std/m
+		dt4 = bl_mass*bl_d13C*m_std_corr/(m_corr**2)
 	
-	d13C_corr = (m*d13C - bl_mass*bl_d13C)/m_corr
-	d13C_std_corr = norm([dt1, dt2, dt3, dt4], axis = 0)
+		d13C_corr = (m*d13C - bl_mass*bl_d13C)/m_corr
+		d13C_std_corr = norm(
+			[dt1, dt2, dt3, dt4], 
+			axis = 0)
+
+	else:
+		d13C_corr = None
+		d13C_corr_std = 0
 
 	#correct Fm
-	ft1 = Fm_std
-	ft2 = dt*bl_Fm*bl_flux_std/m
-	ft3 = bl_mass*bl_Fm_std/m
-	ft4 = bl_mass*bl_Fm*m_std_corr/(m_corr**2)
-	
-	Fm_corr = (m*Fm - bl_mass*bl_Fm)/m_corr
-	Fm_std_corr = norm([ft1, ft2, ft3, ft4], axis = 0)
+	if Fm is not None:
 
-	return d13C_corr, d13C_std_corr, Fm_corr, Fm_std_corr, m_corr, m_std_corr
+		ft1 = Fm_std
+		ft2 = dt*bl_Fm*bl_flux_std/m
+		ft3 = bl_mass*bl_Fm_std/m
+		ft4 = bl_mass*bl_Fm*m_std_corr/(m_corr**2)
+		
+		Fm_corr = (m*Fm - bl_mass*bl_Fm)/m_corr
+		Fm_std_corr = norm(
+			[ft1, ft2, ft3, ft4], 
+			axis = 0)
+
+	else:
+		Fm_corr = None
+		Fm_corr_std = 0
+
+	return (
+		d13C_corr, 
+		d13C_std_corr, 
+		Fm_corr, 
+		Fm_std_corr, 
+		m_corr, 
+		m_std_corr)
 
 #define function to peak to fraction contribution.
 def _rpo_cont_ptf(result, timedata, ptf = True):
 	'''
-	Calculates the contribution of each peak to each fraction.
+	Calculates the contribution of each peak to each fraction or of each
+	fraction to each peak.
 
 	Parameters
 	----------
@@ -349,11 +545,15 @@ def _rpo_cont_ptf(result, timedata, ptf = True):
 	timedata : rp.TimeData
 		``TimeData`` instance containing the thermogram of interest.
 
+	ptf : Boolean
+		If True, calculates the contribution of each peak to each fraction.
+		If False, calculates the contribution of each fraction to each peak.
+
 	Returns
 	-------
 	cont_ptf : np.ndarray
 		Array of the contribution by each Ea peak to each measured CO2
-		fraction, shape [nFrac x nPeak].
+		fraction or each fraction to each peak, shape [`nFrac` x `nPeak`].
 
 	ind_min : np.ndarray
 		Index in ``timedata.t`` corresponding to the minimum time for each 
@@ -393,8 +593,8 @@ def _rpo_cont_ptf(result, timedata, ptf = True):
 	#raise errors
 	if nPeak > nFrac:
 		warnings.warn((
-			"Warning: nPeak = %r, nFrac = %r. Problem is underconstrained!"
-			"Solution is not unique!" %(nPeak, nFrac)))
+			'Warning: nPeak = %r, nFrac = %r. Problem is underconstrained!'
+			' Solution is not unique!') %(nPeak, nFrac))
 
 	#pre-allocate cont_ptf matrix and index arrays
 	cont_ptf = np.zeros([nFrac,nPeak])
@@ -446,22 +646,21 @@ def _rpo_extract_iso(file, mass_err):
 		Relative standard deviation on fraction masses. Defaults to 0.01 (i.e.
 		1 percent of measured mass).
 
-
 	Returns
 	-------
-	d13C : np.ndarray
+	d13C : None or np.ndarray
 		Array of d13C values for each fraction, length nFrac.
 	
 	d13C_std : np.ndarray
 		Array of d13C stdev. for each fraction, length nFrac.
 
-	Fm : np.ndarray
+	Fm : None or np.ndarray
 		Array of Fm values for each fraction, length nFrac.
 
 	Fm_std : np.ndarray
 		Array of Fm stdev. for each fraction, length nFrac.
 
-	m : np.ndarray
+	m : None or np.ndarray
 		Array of masses (ugC) for each fraction, length nFrac.
 
 	m_std : np.ndarray
@@ -472,6 +671,9 @@ def _rpo_extract_iso(file, mass_err):
 
 	Raises
 	------
+	AttributeError
+		If `file` does not contain "fraction" column.
+
 	TypeError
 		If `file` is not str or ``pd.DataFrame``.
 	
@@ -480,10 +682,6 @@ def _rpo_extract_iso(file, mass_err):
 
 	TypeError
 		If `mass_err` is not scalar.
-
-	ValueError
-		If `file` does not contain "d13C", "d13C_std", "Fm", "Fm_std", 
-		"ug_frac", and "fraction" columns.
 	
 	ValueError
 		If first two rows are not fractions "-1" and "0"
@@ -501,22 +699,24 @@ def _rpo_extract_iso(file, mass_err):
 		file = pd.DataFrame.from_csv(file)
 
 	elif not isinstance(file, pd.DataFrame):
-		raise TypeError('file must be pd.DataFrame or path string')
+		raise TypeError((
+			'file must be pd.DataFrame or path string'))
 
-	if 'fraction' and 'd13C' and 'd13C_std' and 'Fm' and 'Fm_std' and \
-		'ug_frac' not in file.columns:
-		raise ValueError((
-			"file must have 'fraction', 'd13C', 'd13C_std', 'Fm', 'Fm_std'," 
-			"and 'ug_frac' columns"))
+	if 'fraction' not in file.columns:
+		raise AttributeError((
+			"file must have 'fraction' column"))
 
-	if not isinstance(file.index,pd.DatetimeIndex):
-		raise TypeError('file index must be DatetimeIndex')
+	if not isinstance(file.index, pd.DatetimeIndex):
+		raise TypeError((
+			'file index must be DatetimeIndex'))
 
 	if file.fraction[0] != -1 or file.fraction[1] != 0:
-		raise ValueError('First two rows must be fractions "-1" and "0"')
+		raise ValueError((
+			'First two rows must be fractions "-1" and "0"'))
 
 	if not isinstance(mass_err, (str, float)):
-		raise TypeError('mass_err must be string or float')
+		raise TypeError((
+			'mass_err must be string or float'))
 	else:
 		#ensure float
 		mass_err = float(mass_err)
@@ -529,126 +729,36 @@ def _rpo_extract_iso(file, mass_err):
 
 	t = np.column_stack((t0, tf))
 
-	#extract mass and isotope data
-	m = file.ug_frac[2:].values
-	m_std = m*mass_err
+	#extract mass and isotope data, if they exist
+	if 'ug_frac' in file.columns:
+		m = file.ug_frac[2:].values
+		m_std = m*mass_err
 
-	d13C = file.d13C[2:].values
-	d13C_std = file.d13C_std[2:].values
+	else:
+		m = None
+		m_std = 0
 
-	Fm = file.Fm[2:].values
-	Fm_std = file.Fm_std[2:].values
+	if 'd13C' in file.columns:
+		d13C = file.d13C[2:].values
+		d13C_std = file.d13C_std[2:].values
 
-	return d13C, d13C_std, Fm, Fm_std, m, m_std, t
+	else:
+		d13C = None
+		m_std = 0
 
-#define a function to run nnls in Monte Carlo fashion
-def _nnls_MC(cont_ptf, nIter, vals, vals_std):
-	'''
-	Calculates the peak mass or Fm using nnls and Monte Carlo.
-	
-	Parameters
-	----------
+	if 'Fm' in file.columns:
+		Fm = file.Fm[2:].values
+		Fm_std = file.Fm_std[2:].values
 
-	Returns
-	-------
-	'''
+	else:
+		Fm = None
+		Fm_std = 0
 
-	nFrac, nPeak = cont_ptf.shape
-
-	#generate noise matrix
-	noise = np.random.standard_normal(size = (nFrac, nIter))
-	
-	#generate matrix of means and stdevs
-	means = np.outer(vals, np.ones(nIter))
-	stdevs = np.outer(vals_std, np.ones(nIter))
-
-	#add noise
-	vals_MC = means + stdevs*noise
-
-	#pre-allocate results
-	pks = np.zeros([nIter, nPeak])
-	errs = np.zeros(nIter)
-
-	#loop through and store each iteration
-	for i, v in enumerate(vals_MC.T):
-
-		#calculate result
-		res = nnls(cont_ptf, v)
-
-		#store result
-		pks[i] = res[0]
-		errs[i] = res[1]
-
-	#calculate statistics
-	pk_val = np.mean(pks, axis = 0)
-	pk_std = np.std(pks, axis = 0)
-
-	rmse = np.mean(errs)/(nFrac**0.5) 
-
-	return pk_val, pk_std, rmse
-
-#define a function to run _kie_d13C in Monte Carlo fashion
-def _kie_d13C_MC(DEa, ind_wgh, model, nIter, result, ratedata):
-	'''
-	Calculates the d13C using nnls and Monte Carlo.
-	
-	Parameters
-	----------
-
-	Returns
-	-------
-	'''
-
-	#nPeaks AFTER BEING COMBINED!
-	_, nPeak = np.shape(ratedata.peaks)
-	nFrac = result.nFrac
-
-	#extract data
-	vals =  result.d13C_frac
-	vals_std = result.d13C_frac_std
-
-	#generate noise matrix
-	noise = np.random.standard_normal(size = (nFrac, nIter))
-	
-	#generate matrix of means and stdevs
-	means = np.outer(vals, np.ones(nIter))
-	stdevs = np.outer(vals_std, np.ones(nIter))
-
-	#add noise
-	vals_MC = means + stdevs*noise
-
-	#pre-allocate results
-	pks = np.zeros([nIter, nPeak])
-	errs = np.zeros(nIter)
-
-	#loop through and store each iteration
-	for i, v in enumerate(vals_MC.T):
-
-		#calculate result
-		res = _kie_d13C(DEa, ind_wgh, model, ratedata, v)
-
-		#store result
-		pks[i] = res[0]
-		errs[i] = res[1]
-
-	#calculate statistics
-	pk_val = np.mean(pks, axis = 0)
-	pk_std = np.std(pks, axis = 0)
-
-	rmse = np.mean(errs)/(nFrac**0.5) 
-
-	return pk_val, pk_std, rmse
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
+	return (
+		d13C, 
+		d13C_std, 
+		Fm, 
+		Fm_std, 
+		m, 
+		m_std, 
+		t)

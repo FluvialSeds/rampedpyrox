@@ -1,11 +1,15 @@
 from setuptools import setup
 
+def readme():
+      with open('README.rst') as f:
+            return f.read()
+
 setup(name='rampedpyrox',
-      version='0.1.1 (pre-release)',
+      version='0.1.2',
       description='Ramped PyrOx decolvolution code',
       long_description=readme(),
       classifiers=[
-            'Development Status :: 1 - Planning',
+            'Development Status :: 3 - Alpha',
             'Intended Audience :: Science/Research',
             'License :: Free for non-commercial use',
             'Programming Language :: Python :: 3.5',
