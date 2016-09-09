@@ -58,5 +58,5 @@ ri = rp.RpoIsotopes.from_csv(sum_data,
                              mass_err=0.01)
 
 ri.fit(daem, ec, tg,
-       DEa=None,
+       DEa=0.001,
        nIter=10)

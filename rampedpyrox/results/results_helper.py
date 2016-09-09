@@ -1,6 +1,15 @@
+#* TODO: Test _kie_d13C_MC memory allocation and improve speed!
+
 '''
 This module contains helper functions for the Results class.
 '''
+
+from __future__ import print_function
+
+__docformat__ = 'restructuredtext en'
+__all__ = ['_d13C_to_R13', '_kie_d13C', '_kie_d13C_MC', '_nnls_MC', 
+			'_R13_CO2', '_R13_diff', '_R13_to_d13C', '_rpo_blk_corr',
+			'_rpo_cont_ptf', '_rpo_extract_iso']
 
 import numpy as np
 import pandas as pd
@@ -10,6 +19,7 @@ from numpy.linalg import norm
 from scipy.optimize import least_squares
 from scipy.optimize import nnls
 
+#import helper functions
 from rampedpyrox.ratedata.ratedata_helper import(
 	_calc_phi
 	)
@@ -18,8 +28,6 @@ from rampedpyrox.ratedata.ratedata_helper import(
 def _d13C_to_R13(d13C):
 	'''
 	Converts d13C values to 13R values using VPDB standard.
-	Called by ``blank_correct()``.
-	Called by ``_extract_isotopes()``.
 
 	Parameters
 	----------
@@ -96,8 +104,8 @@ def _kie_d13C(DEa, ind_wgh, model, ratedata, vals):
 
 	#ensure success
 	if not res.success:
-		warnings.warn((
-			'R13 peak calc. could not converge on a successful fit'))
+		warnings.warn(
+			'R13 peak calc. could not converge on a successful fit')
 
 	#extract best-fit result
 	R13_peak = res.x
@@ -523,13 +531,12 @@ def _rpo_blk_corr(d13C, d13C_std, Fm, Fm_std, m, m_std, t):
 		Fm_corr = None
 		Fm_corr_std = 0
 
-	return (
-		d13C_corr, 
-		d13C_std_corr, 
-		Fm_corr, 
-		Fm_std_corr, 
-		m_corr, 
-		m_std_corr)
+	return (d13C_corr, 
+			d13C_std_corr, 
+			Fm_corr, 
+			Fm_std_corr, 
+			m_corr, 
+			m_std_corr)
 
 #define function to peak to fraction contribution.
 def _rpo_cont_ptf(result, timedata, ptf = True):
@@ -592,15 +599,15 @@ def _rpo_cont_ptf(result, timedata, ptf = True):
 
 	#raise errors
 	if nPeak > nFrac:
-		warnings.warn((
+		warnings.warn(
 			'Warning: nPeak = %r, nFrac = %r. Problem is underconstrained!'
-			' Solution is not unique!') %(nPeak, nFrac))
+			' Solution is not unique!' %(nPeak, nFrac))
 
 	#pre-allocate cont_ptf matrix and index arrays
 	cont_ptf = np.zeros([nFrac,nPeak])
-	ind_min = []
-	ind_max = []
-	ind_wgh = []
+	ind_min = np.zeros(nFrac, dtype = int)
+	ind_max = np.zeros(nFrac, dtype = int)
+	ind_wgh = np.zeros(nFrac, dtype = int)
 
 	#loop through and calculate contributions and indices
 	for i, row in enumerate(t_frac):
@@ -609,12 +616,12 @@ def _rpo_cont_ptf(result, timedata, ptf = True):
 		ind = np.where((t > row[0]) & (t <= row[1]))[0]
 
 		#store first and last indices
-		ind_min.append(ind[0])
-		ind_max.append(ind[-1])
+		ind_min[i] = ind[0]
+		ind_max[i] = ind[-1]
 
 		#calculate mass-weighted average index
 		av = np.average(ind, weights = wgh[ind])
-		ind_wgh.append(int(np.round(av)))
+		ind_wgh[i] = int(np.round(av))
 
 		if ptf is True:
 			#calculate peak to fraction contribution
@@ -699,24 +706,24 @@ def _rpo_extract_iso(file, mass_err):
 		file = pd.DataFrame.from_csv(file)
 
 	elif not isinstance(file, pd.DataFrame):
-		raise TypeError((
-			'file must be pd.DataFrame or path string'))
+		raise TypeError(
+			'file must be pd.DataFrame or path string')
 
 	if 'fraction' not in file.columns:
-		raise AttributeError((
-			"file must have 'fraction' column"))
+		raise AttributeError(
+			'file must have "fraction" column')
 
 	if not isinstance(file.index, pd.DatetimeIndex):
-		raise TypeError((
-			'file index must be DatetimeIndex'))
+		raise TypeError(
+			'file index must be DatetimeIndex')
 
 	if file.fraction[0] != -1 or file.fraction[1] != 0:
-		raise ValueError((
-			'First two rows must be fractions "-1" and "0"'))
+		raise ValueError(
+			'First two rows must be fractions "-1" and "0"')
 
 	if not isinstance(mass_err, (str, float)):
-		raise TypeError((
-			'mass_err must be string or float'))
+		raise TypeError(
+			'mass_err must be string or float')
 	else:
 		#ensure float
 		mass_err = float(mass_err)
@@ -754,11 +761,10 @@ def _rpo_extract_iso(file, mass_err):
 		Fm = None
 		Fm_std = 0
 
-	return (
-		d13C, 
-		d13C_std, 
-		Fm, 
-		Fm_std, 
-		m, 
-		m_std, 
-		t)
+	return (d13C, 
+			d13C_std, 
+			Fm, 
+			Fm_std, 
+			m, 
+			m_std, 
+			t)

@@ -2,12 +2,10 @@ import numpy as np
 import os
 import rampedpyrox as rp
 
-from nose import with_setup
-
 #function to load files
 def gen_str(name):
-    p = os.path.join(os.path.dirname(__file__), name)
-    return p
+	p = os.path.join(os.path.dirname(__file__), name)
+	return p
 
 #test bare-bones creation of instance
 def test_rpo_Fm_init():
@@ -75,7 +73,13 @@ def test_rpo_t_from_csv():
 	assert hasattr(ri, 't_frac')
 
 
+if __name__ == '__main__':
 
+	import nose
+
+	nose.runmodule(
+		argv = [__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+		exit=False)
 
 
 

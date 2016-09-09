@@ -2,6 +2,11 @@
 This module contains the Model superclass and all corresponding subclasses.
 '''
 
+from __future__ import print_function
+
+__docformat__ = 'restructuredtext en'
+__all__ = ['Daem']
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -9,7 +14,6 @@ import numpy as np
 from rampedpyrox.core.core_functions import(
 	assert_len,
 	derivatize,
-	round_to_sigfig,
 	)
 
 from rampedpyrox.model.model_helper import(
@@ -23,7 +27,7 @@ class Model(object):
 	directly.
 	'''
 
-	def __init__(self, A, model_type, t, T):
+	def __init__(self, A, t, T):
 		'''
 		Initialize the superclass.
 
@@ -31,16 +35,25 @@ class Model(object):
 		----------
 		A : 2d array-like
 			Array of the transform matrix to convert from time to rate space.
-			Rows are timepoints and columns are k/Ea values. Shape [nt x nk].
-
-		model_type : str
-			A string of the model type
+			Rows are timepoints and columns are k/Ea values. Shape 
+			[`nt` x `nk`].
 
 		t : array-like
-			Array of time, in seconds. Length nt.
+			Array of time, in seconds. Length `nt`.
 
 		T : scalar or array-like
-			Scalar or array of temperature, in Kelvin.
+			Scalar or array of temperature, in Kelvin. If array, length `nt`.
+
+		Raises
+		------
+		TypeError
+			If `t` or `A` are not array-like.
+
+		TypeError
+			If `T` is not scalar or array-like.
+
+		ValueError
+			If `T` or `A` are not length `nt`.
 		'''
 
 		#ensure data is in the right form
@@ -51,7 +64,6 @@ class Model(object):
 
 		#store attributes
 		self.A = A
-		self.model_type = model_type
 		self.nt = nt
 		self.t = t
 		self.T = T
@@ -67,8 +79,14 @@ class Model(object):
 		raise NotImplementedError
 
 	#define a method for calculating the L curve
-	def calc_L_curve(self, timedata, ax = None, nOm = 150, om_max = 1e2, 
-		om_min = 1e-3, plot = False):
+	def calc_L_curve(
+			self, 
+			timedata, 
+			ax = None, 
+			nOm = 150, 
+			om_max = 1e2, 
+			om_min = 1e-3, 
+			plot = False):
 		'''
 		Function to calculate the L-curve for a given model and timedata
 		instance in order to choose the best-fit smoothing parameter, omega.
@@ -76,7 +94,7 @@ class Model(object):
 		Parameters
 		----------
 		timedata : rp.TimeData
-			Instance of ``TimeData`` subclass containing the time and fraction
+			``rp.TimeData`` instance containing the time and fraction
 			remaining arrays to use in L curve calculation.
 
 		Keyword Arguments
@@ -97,7 +115,7 @@ class Model(object):
 
 		plot : Boolean
 			Tells the method to plot the resulting L curve or not. Defaults to
-			False.
+			`False`.
 
 		Returns
 		-------
@@ -122,51 +140,58 @@ class Model(object):
 
 		References
 		----------
-		D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
-		respiration rates from decay time series. *Biogeosciences*, **9**,
-		3601-3612.
+		[1] D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+			respiration rates from decay time series. *Biogeosciences*, **9**,
+			3601-3612.
 
-		P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
-		Numerical aspects of linear inversion (monographs on mathematical
-		modeling and computation). *Society for Industrial and Applied
-		Mathematics*.
+		[2] P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
+			Numerical aspects of linear inversion (monographs on mathematical
+			modeling and computation). *Society for Industrial and Applied*
+			*Mathematics*.
 
-		P.C. Hansen (1994) Regularization tools: A Matlab package for analysis and
-		solution of discrete ill-posed problems. *Numerical Algorithms*, **6**,
-		1-35.
+		[3] P.C. Hansen (1994) Regularization tools: A Matlab package for analysis and
+			solution of discrete ill-posed problems. *Numerical Algorithms*, **6**,
+			1-35.
 		'''
 
 		#check that nOm, om_max, and om_min are in the right form
 		if not isinstance(om_max, (int, float)):
-			raise TypeError('om_max must be float or int')
+			raise TypeError(
+				'om_max must be float or int')
+
 		elif not isinstance(om_min, (int, float)):
-			raise TypeError('om_min must be float or int')
+			raise TypeError(
+				'om_min must be float or int')
+
 		elif not isinstance(nOm, int):
-			raise TypeError('nOm must be int')
+			raise TypeError(
+				'nOm must be int')
 
 		#define arrays
 		log_om_vec = np.linspace(np.log10(om_min), np.log10(om_max), nOm)
 		om_vec = 10**log_om_vec
 
-		res_vec = []; rgh_vec = []
+		res_vec = np.zeros(nOm)
+		rgh_vec = np.zeros(nOm)
 
 		#for each omega value in the vector, calculate the errors
 		for i, w in enumerate(om_vec):
 			_, res, rgh = _calc_f(self, timedata, w)
-			res_vec.append(res)
-			rgh_vec.append(rgh)
+			res_vec[i] = res
+			rgh_vec[i] = rgh
 
 		#store logs as arrays, and remove noise after 6 sig figs
 		res_vec = np.log10(res_vec)
 		rgh_vec = np.log10(rgh_vec)
 
-		res_vec = round_to_sigfig(res_vec, 6)
-		rgh_vec = round_to_sigfig(rgh_vec, 6)
+		res_vec = np.around(res_vec, decimals = 6)
+		rgh_vec = np.around(rgh_vec, decimals = 6)
 
 		#calculate derivatives and curvature
 		dydx = derivatize(rgh_vec, res_vec)
 		dy2d2x = derivatize(dydx, res_vec)
 
+		#function for curvature
 		k = np.abs(dy2d2x)/(1+dydx**2)**1.5
 
 		#find first occurrance of argmax k
@@ -178,15 +203,19 @@ class Model(object):
 
 			#create axis if necessary
 			if ax is None:
-				_,ax = plt.subplots(1,1)
+				_,ax = plt.subplots(1, 1)
 
 			#plot results
-			ax.plot(res_vec,rgh_vec,
+			ax.plot(
+				res_vec,
+				rgh_vec,
 				linewidth=2,
 				color='k',
 				label='L-curve')
 
-			ax.scatter(res_vec[i],rgh_vec[i],
+			ax.scatter(
+				res_vec[i],
+				rgh_vec[i],
 				s=50,
 				facecolor='w',
 				edgecolor='k',
@@ -194,18 +223,24 @@ class Model(object):
 				label=r'best-fit $\omega$')
 
 			#set axis labels and text
-			ax.set_xlabel(r'residual rmse, ' \
-				r'$log_{10} \parallel Af - g \parallel$')
-			ax.set_ylabel(r'roughness rmse, ' \
-				r'$log_{10} \parallel Rf \parallel$')
+			ax.set_xlabel(
+				r'residual rmse, $log_{10} \parallel Af - g \parallel$')
+			
+			ax.set_ylabel(
+				r'roughness rmse, $log_{10} \parallel Rf \parallel$')
 
 			label1 = r'best-fit $\omega$ = %.3f' %(om_best)
-			label2 = r'$log_{10} \parallel Af - g \parallel$ = %.3f' \
-				%(res_vec[i])
-			label3 = r'$log_{10} \parallel Rf \parallel$  = %0.3f' \
-				%(rgh_vec[i])
+			
+			label2 = (
+				r'$log_{10} \parallel Af - g \parallel$ = %.3f' %(res_vec[i]))
+			
+			label3 = (
+				r'$log_{10} \parallel Rf \parallel$  = %0.3f' %(rgh_vec[i]))
 
-			ax.text(0.5,0.95,label1+'\n'+label2+'\n'+label3,
+			ax.text(
+				0.5,
+				0.95,
+				label1 + '\n' + label2 + '\n' + label3,
 				verticalalignment='top',
 				horizontalalignment='left',
 				transform=ax.transAxes)
@@ -222,9 +257,9 @@ class LaplaceTransform(Model):
 	do not call directly.
 	'''
 
-	def __init__(self, A, model_type, t, T):
+	def __init__(self, A, t, T):
 
-		super(LaplaceTransform, self).__init__(A, model_type, t, T)
+		super(LaplaceTransform, self).__init__(A, t, T)
 
 	@classmethod
 	def from_timedata(self):
@@ -243,17 +278,17 @@ class Daem(LaplaceTransform):
 	Parameters
 	----------
 	Ea : array-like
-		Array of Ea values, in kJ/mol. Length nE.
+		Array of Ea values, in kJ/mol. Length `nEa`.
 
 	log10k0 : scalar, array-like, or lambda function
 		Arrhenius pre-exponential factor, either a constant value, array-like
-		with length nEa, or a lambda function of Ea. 
+		with length `nEa`, or a lambda function of Ea. 
 
 	t : array-like
-		Array of time, in seconds. Length nt.
+		Array of time, in seconds. Length `nt`.
 
 	T : array-like
-		Array of temperature, in Kelvin. Length nt.
+		Array of temperature, in Kelvin. Length `nt`.
 
 	Raises
 	------
@@ -264,15 +299,16 @@ class Daem(LaplaceTransform):
 		If `Ea` is not scalar or array-like.
 
 	ValueError
-		If `T` is not scalar or array-like with length nt.
+		If `T` is not scalar or array-like with length `nt`.
 
 	ValueError
-		If log10k0 is not scalar, lambda, or array-like with length nEa.
+		If log10k0 is not scalar, lambda, or array-like with length `nEa`.
 
 	Warnings
 	--------
-	If attempting to use isothermal data to create a ``Daem`` model
-	instance.
+	UserWarning
+		If attempting to use isothermal data to create a ``Daem`` model 
+		instance.
 
 	Notes
 	-----
@@ -286,10 +322,11 @@ class Daem(LaplaceTransform):
 	See Also
 	--------
 	RpoThermogram
-		``TimeData`` subclass for storing and analyzing RPO time/temp. data.
+		``rp.TimeData`` subclass for storing and analyzing RPO 
+		time/temperature data.
 
 	EnergyComplex
-		``RateData`` subclass for storing, deconvolving, and analyzing RPO
+		``rp.RateData`` subclass for storing, deconvolving, and analyzing RPO
 		rate data.
 
 	Examples
@@ -304,13 +341,14 @@ class Daem(LaplaceTransform):
 		t = np.arange(1,100) #100 second experiment
 		beta = 0.5 #K/second
 		T = beta*t + 273.15 #K
+		
 		Ea = np.arange(50, 350) #kJ/mol
 		log10k0 = 10 #seconds-1
 
 		#create instance
 		daem = rp.Daem(Ea, log10k0, t, T)
 
-	Creating a DAEM from real thermogram data using the ``Daem.from_timedata``
+	Creating a DAEM from real thermogram data using the ``rp.Daem.from_timedata``
 	class method::
 
 		#import modules
@@ -321,13 +359,13 @@ class Daem(LaplaceTransform):
 
 		#create Daem instance
 		daem = rp.Daem.from_timedata(tg, 
-			Ea_max=350, 
-			Ea_min=50, 
-			nEa=250, 
-			log10k0=10)
+									Ea_max=350, 
+									Ea_min=50, 
+									nEa=250, 
+									log10k0=10)
 
 	Creating a DAEM from an energy complex using the
-	``Daem.from_ratedata`` class method::
+	``rp.Daem.from_ratedata`` class method::
 
 		#import modules
 		import rampedpyrox as rp
@@ -337,12 +375,12 @@ class Daem(LaplaceTransform):
 
 		#create Daem instance
 		daem = rp.Daem.from_ratedata(ec, 
-			beta=0.08, 
-			log10k0=10, 
-			nt=250, 
-			t0=0, 
-			T0=373, 
-			tf=1e4)
+									beta=0.08, 
+									log10k0=10, 
+									nt=250, 
+									t0=0, 
+									T0=373, 
+									tf=1e4)
 
 	Plotting the L-curve of a Daem to find the best-fit omega value::
 
@@ -354,18 +392,18 @@ class Daem(LaplaceTransform):
 
 		#plot L curve
 		om_best, ax = daem.calc_L_curve(tg,
-			ax=None, 
-			plot=False,
-			om_min = 1e-3,
-			om_max = 1e2,
-			nOm = 150)
+										ax=None, 
+										plot=False,
+										om_min = 1e-3,
+										om_max = 1e2,
+										nOm = 150)
 
-	Attributes
-	----------
+	**Attributes**
+
 	A : np.ndarray
 
 	Ea : np.ndarray
-		Array of Ea values, in kJ/mol. Length nE.
+		Array of Ea values, in kJ/mol. Length `nEa`.
 
 	nEa : int
 		Number of activation energy points.
@@ -374,62 +412,65 @@ class Daem(LaplaceTransform):
 		Number of timepoints.
 
 	t : np.ndarray
-		Array of timep, in seconds. Length nt.
+		Array of timep, in seconds. Length `nt`.
 
 	T : np.ndarray
-		Array of temperature, in Kelvin. Length nt.
+		Array of temperature, in Kelvin. Length `nt`.
 
 	References
 	----------
-	R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction kinetics
-	using a distribution of activation energies and simpler models.
-	*Energy & Fuels*, **1**, 153-161.
+	[1] R.L Braun and A.K. Burnham (1987) Analysis of chemical reaction 
+		kinetics using a distribution of activation energies and simpler 
+		models. *Energy & Fuels*, **1**, 153-161.
 
-	\B. Cramer et al. (1998) Modeling isotope fractionation during primary
-	cracking of natural gas: A reaction kinetic approach. *Chemical
-	Geology*, **149**, 235-250.
+	[2] B. Cramer et al. (1998) Modeling isotope fractionation during primary
+		cracking of natural gas: A reaction kinetic approach. *Chemical*
+		*Geology*, **149**, 235-250.
 
-	\V. Dieckmann (2005) Modeling petroleum formation from heterogeneous
-	source rocks: The influence of frequency factors on activation energy
-	distribution and geological prediction. *Marine and Petroleum Geology*,
-	**22**, 375-390.
+	[3] V. Dieckmann (2005) Modeling petroleum formation from heterogeneous
+		source rocks: The influence of frequency factors on activation energy
+		distribution and geological prediction. *Marine and Petroleum*
+		*Geology*, **22**, 375-390.
 
-	D.C. Forney and D.H. Rothman (2012) Common structure in the
-	heterogeneity of plant-matter decay. *Journal of the Royal Society
-	Interface*, rsif.2012.0122.
+	[4] D.C. Forney and D.H. Rothman (2012) Common structure in the
+		heterogeneity of plant-matter decay. *Journal of the Royal Society*
+		*Interface*, rsif.2012.0122.
 
-	D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
-	respiration rates from decay time series. *Biogeosciences*, **9**,
-	3601-3612.
+	[5] D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+		respiration rates from decay time series. *Biogeosciences*, **9**,
+		3601-3612.
 
-	P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
-	Numerical aspects of linear inversion (monographs on mathematical
-	modeling and computation). *Society for Industrial and Applied
-	Mathematics*.
+	[6] P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
+		Numerical aspects of linear inversion (monographs on mathematical
+		modeling and computation). *Society for Industrial and Applied*
+		*Mathematics*.
 
-	P.C. Hansen (1994) Regularization tools: A Matlab package for analysis and
-	solution of discrete ill-posed problems. *Numerical Algorithms*, **6**,
-	1-35.
+	[7] P.C. Hansen (1994) Regularization tools: A Matlab package for analysis
+		and solution of discrete ill-posed problems. *Numerical Algorithms*, 
+		**6**, 1-35.
 
-	J.E. White et al. (2011) Biomass pyrolysis kinetics: A comparative
-	critical review with relevant agricultural residue case studies.
-	*Journal of Analytical and Applied Pyrolysis*, **91**, 1-33.
+	[8] C.C. Lakshmananan et al. (1991) Implications of multiplicity in
+		kinetic parameters to petroleum exploration: Distributed activation
+		energy models. *Energy & Fuels*, **5**, 110-117.
+
+	[9] J.E. White et al. (2011) Biomass pyrolysis kinetics: A comparative
+		critical review with relevant agricultural residue case studies.
+		*Journal of Analytical and Applied Pyrolysis*, **91**, 1-33.
 	'''
 
 	def __init__(self, Ea, log10k0, t, T):
 
 		#warn if T is scalar
 		if isinstance(T, (int, float)):
-			warnings.warn((
-				"Attempting to use isothermal data to create DAEM model! T is"
-				"a scalar value of: %.1f. Consider using an isothermal model" 
-				"type instead." % T))
+			warnings.warn(
+				'Attempting to use isothermal data to create DAEM model! T is'
+				'a scalar value of: %.1f. Consider using an isothermal model'
+				'type instead.' % T)
 
 		#calculate A matrix
 		A = _rpo_calc_A(Ea, log10k0, t, T)
-		model_type = 'Daem'
 
-		super(Daem, self).__init__(A, model_type, t, T)
+		super(Daem, self).__init__(A, t, T)
 
 		#store Daem-specific attributes
 		nEa = len(Ea)
@@ -438,17 +479,22 @@ class Daem(LaplaceTransform):
 		self.nEa = nEa
 
 	@classmethod
-	def from_timedata(cls, timedata, Ea_max = 350, Ea_min = 50, log10k0 = 10, 
-		nEa = 250):
+	def from_timedata(
+			cls, 
+			timedata, 
+			Ea_max = 350, 
+			Ea_min = 50, 
+			log10k0 = 10, 
+			nEa = 250):
 		'''
-		Class method to directly generate a ``Daem`` instance using data
-		stored in a ``TimeData`` instance.
+		Class method to directly generate an ``rp.Daem`` instance using data
+		stored in an ``rp.TimeData`` instance.
 
 		Parameters
 		----------
 		timedata : rp.TimeData
-			Instance of ``TimeData`` subclass containing the time array to use
-			for creating the Daem.
+			``rp.TimeData`` instance containing the time array to use
+			for creating the DAEM.
 
 		Keyword Arguments
 		-----------------
@@ -462,7 +508,7 @@ class Daem(LaplaceTransform):
 
 		log10k0 : scalar, array-like, or lambda function
 			Arrhenius pre-exponential factor, either a constant value, array-
-			likewith length nEa, or a lambda function of Ea. Defaults to 10.
+			likewith length `nEa`, or a lambda function of Ea. Defaults to 10.
 		
 		nEa : int
 			The number of activation energy points. Defaults to 250.
@@ -470,28 +516,29 @@ class Daem(LaplaceTransform):
 		Raises
 		------
 		TypeError
-			If log10k0 is not scalar, lambda, or array-like with length nEa.
+			If `log10k0` is not scalar, lambda, or array-like with length nEa.
 
 		Warnings
 		--------
-		If attempting to create a DAEM with an isothermal timedata instance.
+		UserWarning
+			If attempting to create a DAEM with an isothermal timedata 
+			instance.
 
 		See Also
 		--------
 		from_ratedata
-			Class method to directly generate a ``Daem`` instance using data
-			stored in a ``RateData`` instance.
+			Class method to directly generate an ``rp.Daem`` instance using 
+			data stored in an ``rp.RateData`` instance.
 		'''
 
-		#import other rampedpyrox classes
-		from .. import timedata as td
+		#warn if timedata is not RpoThermogram
+		td_type = type(timedata).__name__
 
-		#check that timedata is the right type
-		if not isinstance(timedata, (td.RpoThermogram)):
-			warnings.warn((
-			"Attempting to generate Daem model using a timedata instance of"
-			"class: %s. Consider using RpoThermogram timedata instance"
-			"instead." % repr(timedata)))
+		if td_type not in ['RpoThermogram']:
+			warnings.warn(
+				'Attempting to calculate isotopes using an isothermal timedata'
+				' instance of type %r. Consider using rp.RpoThermogram' 
+				' instance instead' % td_type)
 
 		#generate Ea, t, and T array
 		Ea = np.linspace(Ea_min, Ea_max, nEa)
@@ -501,27 +548,34 @@ class Daem(LaplaceTransform):
 		return cls(Ea, log10k0, t, T)
 
 	@classmethod
-	def from_ratedata(cls, ratedata, beta = 0.08, log10k0 = 10, nt = 250,
-		t0 = 0, T0 = 373, tf = 1e4):
+	def from_ratedata(
+			cls, 
+			ratedata, 
+			beta = 0.08, 
+			log10k0 = 10, 
+			nt = 250,
+			t0 = 0, 
+			T0 = 373, 
+			tf = 1e4):
 		'''
-		Class method to directly generate a ``Daem`` instance using data
-		stored in a ``RateData`` instance.
+		Class method to directly generate an ``rp.Daem`` instance using data
+		stored in an ``rp.RateData`` instance.
 
 		Paramters
 		---------
 		ratedata : rp.RateData
-			Instance of ``RateData`` containing the Ea array to use for
-			creating the Daem. 
+			``rp.RateData`` instance containing the Ea array to use for
+			creating the DAEM. 
 
 		Keyword Arguments
 		-----------------
 		beta : int or float
 			Temperature ramp rate to use in model, in Kelvin/second. Defaults
-			to 0.08.
+			to 0.08 (*i.e.* 5K/min)
 
 		log10k0 : scalar, array-like, or lambda function
 			Arrhenius pre-exponential factor, either a constant value, array-
-			likewith length nEa, or a lambda function of Ea. Defaults to 10.
+			likewith length `nEa`, or a lambda function of Ea. Defaults to 10.
 
 		nt : int
 			The number of time points to use. Defaults to 250.
@@ -541,35 +595,34 @@ class Daem(LaplaceTransform):
 		Raises
 		------
 		TypeError
-			If beta, t0, T0, or tf are not scalar.
+			If `beta`, `t0`, `T0`, or `tf` are not scalar.
 
 		TypeError
-			If nt is not int.
+			If `nt` is not int.
 
 		TypeError
-			If log10k0 is not scalar, lambda, or array-like with length nEa.
+			If `log10k0` is not scalar, lambda, or array-like with length `nEa`.
 
 		TypeError
-			If attempting to generate a ``Daem`` instance with a ratedata
-			instance not of type ``EnergyComplex``.
+			If attempting to generate an ``rp.Daem`` instance with a ratedata
+			instance not of type ``rp.EnergyComplex``.
 
 		See Also
 		--------
 		from_timedata
-			Class method to directly generate a ``Daem`` instance using data
-			stored in a ``TimeData`` instance.
+			Class method to directly generate an ``rp.Daem`` instance using data
+			stored in an ``rp.TimeData`` instance.
 
 		'''
 
-		#import other rampedpyrox classes
-		from .. import ratedata as rd
+		#warn if ratedata is not EnergyComplex
+		rd_type = type(ratedata).__name__
 
-		#check that ratedata is the right type
-		if not isinstance(ratedata, (rd.EnergyComplex)):
-			raise TypeError((
-				"Attempting to generate Daem model using a ratedata instance"
-				"of type: %s. Only EnergyComplex instances can be used for"
-				"Daem models." % repr(ratedata)))
+		if rd_type not in ['EnergyComplex']:
+			warnings.warn(
+				'Attempting to calculate isotopes using a ratedata instance of'
+				' type %r. Consider using rp.EnergyComplex instance instead'
+				% rd_type)
 
 		#generate Ea, t, and T array
 		Ea = ratedata.Ea
@@ -578,6 +631,6 @@ class Daem(LaplaceTransform):
 
 		return cls(Ea, log10k0, t, T)
 
+if __name__ is '__main__':
 
-
-
+	import rampedpyrox as rp

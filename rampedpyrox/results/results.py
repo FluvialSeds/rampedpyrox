@@ -18,9 +18,12 @@ from rampedpyrox.core.core_functions import(
 	)
 
 from rampedpyrox.results.results_helper import(
+	_d13C_to_R13,
 	_kie_d13C,
 	_kie_d13C_MC,
 	_nnls_MC,
+	_R13_CO2,
+	_R13_to_d13C,
 	_rpo_blk_corr,
 	_rpo_cont_ptf,
 	_rpo_extract_iso,
@@ -186,6 +189,24 @@ class RpoIsotopes(Results):
 				DEa = DEa,
 				nIter = 10000)
 
+	If d13C data exist, the d13C value of instantaneously produced CO2 can be
+	plotted against time::
+
+		#import additional modules
+		import matplotlib.pyplot as plt
+
+		#create figure
+		fig, ax = plt.subplots(1,1)
+
+		#plot data
+		ax.plot(tg.t, ri.d13C_product,
+				linewidth = 2,
+				color = 'k')
+
+		#label axes
+		ax.set_xlabel('time (s)')
+		ax.set_ylabel(r'instantaneous $\\delta^{13}C$')
+
 	Printing a summary of the analysis::
 
 		#fraction and peak information
@@ -216,6 +237,10 @@ class RpoIsotopes(Results):
 		The standard deviation of `d13C_peak` with length `nPeak` 
 		(post-combining).
 
+	d13C_product : np.ndarray
+		The d13C values (VPDB) of instantaneously produced product at each
+		timepoint in ``ratedata.t``. Length `nt`.
+
 	d13C_rmse : float
 		The RMSE between the true and estimated d13C values of each fraction,
 		in VPDB.
@@ -238,15 +263,12 @@ class RpoIsotopes(Results):
 		The RMSE between the true and estimated Fm values of each fraction.
 
 	frac_info : pd.DataFrame
-		Dataframe containing the inverse-modeled peak isotopesummary info: 
+		Dataframe containing the inputted fraction isotope summary info: 
 
+			time (init. and final), \n
 			mass (mean and std.), \n
 			d13C (mean and std.), \n
-			m (mean and std.), \n
-			DEa
-		
-		Combined peak info is repeated with an asterisk (*) next to the 
-		repeated row indices.
+			Fm (mean and std.), \n
 
 	m_frac : np.ndarray
 		Array of the masses (ugC) of each measured fraction, length `nFrac`.
@@ -272,6 +294,17 @@ class RpoIsotopes(Results):
 		The number of iterations, used for bootstrapping peak mass/isotope
 		uncertainty.
 
+	peak_info : pd.DataFrame
+		Dataframe containing the inverse-modeled peak isotope summary info: 
+
+			mass (mean and std.), \n
+			d13C (mean and std.), \n
+			Fm (mean and std.), \n
+			DEa
+		
+		Combined peak info is repeated with an asterisk (*) next to the 
+		repeated row indices.
+
 	t_frac : np.ndarray
 		2d array of the initial and final times of each fraction, in seconds.
 		Shape [`nFrac` x 2].
@@ -291,18 +324,18 @@ class RpoIsotopes(Results):
 		# store as attributes
 		if t_frac is not None:
 			if isinstance(t_frac, str):
-				raise TypeError((
-					't_frac cannot be a string'))
+				raise TypeError(
+					't_frac cannot be a string')
 
-			elif isinstance(t_frac,Sequence) or hasattr(t_frac,'__array__'):
+			elif isinstance(t_frac, Sequence) or hasattr(t_frac, '__array__'):
 				
 				n = len(t_frac)
 				self.t_frac = t_frac
 				self.nFrac = n
 
 			else:
-				raise TypeError((
-					't_frac must be array-like or None'))
+				raise TypeError(
+					't_frac must be array-like or None')
 
 			#store existing data
 			if m_frac is not None:
@@ -354,7 +387,7 @@ class RpoIsotopes(Results):
 			If `file` does not contain a "fraction" column.
 
 		TypeError
-			If `file` is not str or ``pd.DataFrame``.
+			If `file` is not str or ``pd.DataFrame`` instance.
 		
 		TypeError
 			If index is not ``pd.DatetimeIndex`` instance.	
@@ -377,7 +410,6 @@ class RpoIsotopes(Results):
 			'ug_frac' and 'ug_frac_std' \n
 			'd13C' and 'd13C_std' \n
 			'Fm' and 'Fm_std'
-
 
 		See Also
 		--------
@@ -437,7 +469,7 @@ class RpoIsotopes(Results):
 			inversion.
 
 		ratedata : rp.RateData
-			``rp.Ratedata instance containing the reactive continuum data.
+			``rp.Ratedata`` instance containing the reactive continuum data.
 
 		timedata : rp.TimeData
 			``rp.TimeData`` instance containing the estimated timeseries data.
@@ -516,40 +548,40 @@ class RpoIsotopes(Results):
 		mod_type = type(model).__name__
 
 		if mod_type not in ['Daem']:
-			warnings.warn((
+			warnings.warn(
 				'Attempting to calculate isotopes using a model instance of'
-				' type %r. Consider using rp.Daem instance instead')
+				' type %r. Consider using rp.Daem instance instead'
 				% rd_type)
 
 		#warn if ratedata is not EnergyComplex
 		rd_type = type(ratedata).__name__
 
 		if rd_type not in ['EnergyComplex']:
-			warnings.warn((
+			warnings.warn(
 				'Attempting to calculate isotopes using a ratedata instance of'
-				' type %r. Consider using rp.EnergyComplex instance instead')
+				' type %r. Consider using rp.EnergyComplex instance instead'
 				% rd_type)
 
 		#warn if timedata is not RpoThermogram
 		td_type = type(timedata).__name__
 
 		if td_type not in ['RpoThermogram']:
-			warnings.warn((
+			warnings.warn(
 				'Attempting to calculate isotopes using an isothermal timedata'
 				' instance of type %r. Consider using rp.RpoThermogram' 
-				' instance instead') % td_type)
+				' instance instead' % td_type)
 
 		#raise exception if timedata does not have fitted data attributes
 		if not hasattr(timedata, 'cmpt'):
-			raise AttributeError((
+			raise AttributeError(
 				'timedata instance must have attribute "cmpt". Run the'
-				' forward model before solving for isotopes!'))
+				' forward model before solving for isotopes!')
 
 		#raise exception if ratedata does not have fitted data attributes
 		if not hasattr(ratedata, 'peaks'):
-			raise AttributeError((
+			raise AttributeError(
 				'ratedata instance must have attribute "peaks". Run the'
-				' inverse model before solving for isotopes!'))
+				' inverse model before solving for isotopes!')
 
 		#raise exception if DEa is not int or array-like with length nPeak
 		if DEa is None:
@@ -569,9 +601,9 @@ class RpoIsotopes(Results):
 					DEa = np.insert(DEa, dp, DEa[dp-1])
 
 				except ValueError:
-					raise ValueError((
+					raise ValueError(
 						'DEa must be None, scalar, or array with length' 
-						' nPeak'))
+						' nPeak')
 
 		#calculate peak contribution to each fraction
 		cont_ptf, ind_min, ind_max, ind_wgh = _rpo_cont_ptf(
@@ -614,7 +646,7 @@ class RpoIsotopes(Results):
 			self.Fm_peak_std = Fm_peak_std
 			self.Fm_rmse = Fm_rmse
 
-		#if has d13C, calculate peak d13C
+		#if has d13C, calculate peak d13C and instantaneous CO2 d13C
 		if hasattr(self, 'd13C_frac'):
 
 			d13C_peak, d13C_peak_std, d13C_rmse = _kie_d13C_MC(
@@ -628,6 +660,13 @@ class RpoIsotopes(Results):
 			self.d13C_peak = d13C_peak
 			self.d13C_peak_std = d13C_peak_std
 			self.d13C_rmse = d13C_rmse
+
+			#calculate d13C of CO2 at each timepoint
+			R13_peak = _d13C_to_R13(d13C_peak)
+			R13_CO2 = _R13_CO2(DEa, model, R13_peak, ratedata)
+			d13C_CO2 = _R13_to_d13C(R13_CO2)
+
+			self.d13C_product = d13C_CO2
 
 		#store results in summary table
 		self.peak_info = _rpo_isotopes_peak_info(

@@ -2,10 +2,14 @@
 Module to store all the core functions for ``rampedpyrox``.
 '''
 
+from __future__ import print_function
+
+__docformat__ = 'restructuredtext en'
+__all__ = ['assert_len', 'calc_L_curve', 'derivatize']
+
 import numpy as np
 
 from collections import Sequence
-
 
 #define function to assert length of array
 def assert_len(data, n):
@@ -60,7 +64,7 @@ def assert_len(data, n):
 	return np.array(data).astype(float)
 
 #define package-level function for calculating L curves
-def calc_L_curve(model, timedata, ax=None, plot=False, nOm = 150, 
+def calc_L_curve(model, timedata, ax = None, plot = False, nOm = 150, 
 	om_max = 1e2, om_min = 1e-3):
 	'''
 	Function to calculate the L-curve for a given model and timedata
@@ -210,41 +214,3 @@ def derivatize(num, denom):
 		dndd = np.column_stack(col_der)
 
 	return dndd
-
-#function to round to sig fig
-def round_to_sigfig(vec, sig_figs=6):
-	'''
-	Rounds inputted vector to specified sig fig.
-
-	Parameters
-	----------
-	vec : np.ndarray
-		Array of data to round.
-
-	sig_figs : int
-		Number of sig figs to round to. Defaults to 6.
-
-	Returns
-	-------
-	vec_round : np.ndarray
-		`vec` array rounded to `sig_figs`.
-
-	References
-	----------
-	D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
-	respiration rates from decay time series. *Biogeosciences*, **9**,
-	3601-3612.
-	'''
-
-	#create lambda function for rounding
-	rnd = lambda x, n: round(x, -int(np.floor(np.log10(abs(x)))) + n - 1)
-
-	#use list comprehension to round the vector
-	vec_round = [rnd(x, sig_figs) if x != 0 else x for x in vec]
-
-	return np.array(vec_round)
-
-
-
-
-

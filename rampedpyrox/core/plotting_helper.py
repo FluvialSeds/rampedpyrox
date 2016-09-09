@@ -2,6 +2,12 @@
 This module contains helper functions for plotting rampedpyrox data.
 '''
 
+
+from __future__ import print_function
+
+__docformat__ = 'restructuredtext en'
+__all__ = ['_plot_dicts', '_rem_dup_leg']
+
 import numpy as np
 
 #define function to pull plotting dicts
@@ -14,12 +20,13 @@ def _plot_dicts(case, td):
 	case : str
 		The case that defines the dict to pull.
 		Acceptable strings:
-			'rpo_rd',
-			'rpo_labs',
+
+			'rpo_rd', \n
+			'rpo_labs', \n
 			'rpo_md'
 
 	td : TimeData or subclass
-		``TimeData`` instance containing the data to plot
+		``rp.TimeData`` instance containing the data to plot.
 
 	Returns
 	-------
@@ -29,24 +36,36 @@ def _plot_dicts(case, td):
 
 	if case == 'rpo_md':
 		#create a nested dict to keep track of cases of modeled data
-		pl_dict = {'time': {'fraction' : (td.t, td.gam, td.cmpt),
-						'rate' : (td.t, -td.dgamdt, -td.dcmptdt)},
-			'temp': {'fraction' : (td.T, td.gam, td.cmpt),
-						'rate' : (td.T, -td.dgamdT, -td.dcmptdT)}}
+		pl_dict = {'time': 
+						{'fraction' : (td.t, td.gam, td.cmpt),
+						'rate' : (td.t, -td.dgamdt, -td.dcmptdt)
+						},
+					'temp': 
+						{'fraction' : (td.T, td.gam, td.cmpt),
+						'rate' : (td.T, -td.dgamdT, -td.dcmptdT)}
+						}
 
 	elif case == 'rpo_labs':
 		#create a nested dict to keep track of axis labels
-		pl_dict = {'time': {'fraction' : ('time (s)', 'g (unitless)'),
-						'rate' : ('time (s)', r'fraction/time $(s^{-1})$')},
-			'temp' : {'fraction' : ('temp (K)', 'g (unitless)'),
-						'rate' : ('temp (K)', r'fraction/temp $(K^{-1})$')}}
+		pl_dict = {'time': 
+						{'fraction' : ('time (s)', 'g (unitless)'),
+						'rate' : ('time (s)', r'fraction/time $(s^{-1})$')
+						},
+					'temp' : 
+						{'fraction' : ('temp (K)', 'g (unitless)'),
+						'rate' : ('temp (K)', r'fraction/temp $(K^{-1})$')}
+						}
 
 	elif case == 'rpo_rd':
 		#create a nested dict to keep track of cases for real data
-		pl_dict = {'time': {'fraction' : (td.t, td.g),
-						'rate' : (td.t, -td.dgdt)},
-			'temp': {'fraction' : (td.T, td.g),
-						'rate' : (td.T, -td.dgdT)}}
+		pl_dict = {'time': 
+						{'fraction' : (td.t, td.g),
+						'rate' : (td.t, -td.dgdt)
+						},
+					'temp': 
+						{'fraction' : (td.T, td.g),
+						'rate' : (td.T, -td.dgdT)}
+						}
 
 	return pl_dict
 
@@ -72,13 +91,10 @@ def _rem_dup_leg(ax):
 	han_list, lab_list = [], []
 	
 	for h, l in zip(han, lab):
+		
 		if l not in lab_list:
+		
 			han_list.append(h)
 			lab_list.append(l)
 
 	return han_list, lab_list
-
-
-
-
-
