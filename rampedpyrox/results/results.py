@@ -12,12 +12,24 @@ import warnings
 
 from collections import Sequence
 
+#import exceptions
+from ..core.exceptions import(
+	ArrayError,
+	LengthError,
+	RunModelError,
+	)
+
 #import helper functions
-from rampedpyrox.core.core_functions import(
+from ..core.core_functions import(
 	assert_len,
 	)
 
-from rampedpyrox.results.results_helper import(
+from ..core.summary_helper import(
+	_rpo_isotopes_frac_info,
+	_rpo_isotopes_peak_info,
+	)
+
+from .results_helper import(
 	_d13C_to_R13,
 	_kie_d13C,
 	_kie_d13C_MC,
@@ -29,10 +41,6 @@ from rampedpyrox.results.results_helper import(
 	_rpo_extract_iso,
 	)
 
-from rampedpyrox.core.summary_helper import(
-	_rpo_isotopes_frac_info,
-	_rpo_isotopes_peak_info,
-	)
 
 class Results(object):
 	'''
@@ -94,13 +102,8 @@ class RpoIsotopes(Results):
 
 	Raises
 	------
-	TypeError
+	ArrayError
 		If `t_frac` is not array-like or `None`.
-
-	TypeError
-		If any of `d13C_frac`, `d13C_frac_std`, `Fm_frac`, `Fm_frac_std`,
-		`m_frac`, or `m_frac_std` are not `None` or array-like with length
-		`nFrac`, where ``nFrac = len(t_frac)``.
 
 	Notes
 	-----
@@ -324,7 +327,7 @@ class RpoIsotopes(Results):
 		# store as attributes
 		if t_frac is not None:
 			if isinstance(t_frac, str):
-				raise TypeError(
+				raise ArrayError(
 					't_frac cannot be a string')
 
 			elif isinstance(t_frac, Sequence) or hasattr(t_frac, '__array__'):
@@ -334,7 +337,7 @@ class RpoIsotopes(Results):
 				self.nFrac = n
 
 			else:
-				raise TypeError(
+				raise ArrayError(
 					't_frac must be array-like or None')
 
 			#store existing data
@@ -380,23 +383,6 @@ class RpoIsotopes(Results):
 			manometric uncertainty in pressure measurements and uncertainty in
 			vacuum line volumes. Defaults to 0.01 (i.e. 1\% relative 
 			uncertainty).
-
-		Raises
-		------
-		AttributeError
-			If `file` does not contain a "fraction" column.
-
-		TypeError
-			If `file` is not str or ``pd.DataFrame`` instance.
-		
-		TypeError
-			If index is not ``pd.DatetimeIndex`` instance.	
-
-		TypeError
-			If `mass_err` is not scalar.
-		
-		ValueError
-			If first two rows are not fractions "-1" and "0"
 		
 		Notes
 		-----
@@ -486,18 +472,13 @@ class RpoIsotopes(Results):
 
 		Raises
 		------
-		AttributeError
+		RunModelError
 			If ratedata does not contain attribute 'peaks' -- i.e. if the
 			inverse model has not been run.
 
-		AttributeError
+		RunModelError
 			If timedata does not contain attribute 'cmpt' -- i.e. if the
 			forward model has not been run.
-
-		ValueError
-			If `DEa` is not `None`, scalar, or array-like with length `nPeak`
-			(either before or after combining. If after, all individual peaks
-			in a combined peak will have the same `DEa` value.)
 
 		Warnings
 		--------
@@ -573,13 +554,13 @@ class RpoIsotopes(Results):
 
 		#raise exception if timedata does not have fitted data attributes
 		if not hasattr(timedata, 'cmpt'):
-			raise AttributeError(
+			raise RunModelError(
 				'timedata instance must have attribute "cmpt". Run the'
 				' forward model before solving for isotopes!')
 
 		#raise exception if ratedata does not have fitted data attributes
 		if not hasattr(ratedata, 'peaks'):
-			raise AttributeError(
+			raise RunModelError(
 				'ratedata instance must have attribute "peaks". Run the'
 				' inverse model before solving for isotopes!')
 
@@ -591,19 +572,15 @@ class RpoIsotopes(Results):
 			try:
 				DEa = assert_len(DEa, ratedata.nPeak)
 			
-			except ValueError:
-				try:
-					DEa = assert_len(DEa, timedata.nPeak)
+			except LengthError:
 
 					#add DEa for deleted peaks so len(DEa) = ratedata.nPeak
 					dp = [val - i for i, val in enumerate(ratedata._cmbd)]
 					dp = np.array(dp)
 					DEa = np.insert(DEa, dp, DEa[dp-1])
 
-				except ValueError:
-					raise ValueError(
-						'DEa must be None, scalar, or array with length' 
-						' nPeak')
+					#assert length is nPeak (before combining)
+					DEa = assert_len(DEa, timedata.nPeak)
 
 		#calculate peak contribution to each fraction
 		cont_ptf, ind_min, ind_max, ind_wgh = _rpo_cont_ptf(

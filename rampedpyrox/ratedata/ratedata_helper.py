@@ -14,12 +14,18 @@ import warnings
 
 from scipy.optimize import least_squares
 
-#import helper functions
-from rampedpyrox.core.core_functions import(
-	assert_len,
+#import exceptions
+from ..core.exceptions import(
+	ArrayError,
+	FitError,
+	ScalarError,
+	StringError,
 	)
 
-# from rampedpyrox.core.core_functions import *
+#import helper functions
+from ..core.core_functions import(
+	assert_len,
+	)
 
 #define function to generate fitted f distribution, phi
 def _calc_phi(k, mu, sigma, height, peak_shape):
@@ -49,6 +55,11 @@ def _calc_phi(k, mu, sigma, height, peak_shape):
 	peaks : np.ndarray
 		Array of individual estimated Ea Gaussian peaks. Shape 
 		[`nk` x `nPeak`].
+	
+	Raises
+	------
+	StringError
+		If `peak_shape` is not an acceptable string.
 	'''
 
 	if peak_shape == 'Gaussian':
@@ -56,7 +67,7 @@ def _calc_phi(k, mu, sigma, height, peak_shape):
 		y = _gaussian(k, mu, sigma)
 
 	else:
-		raise ValueError(
+		raise StringError(
 			'Peak shape: %r is not recognized. Peak shape must be:'
 			'	Gaussian,' % peak_shape)
 
@@ -88,8 +99,6 @@ def _deconvolve(
 		Array of a discretized pdf of the distribution of k/Ea values.
 		Length `nk`.
 
-	Keyword Arguments
-	-----------------
 	nPeaks : int or 'auto'
 		Tells the program how many peaks to retain after deconvolution.
 		Defaults to 'auto'.
@@ -121,13 +130,13 @@ def _deconvolve(
 
 	Raises
 	------
-	TypeError
+	ScalarError
 		If `nPeaks` is not int or 'auto'.
 
-	TypeError
+	ScalarError
 		If `thres` is not a float.
 
-	ValueError
+	StringError
 		If `peak_shape` is not an acceptable string.
 
 	Warnings
@@ -144,15 +153,15 @@ def _deconvolve(
 	#assert types
 	if not isinstance(nPeaks, int):
 		if nPeaks not in ['auto', 'Auto']:
-			raise TypeError(
+			raise ScalarError(
 				'nPeaks must be int or "auto"')
 
 	if peak_shape not in ['gaussian', 'Gaussian']:
-		raise ValueError(
+		raise StringError(
 			'peak_shape must be "Gaussian"')
 
 	if not isinstance(thres, float):
-		raise TypeError(
+		raise ScalarError(
 			'thres must be float')
 
 
@@ -240,14 +249,14 @@ def _f_phi_diff(params, k, f, peak_shape):
 
 	Raises
 	------
-	ValueError
+	ArrayError
 		If len(params) is not ``3*n``, where `n` is the length of the `mu`, 
 		`sigma`, and `height` vectors.
 
 	'''
 
 	if len(params) % 3 != 0:
-		raise ValueError(
+		raise ArrayError(
 			'params array must be length 3n (mu, sigma, height)')
 
 	n = int(len(params)/3)
@@ -284,14 +293,6 @@ def _gaussian(x, mu, sigma):
 	-------
 	y : np.ndarray
 		Array of resulting y values of shape [`len(x)` x `len(mu)`].
-
-	Raises
-	------
-	ValueError
-		If mu and sigma arrays are not the same length.
-		
-	ValueError
-		If mu and sigma arrays are not int, float, or np.ndarray.
 	'''
 
 	#check data types and broadcast if necessary
@@ -305,17 +306,7 @@ def _gaussian(x, mu, sigma):
 
 		#assert mu and sigma are array-like and the same shape
 		mu = assert_len(mu, n)
-
-		try:
-			sigma = assert_len(sigma, n)
-
-		except ValueError:
-			raise ValueError(
-				'mu and sigma arrays must have same length')
-
-		#ensure mu and sigma dtypes are float
-		mu = mu.astype(float)
-		sigma = sigma.astype(float)
+		sigma = assert_len(sigma, n)
 
 		#broadcast x into matrix
 		x = np.outer(x, np.ones(n))
@@ -363,13 +354,13 @@ def _peak_indices(f, nPeaks='auto', thres=0.05):
 
 	Raises
 	------
-	ValueError
+	ArrayError
 		If `ub_ind` and `lb_ind` arrays are not the same length.
 		
-	ValueError
+	FitError
 		If `nPeaks` is greater than the total number of peaks detected.
 		
-	ValueError
+	ScalarError
 		If `nPeaks` is not 'auto' or int.
 
 	Notes
@@ -402,19 +393,10 @@ def _peak_indices(f, nPeaks='auto', thres=0.05):
 	lb_ind = lb_ind[:-1]
 	
 	if len(ub_ind) != len(lb_ind):
-		raise ValueError(
+		raise ArrayError(
 			'UB and LB arrays have different lenghts')
 
 	#find index of minimum d2f within each bounded range
-	# ind = []
-	# for i, j in zip(lb_ind, ub_ind):
-
-	# 	ind.append(i + np.argmin(d2f[i:j]))
-	
-	# #convert ind to ndarray
-	# ind = np.array(ind)
-
-
 	ind = np.zeros(len(ub_ind), dtype = int)
 
 	for i, (a, b) in enumerate(zip(lb_ind, ub_ind)):
@@ -431,7 +413,7 @@ def _peak_indices(f, nPeaks='auto', thres=0.05):
 	if isinstance(nPeaks,int):
 		#check if nPeaks is greater than the total amount of peaks
 		if len(ind) < nPeaks:
-			raise ValueError(
+			raise FitError(
 				'nPeaks greater than total detected peaks')
 
 		#sort according to decreasing f, keep first nPeaks, and re-sort
@@ -444,7 +426,7 @@ def _peak_indices(f, nPeaks='auto', thres=0.05):
 		ub_ind = ub_ind[i]
 
 	elif nPeaks is not 'auto':
-		raise ValueError(
+		raise ScalarError(
 			'nPeaks must be "auto" or int')
 
 	return ind, lb_ind, ub_ind

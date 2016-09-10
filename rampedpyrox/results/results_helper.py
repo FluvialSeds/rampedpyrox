@@ -19,8 +19,14 @@ from numpy.linalg import norm
 from scipy.optimize import least_squares
 from scipy.optimize import nnls
 
+#import exceptions
+from ..core.exceptions import(
+	FileError,
+	ScalarError,
+	)
+
 #import helper functions
-from rampedpyrox.ratedata.ratedata_helper import(
+from ..ratedata.ratedata_helper import(
 	_calc_phi
 	)
 
@@ -82,8 +88,9 @@ def _kie_d13C(DEa, ind_wgh, model, ratedata, vals):
 
 	Warnings
 	--------
-	Raises warning if ``scipy.optimize.least_squares`` cannot converge on a
-	best-fit solution.
+	UserWarning
+		If ``scipy.optimize.least_squares`` cannot converge on a
+		best-fit solution.
 	'''
 
 	#extract shapes -- NPEAKS AFTER COMBINED!
@@ -464,9 +471,9 @@ def _rpo_blk_corr(d13C, d13C_std, Fm, Fm_std, m, m_std, t):
 	
 	References
 	----------
-	J.D. Hemingway et al. **(in prep)** Assessing the blank carbon
-	contribution, isotope mass balance, and kinetic isotope fractionation of 
-	the ramped pyrolysis/oxidation instrument at NOSAMS.
+	[1] J.D. Hemingway et al. **(in prep)** Assessing the blank carbon
+		contribution, isotope mass balance, and kinetic isotope fractionation
+		of the ramped pyrolysis/oxidation instrument at NOSAMS.
 	'''
 
 	#define constants
@@ -576,7 +583,8 @@ def _rpo_cont_ptf(result, timedata, ptf = True):
 
 	Warnings
 	------
-	Warns if nPeak is greater than nFrac, the problem is underconstrained.
+	UserWarning
+		If nPeak is greater than nFrac, the problem is underconstrained.
 
 	Notes
 	-----
@@ -597,7 +605,7 @@ def _rpo_cont_ptf(result, timedata, ptf = True):
 	wgh = -timedata.dgamdt
 	peaks = -timedata.dcmptdt
 
-	#raise errors
+	#raise warnings
 	if nPeak > nFrac:
 		warnings.warn(
 			'Warning: nPeak = %r, nFrac = %r. Problem is underconstrained!'
@@ -678,20 +686,20 @@ def _rpo_extract_iso(file, mass_err):
 
 	Raises
 	------
-	AttributeError
+	FileError
 		If `file` does not contain "fraction" column.
 
-	TypeError
+	FileError
 		If `file` is not str or ``pd.DataFrame``.
 	
-	TypeError
+	FileError
 		If index is not ``pd.DatetimeIndex`` instance.	
-
-	TypeError
-		If `mass_err` is not scalar.
 	
-	ValueError
+	FileError
 		If first two rows are not fractions "-1" and "0"
+
+	ScalarError
+		If `mass_err` is not scalar.
 	
 	Notes
 	-----
@@ -706,23 +714,23 @@ def _rpo_extract_iso(file, mass_err):
 		file = pd.DataFrame.from_csv(file)
 
 	elif not isinstance(file, pd.DataFrame):
-		raise TypeError(
+		raise FileError(
 			'file must be pd.DataFrame or path string')
 
 	if 'fraction' not in file.columns:
-		raise AttributeError(
+		raise FileError(
 			'file must have "fraction" column')
 
 	if not isinstance(file.index, pd.DatetimeIndex):
-		raise TypeError(
+		raise FileError(
 			'file index must be DatetimeIndex')
 
 	if file.fraction[0] != -1 or file.fraction[1] != 0:
-		raise ValueError(
+		raise FileError(
 			'First two rows must be fractions "-1" and "0"')
 
 	if not isinstance(mass_err, (str, float)):
-		raise TypeError(
+		raise ScalarError(
 			'mass_err must be string or float')
 	else:
 		#ensure float

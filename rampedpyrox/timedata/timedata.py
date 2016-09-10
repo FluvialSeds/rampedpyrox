@@ -13,27 +13,33 @@ import warnings
 
 from numpy.linalg import norm
 
+#import exceptions
+from ..core.exceptions import(
+	ArrayError,
+	StringError,
+	)
+
 #import helper functions
-from rampedpyrox.core.core_functions import(
+from ..core.core_functions import(
 	assert_len,
 	derivatize,
 	)
 
-from rampedpyrox.timedata.timedata_helper import(
-	_rpo_extract_tg,
-	)
-
-from rampedpyrox.model.model_helper import(
-	_calc_cmpt
-	)
-
-from rampedpyrox.core.plotting_helper import(
+from ..core.plotting_helper import(
 	_plot_dicts,
 	_rem_dup_leg,
 	)
 
-from rampedpyrox.core.summary_helper import(
+from ..core.summary_helper import(
 	_timedata_peak_info
+	)
+
+from ..model.model_helper import(
+	_calc_cmpt
+	)
+
+from .timedata_helper import(
+	_rpo_extract_tg,
 	)
 
 
@@ -65,20 +71,6 @@ class TimeData(object):
 		T_std : scalar or array-like
 			The temperature standard deviation, with length `nt`, in Kelvin. 
 			Defaults to zero.
-
-		Raises
-		------
-		TypeError
-			If `t` is not array-like.
-
-		TypeError
-			If `g_std`, `T`, or `T_std` are not scalar or array-like.
-
-		TypeError
-			If `g` is not None or array-like.
-
-		ValueError
-			If any of `T`, `g`, `g_std`, or `T_std` are not length `nt`.
 		'''
 
 		#store time-temperature attributes
@@ -154,12 +146,6 @@ class TimeData(object):
 		cmpt : array-like
 			Array of fraction of each component remaining at each timestep.
 			Gets converted to 2d rparray. Shape [`nt` x `nPeak`].
-
-		Raises
-		------
-		AttributeError
-			If ``rp.TimeData`` instance does not contain necessary attributes
-			(i.e. if it does not have inputted model-estimated data).
 		'''
 
 		#ensure type and size
@@ -300,20 +286,6 @@ class RpoThermogram(TimeData):
 	T_std : scalar or array-like
 		The temperature standard deviation, with length `nt`, in Kelvin. 
 		Defaults to zeros.
-
-	Raises
-	------
-	TypeError
-		If `t` is not array-like.
-
-	TypeError
-		If `g_std`, `T`, or `T_std` are not scalar or array-like.
-
-	TypeError
-		If `g` is not None or array-like.
-
-	ValueError
-		If any of `T`, `g`, `g_std`, or `T_std` are not length `nt`.
 
 	Warnings
 	--------
@@ -522,20 +494,6 @@ class RpoThermogram(TimeData):
 		T_err : int or float
 			The uncertainty in the RPO instrument temperature, in Kelvin.
 			Used to calculate `T_std` array. Defaults to 3.
-		
-		Raises
-		------
-		TypeError
-			If `file` is not str or ``pd.DataFrame`` instance.
-		
-		TypeError
-			If index of `file` is not ``pd.DatetimeIndex`` instance.
-
-		TypeError
-			If `nt` is not int.
-
-		ValueError
-			If `file` does not contain "CO2_scaled" and "temp" columns.
 
 		Notes
 		-----
@@ -606,7 +564,7 @@ class RpoThermogram(TimeData):
 
 		Raises
 		------
-		ValueError
+		ArrayError
 			If `nEa` is not the same in the ``rp.Model`` instance and the 
 			``rp.RateData`` instance.
 
@@ -641,7 +599,7 @@ class RpoThermogram(TimeData):
 
 		#raise ValueError if not the right shape
 		if model.nEa != ratedata.nEa:
-			raise ValueError(
+			raise ArrayError(
 				'Cannot combine model with nEa = %r and RateData with'
 				' nEa = %r. Check that RateData was not created using'
 				' a different model' % (model.nEa, ratedata.nEa))
@@ -661,14 +619,6 @@ class RpoThermogram(TimeData):
 		cmpt : array-like
 			Array of the estimated fraction of carbon remaining in each 
 			component at each timepoint. Shape [`nt` x `nPeak`].
-
-		Raises
-		------
-		TypeError
-			If `cmpt` is not array-like.
-
-		ValueError
-			If `cmpt` is not of length nt.
 
 		See Also
 		--------
@@ -705,21 +655,21 @@ class RpoThermogram(TimeData):
 
 		Raises
 		------
-		ValueError
+		StringError
 			If `xaxis` is not 'time' or 'temp'.
 
-		ValueError
+		StringError
 			if `yaxis` is not 'fraction' or 'rate'.
 		'''
 
 		#check that axes are appropriate strings
 		if xaxis not in ['time','temp']:
-			raise ValueError(
+			raise StringError(
 				'xaxis does not accept %r. Must be either "time" or "temp"'
 				%xaxis)
 
 		elif yaxis not in ['fraction','rate']:
-			raise ValueError(
+			raise StringError(
 				'yaxis does not accept %r. Must be either "rate" or'
 				' "fraction"' %yaxis)
 

@@ -11,6 +11,12 @@ import numpy as np
 
 from collections import Sequence
 
+#import exceptions
+from .exceptions import(
+	ArrayError,
+	LengthError,
+	)
+
 #define function to assert length of array
 def assert_len(data, n):
 	'''
@@ -33,10 +39,10 @@ def assert_len(data, n):
 
 	Raises
 	------
-	TypeError
+	ArrayError
 		If inputted data not int or array-like (excluding string).
 
-	ValueError
+	LengthError
 		If length of the array is not n.
 	'''
 
@@ -51,21 +57,28 @@ def assert_len(data, n):
 	elif isinstance(data, Sequence) or hasattr(data, '__array__'):
 		
 		if isinstance(data, str):
-			raise TypeError('data cannot be a string')
+			raise ArrayError(
+				'Data cannot be a string')
 
 		elif len(data) != n:
-			raise ValueError(
+			raise LengthError(
 				'Cannot create array of length %r if n = %r' \
 				% (len(data), n))
 
 	else:
-		raise TypeError('data must be scalar or array-like')
+		raise ArrayError('data must be scalar or array-like')
 
 	return np.array(data).astype(float)
 
 #define package-level function for calculating L curves
-def calc_L_curve(model, timedata, ax = None, plot = False, nOm = 150, 
-	om_max = 1e2, om_min = 1e-3):
+def calc_L_curve(
+		model, 
+		timedata, 
+		ax = None, 
+		plot = False, 
+		nOm = 150, 
+		om_max = 1e2, 
+		om_min = 1e-3):
 	'''
 	Function to calculate the L-curve for a given model and timedata
 	instance in order to choose the best-fit smoothing parameter, omega.
@@ -73,12 +86,12 @@ def calc_L_curve(model, timedata, ax = None, plot = False, nOm = 150,
 	Parameters
 	----------
 	model : rp.Model
-		Instance of ``Model`` subclass containing the A matrix to use for
-		L curve calculation.
+		``rp.Model`` instance containing the A matrix to use for L curve 
+		calculation.
 
 	timedata : rp.TimeData
-		Instance of ``TimeData`` subclass containing the time and fraction
-		remaining arrays to use in L curve calculation.
+		``rp.TimeData`` instance containing the time and fraction remaining
+		arrays to use in L curve calculation.
 
 	Keyword Arguments
 	-----------------
@@ -109,10 +122,10 @@ def calc_L_curve(model, timedata, ax = None, plot = False, nOm = 150,
 	
 	Raises
 	------
-	TypeError
+	ScalarError
 		If `om_max` or `om_min` are not int or float.
 
-	TypeError
+	ScalarError
 		If `nOm` is not int.
 
 	See Also
@@ -122,22 +135,27 @@ def calc_L_curve(model, timedata, ax = None, plot = False, nOm = 150,
 
 	References
 	----------
-	D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
-	respiration rates from decay time series. *Biogeosciences*, **9**,
-	3601-3612.
+	[1] D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+		respiration rates from decay time series. *Biogeosciences*, **9**,
+		3601-3612.
 
-	P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
-	Numerical aspects of linear inversion (monographs on mathematical
-	modeling and computation). *Society for Industrial and Applied
-	Mathematics*.
+	[2] P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
+		Numerical aspects of linear inversion (monographs on mathematical
+		modeling and computation). *Society for Industrial and Applied
+		Mathematics*.
 
-	P.C. Hansen (1994) Regularization tools: A Matlab package for analysis and
-	solution of discrete ill-posed problems. *Numerical Algorithms*, **6**,
-	1-35.
+	[3] P.C. Hansen (1994) Regularization tools: A Matlab package for analysis
+		and solution of discrete ill-posed problems. *Numerical Algorithms*, 
+		**6**, 1-35.
 	'''
 
-	return model.calc_L_curve(timedata, ax=ax, plot=plot, nOm = 150, 
-		om_max = 1e2, om_min = 1e-3)
+	return model.calc_L_curve(
+		timedata, 
+		ax=ax, 
+		plot=plot, 
+		nOm = 150, 
+		om_max = 1e2, 
+		om_min = 1e-3)
 
 #define function to derivatize an array wrt another array
 def derivatize(num, denom):
@@ -151,23 +169,17 @@ def derivatize(num, denom):
 		The numerator of the numerical derivative function.
 
 	denom : array-like
-		The denominator of the numerical derivative function. Length n.
+		The denominator of the numerical derivative function. Length `n`.
 
 	Returns
 	-------
 	derivative : rparray
-		An ``np.ndarray`` instance of the derivative. Length n.
+		An ``np.ndarray`` instance of the derivative. Length `n`.
 
 	Raises
 	------
-	TypeError
+	ArrayError
 		If `denom` is not array-like.
-
-	TypeError
-		If `num` is not scalar or array-like.
-
-	ValueError
-		If `num` is not scalar or length n.
 
 	See Also
 	--------
@@ -187,10 +199,10 @@ def derivatize(num, denom):
 	#assert denom is the right type
 	if isinstance(denom, Sequence) or hasattr(denom, '__array__'):
 			if isinstance(denom, str):
-				raise TypeError('denom cannot be a string')
+				raise ArrayError('denom cannot be a string')
 
 	else:
-		raise TypeError('denom must be array-like')
+		raise ArrayError('denom must be array-like')
 
 	#make sure the arrays are the same length, or convert num to array if 
 	# scalar

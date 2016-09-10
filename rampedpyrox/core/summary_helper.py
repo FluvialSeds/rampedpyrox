@@ -12,6 +12,10 @@ __all__ = ['_timedata_peak_info', '_energycomplex_peak_info',
 import numpy as np
 import pandas as pd
 
+#import exceptions
+from .exceptions import(
+	RunModelError,
+	)
 
 #define function to calculate timedata peak info and store
 def _timedata_peak_info(timedata):
@@ -31,14 +35,14 @@ def _timedata_peak_info(timedata):
 
 	Raises
 	------
-	AttributeError
+	RunModelError
 		If TimeData instance does not contain necessary attributes (i.e. if it
 		does not have inputted model-estimated data).
 	'''
 
 	#raise exception if timedata doesn't contain peaks
 	if not hasattr(timedata, 'gam'):
-		raise AttributeError(
+		raise RunModelError(
 			'TimeData instance contains no model-fitted data! Run forward'
 			'model before trying to summarize peaks.')
 
@@ -85,14 +89,14 @@ def _energycomplex_peak_info(ratedata):
 
 	Raises
 	------
-	AttributeError
+	RunModelError
 		If EnergyComplex instance does not contain necessary attributes (i.e. if it
 		does not have inputted model-estimated data).
 	'''
 
 	#raise exception if timedata doesn't contain peaks
 	if not hasattr(ratedata, 'peaks'):
-		raise AttributeError(
+		raise RunModelError(
 			'RateData instance contains no model-fitted data! Run inverse'
 			'model before trying to summarize peaks.')
 
@@ -329,20 +333,3 @@ def _rpo_isotopes_peak_info(cmbd, DEa, rpoisotopes):
 		index = istr)
 
 	return peak_info
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

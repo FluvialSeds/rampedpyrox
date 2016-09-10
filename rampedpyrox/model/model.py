@@ -10,13 +10,18 @@ __all__ = ['Daem']
 import matplotlib.pyplot as plt
 import numpy as np
 
+#import exceptions
+from ..core.exceptions import(
+	ScalarError,
+	)
+
 #import helper functions
-from rampedpyrox.core.core_functions import(
+from ..core.core_functions import(
 	assert_len,
 	derivatize,
 	)
 
-from rampedpyrox.model.model_helper import(
+from .model_helper import(
 	_calc_f,
 	_rpo_calc_A,
 	)
@@ -43,17 +48,6 @@ class Model(object):
 
 		T : scalar or array-like
 			Scalar or array of temperature, in Kelvin. If array, length `nt`.
-
-		Raises
-		------
-		TypeError
-			If `t` or `A` are not array-like.
-
-		TypeError
-			If `T` is not scalar or array-like.
-
-		ValueError
-			If `T` or `A` are not length `nt`.
 		'''
 
 		#ensure data is in the right form
@@ -97,8 +91,6 @@ class Model(object):
 			``rp.TimeData`` instance containing the time and fraction
 			remaining arrays to use in L curve calculation.
 
-		Keyword Arguments
-		-----------------
 		ax : None or matplotlib.axis
 			Axis to plot on. If `None` and ``plot = True``, automatically 
 			creates a ``matplotlip.axis`` instance to return. Defaults to 
@@ -127,10 +119,10 @@ class Model(object):
 
 		Raises
 		------
-		TypeError
-			If `om_max` or `om_min` are not int or float.
+		ScalarError
+			If `om_max` or `om_min` are not scalar.
 
-		TypeError
+		ScalarError
 			If `nOm` is not int.
 
 		See Also
@@ -156,15 +148,15 @@ class Model(object):
 
 		#check that nOm, om_max, and om_min are in the right form
 		if not isinstance(om_max, (int, float)):
-			raise TypeError(
+			raise ScalarError(
 				'om_max must be float or int')
 
 		elif not isinstance(om_min, (int, float)):
-			raise TypeError(
+			raise ScalarError(
 				'om_min must be float or int')
 
 		elif not isinstance(nOm, int):
-			raise TypeError(
+			raise ScalarError(
 				'nOm must be int')
 
 		#define arrays
@@ -289,20 +281,6 @@ class Daem(LaplaceTransform):
 
 	T : array-like
 		Array of temperature, in Kelvin. Length `nt`.
-
-	Raises
-	------
-	TypeError
-		If `t` is not array-like.
-
-	TypeError
-		If `Ea` is not scalar or array-like.
-
-	ValueError
-		If `T` is not scalar or array-like with length `nt`.
-
-	ValueError
-		If log10k0 is not scalar, lambda, or array-like with length `nEa`.
 
 	Warnings
 	--------
@@ -467,6 +445,10 @@ class Daem(LaplaceTransform):
 				'a scalar value of: %.1f. Consider using an isothermal model'
 				'type instead.' % T)
 
+		#get log10k0 into the right format
+		if hasattr(log10k0,'__call__'):
+			log10k0 = log10k0(Ea)
+
 		#calculate A matrix
 		A = _rpo_calc_A(Ea, log10k0, t, T)
 
@@ -474,7 +456,7 @@ class Daem(LaplaceTransform):
 
 		#store Daem-specific attributes
 		nEa = len(Ea)
-		self.log10k0 = log10k0
+		self.log10k0 = assert_len(log10k0, nEa)
 		self.Ea = assert_len(Ea, nEa)
 		self.nEa = nEa
 
@@ -496,8 +478,6 @@ class Daem(LaplaceTransform):
 			``rp.TimeData`` instance containing the time array to use
 			for creating the DAEM.
 
-		Keyword Arguments
-		-----------------
 		Ea_max : int
 			The maximum activation energy value to consider, in kJ/mol.
 			Defaults to 350.
@@ -512,11 +492,6 @@ class Daem(LaplaceTransform):
 		
 		nEa : int
 			The number of activation energy points. Defaults to 250.
-
-		Raises
-		------
-		TypeError
-			If `log10k0` is not scalar, lambda, or array-like with length nEa.
 
 		Warnings
 		--------
@@ -567,8 +542,6 @@ class Daem(LaplaceTransform):
 			``rp.RateData`` instance containing the Ea array to use for
 			creating the DAEM. 
 
-		Keyword Arguments
-		-----------------
 		beta : int or float
 			Temperature ramp rate to use in model, in Kelvin/second. Defaults
 			to 0.08 (*i.e.* 5K/min)
@@ -591,21 +564,6 @@ class Daem(LaplaceTransform):
 		tf : int or float
 			The final time to be used in the model, in seconds. Defaults to
 			10,000.
-
-		Raises
-		------
-		TypeError
-			If `beta`, `t0`, `T0`, or `tf` are not scalar.
-
-		TypeError
-			If `nt` is not int.
-
-		TypeError
-			If `log10k0` is not scalar, lambda, or array-like with length `nEa`.
-
-		TypeError
-			If attempting to generate an ``rp.Daem`` instance with a ratedata
-			instance not of type ``rp.EnergyComplex``.
 
 		See Also
 		--------

@@ -13,26 +13,33 @@ import numpy as np
 
 from numpy.linalg import norm
 
+#import exceptions
+from ..core.exceptions import(
+	ArrayError,
+	ScalarError,
+	)
+
 #import helper functions
-from rampedpyrox.core.core_functions import(
+from ..core.core_functions import(
 	assert_len,
 	)
 
-from rampedpyrox.ratedata.ratedata_helper import(
-	_deconvolve,
-	)
-
-from rampedpyrox.model.model_helper import(
-	_calc_f,
-	)
-
-from rampedpyrox.core.plotting_helper import(
+from ..core.plotting_helper import(
 	_rem_dup_leg,
 	)
 
-from rampedpyrox.core.summary_helper import(
+from ..core.summary_helper import(
 	_energycomplex_peak_info,
 	)
+
+from .ratedata_helper import(
+	_deconvolve,
+	)
+
+from ..model.model_helper import(
+	_calc_f,
+	)
+
 
 class RateData(object):
 	'''
@@ -80,8 +87,6 @@ class RateData(object):
 		timedata : rp.TimeData
 			``rp.TimeData`` instance containing the timeseries data to invert.
 
-		Keyword Arguments
-		-----------------
 		nPeaks : int or 'auto'
 			Tells the program how many peaks to retain after deconvolution.
 			Defaults to 'auto'.
@@ -103,17 +108,8 @@ class RateData(object):
 
 		Raises
 		------
-		TypeError
-			If `nPeaks` is not int or 'auto'.
-
-		TypeError
+		ScalarError
 			If `omega` is not scalar or 'auto'.
-
-		ValueError
-			If `peak_shape` is not an acceptable string.
-
-		TypeError
-			If `thres` is not a float.
 
 		Warnings
 		--------
@@ -152,7 +148,7 @@ class RateData(object):
 			omega = float(omega)
 		
 		else:
-			raise TypeError(
+			raise ScalarError(
 				'omega must be int, float, or "auto"')
 
 		#generate regularized "true" pdf, f
@@ -219,11 +215,8 @@ class RateData(object):
 
 		Raises
 		------
-		TypeError
+		ScalarError
 			If omega is not scalar or None.
-
-		ValueError
-			If `peaks` is not length `nk`.
 		'''
 
 		#extract n rate/Ea (necessary since models have different nomenclature)
@@ -257,7 +250,7 @@ class RateData(object):
 		#input omega if it exists for bookkeeping
 		if omega is not None:
 			if not isinstance(omega, (int, float)):
-				raise TypeError(
+				raise ScalarError(
 					'omega must be None, int, or float')
 			
 			else:
@@ -367,20 +360,6 @@ class EnergyComplex(RateData):
 
 	f_std : scalar or array-like
 		Standard deviation of `f`, with length `nEa`. Defaults to zeros. 
-
-	Raises
-	------
-	TypeError
-		If `Ea` is not array-like.
-
-	TypeError
-		If `f` is not None or array-like.
-
-	TypeError
-		If `f_std` is not scalar or array-like.
-
-	ValueError
-		If `f` or `f_std` are not length nEa.
 
 	See Also
 	--------
@@ -604,17 +583,14 @@ class EnergyComplex(RateData):
 
 		Raises
 		------
-		TypeError
+		ArrayError
 			If `combined` is not a list of tuples or `None`.
 
-		TypeError
-			If `nPeaks` is not int or 'auto'.
+		ArrayError
+			If the elements of `combined` are not tuples.
 
-		TypeError
-			If `omega` is not scalar or 'auto'.
-
-		TypeError
-			If `thres` is not a float.
+		ScalarError
+			If the elements of the tuples in `combined` are not int.
 
 		Warnings
 		--------
@@ -673,13 +649,13 @@ class EnergyComplex(RateData):
 		#assert combined type
 		if isinstance(combined, list):
 			if not all([isinstance(n, tuple) for n in combined]):
-				raise TypeError('Elements of `combined` must be tuples')
+				raise ArrayError('Elements of `combined` must be tuples')
 
 			elif not all([isinstance(i, int) for tup in combined for i in tup]):
-				raise TypeError('Elements of tuples in `combined` must be int')
+				raise ScalarError('Elements of tuples in `combined` must be int')
 
 		elif combined is not None:
-			raise TypeError('combined must be a list of tuples or None')
+			raise ArrayError('combined must be a list of tuples or None')
 
 		#combine peaks if necessary
 		if combined is not None:
@@ -751,11 +727,6 @@ class EnergyComplex(RateData):
 
 		rgh_rmse : float
 			Roughness RMSE from inverse model.
-
-		Raises
-		------
-		TypeError
-			If omega is not scalar or `None`.
 		'''
 
 		super(EnergyComplex, self).input_estimated(

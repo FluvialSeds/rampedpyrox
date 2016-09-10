@@ -13,7 +13,7 @@ from numpy.linalg import norm
 from scipy.optimize import nnls
 
 #import helper functions
-from rampedpyrox.core.core_functions import(
+from ..core.core_functions import(
 	assert_len,
 	)
 
@@ -183,14 +183,6 @@ def _rpo_calc_A(Ea, log10k0, t, T):
 	A : np.ndarray
 		2d array of the Laplace transform for the Daem model. 
 		Shape [`nt` x `nEa`].
-
-	Raises
-	------
-	ValueError
-		If `T` is not length `nt`.
-
-	ValueError
-		If `log10k0` is not length `nEa`.
 
 	References
 	----------

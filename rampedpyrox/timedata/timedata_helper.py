@@ -12,6 +12,11 @@ import pandas as pd
 
 from scipy.interpolate import interp1d
 
+#import exceptions
+from ..core.exceptions import(
+	FileError,
+	)
+
 #define function to extract variables from .csv file
 def _rpo_extract_tg(file, nt, err):
 	'''
@@ -48,16 +53,13 @@ def _rpo_extract_tg(file, nt, err):
 
 	Raises
 	------
-	TypeError
+	FileError
 		If `file` is not str or ``pd.DataFrame`` instance.
 	
-	TypeError
+	FileError
 		If index of `file` is not ``pd.DatetimeIndex`` instance.
 
-	TypeError
-		If `nt` is not int.
-
-	ValueError
+	FileError
 		If `file` does not contain "CO2_scaled" and "temp" columns.
 	'''
 
@@ -70,15 +72,15 @@ def _rpo_extract_tg(file, nt, err):
 			parse_dates=True)
 
 	elif not isinstance(file, pd.DataFrame):
-		raise TypeError(
+		raise FileError(
 			'file must be pd.DataFrame instance or path string')
 
 	if 'CO2_scaled' and 'temp' not in file.columns:
-		raise ValueError(
+		raise FileError(
 			'file must have "CO2_scaled" and "temp" columns')
 
 	elif not isinstance(file.index, pd.DatetimeIndex):
-		raise TypeError(
+		raise FileError(
 			'file index must be pd.DatetimeIndex instance')
 
 	#extract necessary data
