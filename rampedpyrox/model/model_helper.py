@@ -2,7 +2,10 @@
 This module contains helper functions for the model classes.
 '''
 
-from __future__ import print_function
+from __future__ import(
+	division,
+	print_function,
+	)
 
 __docformat__ = 'restructuredtext en'
 __all__ = ['_calc_cmpt', '_calc_f', '_calc_R', '_rpo_calc_A']

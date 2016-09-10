@@ -1,8 +1,15 @@
 '''
-Rampedpyrox module
-
 .. moduleauthor:: Jordon D. Hemingway <jordonhemingway@gmail.com>
 '''
+
+from __future__ import(
+	division,
+	print_function,
+	)
+
+__version__ = '0.0.2'
+
+__docformat__ = 'restructuredtext en'
 
 #import exceptions
 from .core.exceptions import(

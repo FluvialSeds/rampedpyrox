@@ -2,7 +2,10 @@
 This module contains the TimeData superclass and all corresponding subclasses.
 '''
 
-from __future__ import print_function
+from __future__ import(
+	division,
+	print_function,
+	)
 
 __docformat__ = 'restructuredtext en'
 __all__ = ['RpoThermogram']
@@ -81,16 +84,22 @@ class TimeData(object):
 		self.T_std = assert_len(T_std, nt) #K
 
 		#store time-temperature derivatives
-		self.dTdt = derivatize(self.T, t) #K/s
+		self.dTdt = derivatize(self.T, self.t) #K/s
 
 		#check if g and store
 		if g is not None:
+
+			#assert that g remains between 0 and 1
+			if np.max(g) > 1 or np.min(g) < 0:
+				raise ArrayError(
+					'g array must remain between 0 and 1 (fractional)')
+
 			self.g = assert_len(g, nt) #fraction
 			self.g_std = assert_len(g_std, nt) #fraction
 
 			#store g derivatives
-			self.dgdt = derivatize(g, t)
-			self.dgdT = derivatize(g, T)
+			self.dgdt = derivatize(g, self.t)
+			self.dgdT = derivatize(g, self.T)
 
 	#define class method for creating instance directly from .csv file
 	@classmethod

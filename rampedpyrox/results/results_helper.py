@@ -4,7 +4,10 @@
 This module contains helper functions for the Results class.
 '''
 
-from __future__ import print_function
+from __future__ import(
+	division,
+	print_function,
+	)
 
 __docformat__ = 'restructuredtext en'
 __all__ = ['_d13C_to_R13', '_kie_d13C', '_kie_d13C_MC', '_nnls_MC', 

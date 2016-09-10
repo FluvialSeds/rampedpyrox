@@ -31,32 +31,43 @@ import matplotlib.pyplot as plt
 data = 'test_data/5C_min_true.csv'
 sum_data = 'test_data/5C_min_sum.csv'
 
-tg = rp.RpoThermogram.from_csv(data,
-                               nt=250,
-                               ppm_CO2_err=5,
-                               T_err=3)
+tg = rp.RpoThermogram.from_csv(
+	data,
+	nt=250,
+	ppm_CO2_err=5,
+	T_err=3)
 
-daem = rp.Daem.from_timedata(tg,
-                             # log10k0 = lambda x: 0.02*x + 5,
-                             log10k0=10,
-                             Ea_max=400,
-                             Ea_min=50,
-                             nEa=400)
+daem = rp.Daem.from_timedata(
+	tg,
+	# log10k0 = lambda x: 0.02*x + 5,
+	log10k0=10,
+	Ea_max=400,
+	Ea_min=50,
+	nEa=400)
 
-ec = rp.EnergyComplex.inverse_model(daem, tg,
-                                    combined=[(6, 7)],
-                                    nPeaks='auto',
-                                    omega=3,
-                                    peak_shape='Gaussian',
-                                    thres=0.02,
-                                    )
+ec = rp.EnergyComplex.inverse_model(
+	daem, 
+	tg,
+	combined=[(6, 7)],
+	nPeaks='auto',
+	omega=3,
+	peak_shape='Gaussian',
+	thres=0.02)
 
 tg.forward_model(daem, ec)
 
-ri = rp.RpoIsotopes.from_csv(sum_data,
-                             blk_corr=True,
-                             mass_err=0.01)
+ri = rp.RpoIsotopes.from_csv(
+	sum_data,
+	blk_corr=True,
+	mass_err=0.01)
 
-ri.fit(daem, ec, tg,
-       DEa=0.001,
-       nIter=10)
+ri.fit(
+	daem, 
+	ec, 
+	tg,
+	DEa=0.001,
+	nIter=10)
+
+
+
+

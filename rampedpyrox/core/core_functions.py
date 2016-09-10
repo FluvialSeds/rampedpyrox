@@ -2,7 +2,10 @@
 Module to store all the core functions for ``rampedpyrox``.
 '''
 
-from __future__ import print_function
+from __future__ import(
+	division,
+	print_function,
+	)
 
 __docformat__ = 'restructuredtext en'
 __all__ = ['assert_len', 'calc_L_curve', 'derivatize']

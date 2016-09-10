@@ -3,7 +3,10 @@ This module contains helper functions for generating rampedpyrox summary tables.
 '''
 
 
-from __future__ import print_function
+from __future__ import(
+	division,
+	print_function,
+	)
 
 __docformat__ = 'restructuredtext en'
 __all__ = ['_timedata_peak_info', '_energycomplex_peak_info',

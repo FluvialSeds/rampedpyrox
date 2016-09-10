@@ -2,7 +2,10 @@
 This module contains helper functions for timedata classes.
 '''
 
-from __future__ import print_function
+from __future__ import(
+	division,
+	print_function,
+	)
 
 __docformat__ = 'restructuredtext en'
 __all__ = ['_rpo_extract_tg']
@@ -32,7 +35,7 @@ def _rpo_extract_tg(file, nt, err):
 	nT : int 
 		The number of time points to use.
 
-	ppm_CO2_err : int or float
+	err : int or float
 		The CO2 concentration standard deviation, in ppm. Used to 
 		calculate `g_std`.
 

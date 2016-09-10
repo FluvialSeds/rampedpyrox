@@ -3,7 +3,10 @@ This module contains helper functions for plotting rampedpyrox data.
 '''
 
 
-from __future__ import print_function
+from __future__ import(
+	division,
+	print_function,
+	)
 
 __docformat__ = 'restructuredtext en'
 __all__ = ['_plot_dicts', '_rem_dup_leg']

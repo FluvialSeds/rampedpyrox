@@ -2,7 +2,10 @@
 This module contains the Model superclass and all corresponding subclasses.
 '''
 
-from __future__ import print_function
+from __future__ import(
+	division,
+	print_function,
+	)
 
 __docformat__ = 'restructuredtext en'
 __all__ = ['Daem']

@@ -2,7 +2,10 @@
 This module contains helper functions for the ratedata classes.
 '''
 
-from __future__ import print_function
+from __future__ import(
+	division,
+	print_function,
+	)
 
 __docformat__ = 'restructuredtext en'
 __all__ = ['_calc_phi', '_deconvolve', '_f_phi_diff', '_gaussian', 
