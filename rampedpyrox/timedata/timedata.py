@@ -19,6 +19,7 @@ from numpy.linalg import norm
 #import exceptions
 from ..core.exceptions import(
 	ArrayError,
+	RunModelError,
 	StringError,
 	)
 
@@ -136,7 +137,7 @@ class TimeData(object):
 				'rp.TimeTata instance of type %s and rp.Model instance of'
 				' type %s do not contain matching time-temperature arrays.'
 				' Check that the model does not correspond to a different'
-				' rp.TimeData instance' %(td_type, mod_type))
+				' rp.TimeData instance' %(td_type, mod_type), UserWarning)
 
 		#extract components
 		cmpt = _calc_cmpt(model, ratedata)
@@ -470,8 +471,14 @@ class RpoThermogram(TimeData):
 		if isinstance(T, (int, float)):
 			warnings.warn(
 				'Attempting to use isothermal data for RPO run! T is a scalar'
-				'value of: %.1f. Consider using an isothermal model type'
-				'instead.' % T)
+				'value of: %r. Consider using an isothermal model type'
+				'instead.' % T, UserWarning)
+
+		elif len(set(T)) == 1:
+			warnings.warn(
+				'Attempting to use isothermal data for RPO run! T is a scalar'
+				'value of: %r. Consider using an isothermal model type'
+				'instead.' % T[0], UserWarning)
 
 		super(RpoThermogram, self).__init__(
 			t, 
@@ -562,10 +569,6 @@ class RpoThermogram(TimeData):
 		Warnings
 		--------
 		UserWarning
-			If time-temperature data in the ``rp.Model`` instance do not 
-			match time-temperature data in the ``rp.TimeData`` instance.
-
-		UserWarning
 			If using an an isothermal model type for an RPO run.
 
 		UserWarning
@@ -576,6 +579,14 @@ class RpoThermogram(TimeData):
 		ArrayError
 			If `nEa` is not the same in the ``rp.Model`` instance and the 
 			``rp.RateData`` instance.
+
+		ArrayError
+			If `nEa` is not the same in the ``rp.Model`` instance and the 
+			``rp.RateData`` instance.
+
+		ArrayError
+			If `nt` is not the same in the ``rp.Model`` instance and the
+			``rp.TimeData`` instance.
 
 		See Also
 		--------
@@ -595,7 +606,7 @@ class RpoThermogram(TimeData):
 			warnings.warn(
 				'Attempting to calculate thermogram using a model instance of'
 				' type %r. Consider using rp.Daem instance instead'
-				% rd_type)
+				% mod_type, UserWarning)
 
 		#warn if ratedata is not EnergyComplex
 		rd_type = type(ratedata).__name__
@@ -604,14 +615,29 @@ class RpoThermogram(TimeData):
 			warnings.warn(
 				'Attempting to calculate thermogram using a ratedata instance'
 				' of type %r. Consider using rp.EnergyComplex instance'
-				' instead' % rd_type)
+				' instead' % rd_type, UserWarning)
 
-		#raise ValueError if not the right shape
+		#raise exception if not the right shape
 		if model.nEa != ratedata.nEa:
 			raise ArrayError(
 				'Cannot combine model with nEa = %r and RateData with'
 				' nEa = %r. Check that RateData was not created using'
-				' a different model' % (model.nEa, ratedata.nEa))
+				' a different model' % (model.nEa, ratedata.nEa),
+				UserWarning)
+
+		#raise exception if not the right shape
+		if model.nt != self.nt:
+			raise ArrayError(
+				'Cannot combine model with nt = %r and TimeData with'
+				' nt = %r. Check that the mode was not created using'
+				' different time data' % (model.nt, self.nt),
+				UserWarning)
+
+		#raise exception if ratedata does not have fitted data attributes
+		if not hasattr(ratedata, 'peaks'):
+			raise RunModelError(
+				'ratedata instance must have attribute "peaks". Run the'
+				' inverse model before running the forward model!')
 
 		super(RpoThermogram, self).forward_model(model, ratedata)
 
@@ -717,7 +743,7 @@ class RpoThermogram(TimeData):
 
 		return ax
 
-if __name__ is '__main__':
+if __name__ == '__main__':
 
 	import rampedpyrox as rp
 	

@@ -792,6 +792,6 @@ class EnergyComplex(RateData):
 
 		return ax
 
-if __name__ is '__main__':
+if __name__ == '__main__':
 
 	import rampedpyrox as rp

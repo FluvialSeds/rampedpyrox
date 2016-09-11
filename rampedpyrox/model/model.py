@@ -12,6 +12,7 @@ __all__ = ['Daem']
 
 import matplotlib.pyplot as plt
 import numpy as np
+import warnings
 
 #import exceptions
 from ..core.exceptions import(
@@ -444,9 +445,15 @@ class Daem(LaplaceTransform):
 		#warn if T is scalar
 		if isinstance(T, (int, float)):
 			warnings.warn(
-				'Attempting to use isothermal data to create DAEM model! T is'
-				'a scalar value of: %.1f. Consider using an isothermal model'
-				'type instead.' % T)
+				'Attempting to use isothermal data for RPO run! T is a scalar'
+				'value of: %r. Consider using an isothermal model type'
+				'instead.' % T, UserWarning)
+
+		elif len(set(T)) == 1:
+			warnings.warn(
+				'Attempting to use isothermal data for RPO run! T is a scalar'
+				'value of: %r. Consider using an isothermal model type'
+				'instead.' % T[0], UserWarning)
 
 		#get log10k0 into the right format
 		if hasattr(log10k0,'__call__'):
@@ -592,6 +599,6 @@ class Daem(LaplaceTransform):
 
 		return cls(Ea, log10k0, t, T)
 
-if __name__ is '__main__':
+if __name__ == '__main__':
 
 	import rampedpyrox as rp

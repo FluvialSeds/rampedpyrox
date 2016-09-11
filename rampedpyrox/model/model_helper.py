@@ -223,7 +223,7 @@ def _rpo_calc_A(Ea, log10k0, t, T):
 	A = np.zeros([nt,nEa])
 
 	#loop through each timestep
-	for i,_ in enumerate(T):
+	for i, _ in enumerate(T):
 
 		#generate arrays
 		U = T[:i] #Kelvin, [1,i]

@@ -1,5 +1,21 @@
 '''
-.. moduleauthor:: Jordon D. Hemingway <jordonhemingway@gmail.com>
+Initializes the rampedpyrox package.
+
+rampedpyrox was created as a thesis dissertation supplement by:
+
+	Jordon D. Hemingway 
+	MIT/WHOI Joint Program
+	jhemingway@whoi.edu
+
+source code can be found at:
+	
+	https://github.com/FluvialSeds/rampedpyrox
+
+documentation can be found at:
+
+	http://rampedpyrox.readthedocs.io
+
+Version 0.0.2 is current as of 10 September 2016.
 '''
 
 from __future__ import(
@@ -20,6 +36,7 @@ from .core.exceptions import(
 	LengthError,
 	RunModelError,
 	ScalarError,
+	StringError,
 	)
 
 #import timedata classes
