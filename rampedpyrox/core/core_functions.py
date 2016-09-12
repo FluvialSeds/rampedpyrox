@@ -23,8 +23,7 @@ from .exceptions import(
 #define function to assert length of array
 def assert_len(data, n):
 	'''
-	Asserts that an array has length n. If data is scalar, creates an array of
-	length n with repeating data as float.
+	Asserts that an array has length `n` and `float` datatypes.
 
 	Parameters
 	----------
@@ -84,7 +83,7 @@ def calc_L_curve(
 		om_min = 1e-3):
 	'''
 	Function to calculate the L-curve for a given model and timedata
-	instance in order to choose the best-fit smoothing parameter, omega.
+	instance in order to choose the best-fit smoothing parameter, `omega`.
 
 	Parameters
 	----------
@@ -186,7 +185,7 @@ def derivatize(num, denom):
 
 	See Also
 	--------
-	np.gradient
+	numpy.gradient
 		The method used to calculate derivatives
 
 	Notes

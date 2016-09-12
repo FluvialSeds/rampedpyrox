@@ -29,7 +29,7 @@ from ..core.core_functions import(
 
 from ..core.summary_helper import(
 	_rpo_isotopes_frac_info,
-	_rpo_isotopes_peak_info,
+	_rpo_isotopes_cmpt_info,
 	)
 
 from .results_helper import(
@@ -40,7 +40,7 @@ from .results_helper import(
 	_R13_CO2,
 	_R13_to_d13C,
 	_rpo_blk_corr,
-	_rpo_cont_ptf,
+	_rpo_cont_ctf,
 	_rpo_extract_iso,
 	)
 
@@ -70,8 +70,8 @@ class Results(object):
 
 class RpoIsotopes(Results):
 	__doc__='''
-	Class for inputting Rpo isotopes, calculating estimated peak isotope 
-	values, and storing corresponding statistics.
+	Class for inputting Ramped PyrOx isotopes, calculating estimated component 
+	isotope values, and storing corresponding statistics.
 
 	Parameters
 	----------
@@ -111,10 +111,9 @@ class RpoIsotopes(Results):
 	Notes
 	-----
 	When inputting `t_frac`, a time of 0 (i.e. `t0`, the initial time) is
-	defined as the first timepoint in the ``RpoThermogram`` instance used to
-	generate the peaks of interest. If time passed between the thermogram `t0`
-	and the beginning of fraction 1 trapping (as is almost always the case),
-	`t_frac` must be adjusted accordingly.
+	defined as the first timepoint in the ``RpoThermogram`` instance. If time 
+	passed between the thermogram `t0` and the beginning of fraction 1 trapping
+	(as is almost always the case), `t_frac` must be adjusted accordingly.
 
 	See Also
 	--------
@@ -146,8 +145,9 @@ class RpoIsotopes(Results):
 		Fm_frac = [1.0, 0.5, 0.0]
 
 		#create instance
-		ri = rp.RpoIsotopes(t_frac = t_frac,
-							Fm_frac = Fm_frac)
+		ri = rp.RpoIsotopes(
+			t_frac = t_frac,
+			Fm_frac = Fm_frac)
 
 	Generating a isotope result instance using an RPO output .csv file and the
 	``RpoIsotopes.from_csv`` class method::
@@ -159,9 +159,10 @@ class RpoIsotopes(Results):
 		file = 'path_to_folder_containing_data/isotope_data.csv'
 
 		#create instance
-		ri = rp.RpoThermogram.from_csv(file,
-										blk_corr = True,
-										mass_err = 0.01)
+		ri = rp.RpoThermogram.from_csv(
+			file,
+			blk_corr = True,
+			mass_err = 0.01)
 
 	This automatically corrected inputted isotopes for the NOSAMS instrument
 	blank carbon contribution using the `blk_corr` flag and assumed a 1\% 
@@ -174,26 +175,35 @@ class RpoIsotopes(Results):
 		#assuming there exists some Daem, EnergyComplex, and 
 		# RpoThermogram instances already created
 
-		ri.fit(daem, ec, tg, 
-				DEa = None,
-				nIter = 10000)
+		ri.fit(
+			daem, 
+			ec, 
+			tg, 
+			DEa = None,
+			nIter = 10000)
 
 	Same as above, but now setting a constant value for `DEa` to include
 	kinetic isotope fractionation::
 
-		ri.fit(daem, ec, tg, 
-				DEa = 0.0018, #value estimated for NOSAMS
-				nIter = 10000)
+		ri.fit(
+			daem, 
+			ec, 
+			tg, 
+			DEa = 0.0018, #value estimated for NOSAMS
+			nIter = 10000)
 
-	Additionally, each peak can be given a different `DEa` value::
+	Additionally, each peak/component can be given a different `DEa` value::
 
-		#assuming there are 5 peaks (after combining) and arbitrarily
+		#assuming there are 5 components and arbitrarily
 		# making DEa values
 		DEa = [0., 0.001, 0., 0.005, 0.02]
 
-		ri.fit(daem, ec, tg, 
-				DEa = DEa,
-				nIter = 10000)
+		ri.fit(
+			daem, 
+			ec, 
+			tg, 
+			DEa = DEa,
+			nIter = 10000)
 
 	If d13C data exist, the d13C value of instantaneously produced CO2 can be
 	plotted against time::
@@ -205,9 +215,11 @@ class RpoIsotopes(Results):
 		fig, ax = plt.subplots(1,1)
 
 		#plot data
-		ax.plot(tg.t, ri.d13C_product,
-				linewidth = 2,
-				color = 'k')
+		ax.plot(
+			tg.t, 
+			ri.d13C_product,
+			linewidth = 2,
+			color = 'k')
 
 		#label axes
 		ax.set_xlabel('time (s)')
@@ -215,9 +227,9 @@ class RpoIsotopes(Results):
 
 	Printing a summary of the analysis::
 
-		#fraction and peak information
+		#fraction and component information
 		print(ri.frac_info)
-		print(ri.peak_info)
+		print(ri.cmpt_info)
 
 		#RMSE values
 		m = 'mass RMSE (ugC): %.2f' %ri.m_rmse
@@ -235,13 +247,12 @@ class RpoIsotopes(Results):
 	d13C_frac_std : np.ndarray
 		The standard deviation of `d13C_frac` with length `nFrac`.
 
-	d13C_peak : np.ndarray
-		Array of the d13C values (VPDB) of each modeled peak (treating
-		combined peaks as one), length `nPeak` (post-combining).
+	d13C_cmpt : np.ndarray
+		Array of the d13C values (VPDB) of each modeled component (treating
+		combined peaks as one component), length `nCmpt`.
 
-	d13C_peak_std : np.ndarray
-		The standard deviation of `d13C_peak` with length `nPeak` 
-		(post-combining).
+	d13C_cmpt_std : np.ndarray
+		The standard deviation of `d13C_cmpt` with length `nCmpt` 
 
 	d13C_product : np.ndarray
 		The d13C values (VPDB) of instantaneously produced product at each
@@ -257,13 +268,12 @@ class RpoIsotopes(Results):
 	Fm_frac_std : np.ndarray
 		The standard deviation of `Fm_frac` with length `nFrac`.
 
-	Fm_peak : np.ndarray
-		Array of the Fm values of each modeled peak (treating combined peaks 
-		as one), length `nPeak` (post-combining).
+	Fm_cmpt : np.ndarray
+		Array of the Fm values of each modeled component (treating combined 
+		peaks as one component), length `nCmpt`.
 
-	Fm_peak_std : np.ndarray
-		The standard deviation of `Fm_peak` with length `nPeak` (post-
-		combining).
+	Fm_cmpt_std : np.ndarray
+		The standard deviation of `Fm_cmpt` with length `nCmpt`.
 
 	Fm_rmse : float
 		The RMSE between the true and estimated Fm values of each fraction.
@@ -282,13 +292,12 @@ class RpoIsotopes(Results):
 	m_frac_std : np.ndarray
 		The standard deviation of `m_frac` with length `nFrac`.
 
-	m_peak : np.ndarray
-		Array of the masses (ugC) of each modeled peak (treating combined 
-		peaks as one), length `nPeak` (post-combining).
+	m_cmpt : np.ndarray
+		Array of the masses (ugC) of each modeled component (treating combined 
+		peaks as one component), length `nCmpt`.
 
-	m_peak_std : np.ndarray
-		The standard deviation of `m_peak` with length `nPeak` (post-
-		combining).
+	m_cmpt_std : np.ndarray
+		The standard deviation of `m_cmpt` with length `nCmpt`.
 
 	m_rmse : float
 		The RMSE between the true and estimated masses of each fraction.
@@ -297,11 +306,11 @@ class RpoIsotopes(Results):
 		The number of measured fractions.
 
 	nIter : int
-		The number of iterations, used for bootstrapping peak mass/isotope
+		The number of iterations, used for bootstrapping component mass/isotope
 		uncertainty.
 
-	peak_info : pd.DataFrame
-		Dataframe containing the inverse-modeled peak isotope summary info: 
+	cmpt_info : pd.DataFrame
+		Dataframe containing the inverse-modeled component isotope summary info: 
 
 			mass (mean and std.), \n
 			d13C (mean and std.), \n
@@ -448,7 +457,7 @@ class RpoIsotopes(Results):
 	def fit(self, model, ratedata, timedata, DEa = None, nIter = 1):
 		'''
 		Method for fitting ``RpoResults`` instance in order to calculate the 
-		isotope composition of each inverse-modeled peak in an 
+		isotope composition of each inverse-modeled component in an 
 		``RpoThermogram`` instance.
 
 		Parameters
@@ -470,8 +479,8 @@ class RpoIsotopes(Results):
 			all Ea peaks.
 
 		nIter : int
-			The number of iterations, used for bootstrapping peak mass/isotope
-			uncertainty.
+			The number of iterations, used for bootstrapping component mass/
+			isotope uncertainty.
 
 		Raises
 		------
@@ -486,7 +495,7 @@ class RpoIsotopes(Results):
 		Warnings
 		--------
 		UserWarning
-			If nPeak is greater than nFrac, the problem is underconstrained.
+			If nCmpt is greater than nFrac, the problem is underconstrained.
 
 		UserWarning
 			If attempting to use timedata that is not a ``rp.RpoThermogram``
@@ -501,29 +510,33 @@ class RpoIsotopes(Results):
 
 		UserWarning
 			If ``scipy.optimize.least_squares`` cannot converge on a
-			successful fit when estimating d13C values for each peak.
+			successful fit when estimating d13C values for each component.
 
 		Notes
 		-----
-		When analyzing Ramped PyrOx thermograms, peak masses (and mass RMSE)
-		are calculated by comparing the peak shapes (a function of the 
+		When analyzing Ramped PyrOx thermograms, component masses (and mass RMSE)
+		are calculated by comparing the component shapes (a function of the 
 		thermogram) to inputted fraction masses, which are typically measured
 		manometrically. Thus, mass RMSE serves as a metric for the agreement 
 		between photometically and manometrically determined masses (see 
 		Rosenheim et al., 2008).
 
-		Attempting to deconvolve a thermogram containing multiple peaks that 
+		Attempting to deconvolve a thermogram containing multiple components that 
 		(nearly) exclusively reside within a single fraction will lead to
 		spurrious results such as 0 masses and wildly varying d13C values.
 		Consider combining peaks until the problem is overconstrained.
 
 		References
 		----------
-		[1] B. Cramer (2004) Methane generation from coal during open system 
+		[1] B. Cramer et al. (2001) Reaction kinetics of stable carbon isotopes in
+  			natural gas -- Insights from dry, open system pyrolysis experiments.
+  			*Energy & Fuels*, **15**, 517-532.
+
+		[2] B. Cramer (2004) Methane generation from coal during open system 
 			pyrolysis investigated by isotope specific, Gaussian distributed 
 			reaction kinetics. *Organic Geochemistry*, **35**, 379-392.
 
-		[2] Rosenheim et al. (2008) Antarctic sediment chronology by 
+		[3] Rosenheim et al. (2008) Antarctic sediment chronology by 
 			programmed-temperature pyrolysis: Methodology and data treatment. 
 			*Geochemistry, Geophysics, Geosystems*, **9(4)**, GC001816.
 		'''
@@ -582,54 +595,54 @@ class RpoIsotopes(Results):
 					dp = np.array(dp)
 					DEa = np.insert(DEa, dp, DEa[dp-1])
 
-					#assert length is nPeak (before combining)
-					DEa = assert_len(DEa, timedata.nPeak)
+					#assert length is nPeak
+					DEa = assert_len(DEa, ratedata.nPeak)
 
-		#calculate peak contribution to each fraction
-		cont_ptf, ind_min, ind_max, ind_wgh = _rpo_cont_ptf(
+		#calculate component contribution to each fraction
+		cont_ctf, ind_min, ind_max, ind_wgh = _rpo_cont_ctf(
 			self, 
 			timedata, 
-			ptf = True)
+			ctf = True)
 
-		cont_ftp, _, _, _ = _rpo_cont_ptf(
+		cont_ftc, _, _, _ = _rpo_cont_ctf(
 			self, 
 			timedata, 
-			ptf = False) #frac to peak for mass calc.
+			ctf = False) #frac to component for mass calc.
 
 		#solve each isotope/mass, and calculate Monte Carlo uncertainty
 		nIter = int(nIter)
 		self.nIter = nIter
 
-		#if has mass, calculate peak mass
+		#if has mass, calculate component mass
 		if hasattr(self, 'm_frac'):
 
-			m_peak, m_peak_std, m_rmse = _nnls_MC(
-				cont_ftp, 
+			m_cmpt, m_cmpt_std, m_rmse = _nnls_MC(
+				cont_ftc, 
 				nIter, 
 				self.m_frac, 
 				self.m_frac_std)
 
-			self.m_peak = m_peak
-			self.m_peak_std = m_peak_std
+			self.m_cmpt = m_cmpt
+			self.m_cmpt_std = m_cmpt_std
 			self.m_rmse = m_rmse
 
-		#if has Fm, calculate peak Fm
+		#if has Fm, calculate component Fm
 		if hasattr(self, 'Fm_frac'):
 
-			Fm_peak, Fm_peak_std, Fm_rmse = _nnls_MC(
-				cont_ptf, 
+			Fm_cmpt, Fm_cmpt_std, Fm_rmse = _nnls_MC(
+				cont_ctf, 
 				nIter, 
 				self.Fm_frac, 
 				self.Fm_frac_std)
 
-			self.Fm_peak = Fm_peak
-			self.Fm_peak_std = Fm_peak_std
+			self.Fm_cmpt = Fm_cmpt
+			self.Fm_cmpt_std = Fm_cmpt_std
 			self.Fm_rmse = Fm_rmse
 
-		#if has d13C, calculate peak d13C and instantaneous CO2 d13C
+		#if has d13C, calculate component d13C and instantaneous CO2 d13C
 		if hasattr(self, 'd13C_frac'):
 
-			d13C_peak, d13C_peak_std, d13C_rmse = _kie_d13C_MC(
+			d13C_cmpt, d13C_cmpt_std, d13C_rmse = _kie_d13C_MC(
 				DEa, 
 				ind_wgh, 
 				model, 
@@ -637,19 +650,19 @@ class RpoIsotopes(Results):
 				self, 
 				ratedata)
 
-			self.d13C_peak = d13C_peak
-			self.d13C_peak_std = d13C_peak_std
+			self.d13C_cmpt = d13C_cmpt
+			self.d13C_cmpt_std = d13C_cmpt_std
 			self.d13C_rmse = d13C_rmse
 
 			#calculate d13C of CO2 at each timepoint
-			R13_peak = _d13C_to_R13(d13C_peak)
-			R13_CO2 = _R13_CO2(DEa, model, R13_peak, ratedata)
+			R13_cmpt = _d13C_to_R13(d13C_cmpt)
+			R13_CO2 = _R13_CO2(DEa, model, R13_cmpt, ratedata)
 			d13C_CO2 = _R13_to_d13C(R13_CO2)
 
 			self.d13C_product = d13C_CO2
 
 		#store results in summary table
-		self.peak_info = _rpo_isotopes_peak_info(
+		self.cmpt_info = _rpo_isotopes_cmpt_info(
 			ratedata._cmbd, 
 			DEa, 
 			self)

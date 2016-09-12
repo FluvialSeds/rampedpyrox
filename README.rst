@@ -4,7 +4,7 @@ About rampedpyrox
 ``rampedpyrox`` is a Python package for analyzing experimental kinetic data 
 and accompanying chemical/isotope compositional information. ``rampedpyrox`` 
 is especially suited for deconvolution of results from ramped-temperature 
-instruments such as RampedPyrox, RockEval, pyrolysis gc (pyGC), 
+instruments such as Ramped PyrOx, RockEval, pyrolysis gc (pyGC), 
 thermogravimitry (TGA), etc. This package deconvolves time-series kinetic data 
 into rate/activation energy components using a selection of reactive continuum 
 models, including the Distributed Activation Energy Model (DAEM) for 

@@ -306,7 +306,7 @@ class test_thermogram_modeled_input:
 		assert_is_instance(tg.gam, np.ndarray)
 
 		assert_is_instance(tg.dof, int)
-		assert_is_instance(tg.nPeak, int)
+		assert_is_instance(tg.nCmpt, int)
 		assert_is_instance(tg.red_chi_sq, float)
 		assert_is_instance(tg.rmse, float)
 

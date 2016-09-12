@@ -20,21 +20,21 @@ from .exceptions import(
 	RunModelError,
 	)
 
-#define function to calculate timedata peak info and store
-def _timedata_peak_info(timedata):
+#define function to calculate timedata component info and store
+def _timedata_cmpt_info(timedata):
 	'''
-	Calculates the ``rp.TimeData`` instance peak info and stores as a 
+	Calculates the ``rp.TimeData`` instance component info and stores as a 
 	DataFrame.
 
 	Parameters
 	----------
 	timedata : rp.TimeData
-		``rp.TimeData`` instance containing peaks to be summarized.
+		``rp.TimeData`` instance containing components to be summarized.
 
 	Returns
 	-------
-	peak_info : pd.DataFrame
-		DataFrame of resulting peak info.
+	cmpt_info : pd.DataFrame
+		DataFrame of resulting component info.
 
 	Raises
 	------
@@ -43,37 +43,37 @@ def _timedata_peak_info(timedata):
 		does not have inputted model-estimated data).
 	'''
 
-	#raise exception if timedata doesn't contain peaks
+	#raise exception if timedata doesn't contain components
 	if not hasattr(timedata, 'gam'):
 		raise RunModelError(
 			'TimeData instance contains no model-fitted data! Run forward'
-			'model before trying to summarize peaks.')
+			'model before trying to summarize components.')
 
 	#set pandas display options
 	pd.set_option('precision', 2)
 
-	#calculate peak indices
+	#calculate component indices
 	i = np.argmax(-timedata.dcmptdt, axis=0)
 
-	#extract info at peaks
+	#extract info at component
 	t_max = timedata.t[i]
 	T_max = timedata.T[i]
 	height_t = np.diag(-timedata.dcmptdt[i])
 	height_T = np.diag(-timedata.dcmptdT[i])
 	rel_area = timedata.cmpt[0,:]
 
-	peak_info = np.column_stack(
+	cmpt_info = np.column_stack(
 		(t_max, T_max, height_t, height_T, rel_area))
 	
 	cols = ['t max (s)', 'T max (K)', 'max rate (frac/s)', 
 		'max rate (frac/K)', 'rel. area']
 
-	peak_info = pd.DataFrame(
-		peak_info, 
+	cmpt_info = pd.DataFrame(
+		cmpt_info, 
 		columns = cols,
-		index = np.arange(1, timedata.nPeak + 1))
+		index = np.arange(1, timedata.nCmpt + 1))
 
-	return peak_info
+	return cmpt_info
 
 def _energycomplex_peak_info(ratedata):
 	'''
@@ -187,9 +187,9 @@ def _rpo_isotopes_frac_info(rpoisotopes):
 
 	return frac_info
 
-def _rpo_isotopes_peak_info(cmbd, DEa, rpoisotopes):
+def _rpo_isotopes_cmpt_info(cmbd, DEa, rpoisotopes):
 	'''
-	Calculates the ``rp.RpoIsotopes`` instance peak info and stores as a
+	Calculates the ``rp.RpoIsotopes`` instance component info and stores as a
 	DataFrame.
 
 	Parameters
@@ -201,11 +201,11 @@ def _rpo_isotopes_peak_info(cmbd, DEa, rpoisotopes):
 		Array of the DEa used for the KIE in each peak.
 
 	rpoisotopes : rp.RpoIsotopes
-		``rp.RpoIsotopes`` instance containing peaks to be summarized.
+		``rp.RpoIsotopes`` instance containing components to be summarized.
 
 	Returns
 	-------
-	peak_info : pd.DataFrame
+	cmpt_info : pd.DataFrame
 		DataFrame instance of resulting fraction info.
 	'''
 
@@ -217,12 +217,12 @@ def _rpo_isotopes_peak_info(cmbd, DEa, rpoisotopes):
 
 	#go through each measurement and add if it exists
 
-	#peak mass
-	if hasattr(rpoisotopes, 'm_peak'):
+	#component mass
+	if hasattr(rpoisotopes, 'm_cmpt'):
 
 		#extract values
-		m_peak = rpoisotopes.m_peak
-		m_peak_std = rpoisotopes.m_peak_std
+		m_cmpt = rpoisotopes.m_cmpt
+		m_cmpt_std = rpoisotopes.m_cmpt_std
 
 		#keep track of the rows to add back in if cmbd
 		if cmbd is not None:
@@ -232,29 +232,29 @@ def _rpo_isotopes_peak_info(cmbd, DEa, rpoisotopes):
 			dp = np.array(dp) #convert to nparray
 			
 			#insert deleted peaks back in
-			m_peak = np.insert(
-				m_peak, 
+			m_cmpt = np.insert(
+				m_cmpt, 
 				dp, 
-				m_peak[dp-1])
+				m_cmpt[dp-1])
 
-			m_peak_std = np.insert(
-				m_peak_std, 
+			m_cmpt_std = np.insert(
+				m_cmpt_std, 
 				dp, 
-				m_peak_std[dp-1])
+				m_cmpt_std[dp-1])
 
 		#append lists with data
-		info.append(m_peak)
-		info.append(m_peak_std)
+		info.append(m_cmpt)
+		info.append(m_cmpt_std)
 		
 		names.append('mass (ugC)')
 		names.append('mass std. (ugC)')
 
-	#peak d13C
-	if hasattr(rpoisotopes, 'd13C_peak'):
+	#component d13C
+	if hasattr(rpoisotopes, 'd13C_cmpt'):
 
 		#extract values
-		d13C_peak = rpoisotopes.d13C_peak
-		d13C_peak_std = rpoisotopes.d13C_peak_std
+		d13C_cmpt = rpoisotopes.d13C_cmpt
+		d13C_cmpt_std = rpoisotopes.d13C_cmpt_std
 
 		#keep track of the rows to add back in if cmbd
 		if cmbd is not None:
@@ -264,29 +264,29 @@ def _rpo_isotopes_peak_info(cmbd, DEa, rpoisotopes):
 			dp = np.array(dp) #convert to nparray
 			
 			#insert deleted peaks back in
-			d13C_peak = np.insert(
-				d13C_peak, 
+			d13C_cmpt = np.insert(
+				d13C_cmpt, 
 				dp, 
-				d13C_peak[dp-1])
+				d13C_cmpt[dp-1])
 
-			d13C_peak_std = np.insert(
-				d13C_peak_std, 
+			d13C_cmpt_std = np.insert(
+				d13C_cmpt_std, 
 				dp, 
-				d13C_peak_std[dp-1])
+				d13C_cmpt_std[dp-1])
 
 		#append lists with data
-		info.append(d13C_peak)
-		info.append(d13C_peak_std)
+		info.append(d13C_cmpt)
+		info.append(d13C_cmpt_std)
 		
 		names.append('d13C (VPDB)')
 		names.append('d13C std. (VPDB)')
 
-	#peak Fm
-	if hasattr(rpoisotopes, 'Fm_peak'):
+	#component Fm
+	if hasattr(rpoisotopes, 'Fm_cmpt'):
 
 		#extract values
-		Fm_peak = rpoisotopes.Fm_peak
-		Fm_peak_std = rpoisotopes.Fm_peak_std
+		Fm_cmpt = rpoisotopes.Fm_cmpt
+		Fm_cmpt_std = rpoisotopes.Fm_cmpt_std
 
 		#keep track of the rows to add back in if cmbd
 		if cmbd is not None:
@@ -296,19 +296,19 @@ def _rpo_isotopes_peak_info(cmbd, DEa, rpoisotopes):
 			dp = np.array(dp) #convert to nparray
 			
 			#insert deleted peaks back in
-			Fm_peak = np.insert(
-				Fm_peak, 
+			Fm_cmpt = np.insert(
+				Fm_cmpt, 
 				dp, 
-				Fm_peak[dp-1])
+				Fm_cmpt[dp-1])
 
-			Fm_peak_std = np.insert(
-				Fm_peak_std, 
+			Fm_cmpt_std = np.insert(
+				Fm_cmpt_std, 
 				dp, 
-				Fm_peak_std[dp-1])
+				Fm_cmpt_std[dp-1])
 
 		#append lists with data
-		info.append(Fm_peak)
-		info.append(Fm_peak_std)
+		info.append(Fm_cmpt)
+		info.append(Fm_cmpt_std)
 		
 		names.append('Fm')
 		names.append('Fm std.')
@@ -330,9 +330,9 @@ def _rpo_isotopes_peak_info(cmbd, DEa, rpoisotopes):
 	pd.set_option('precision', 2)
 
 	#store in dataframe
-	peak_info = pd.DataFrame(
+	cmpt_info = pd.DataFrame(
 		info,
 		columns = names,
 		index = istr)
 
-	return peak_info
+	return cmpt_info

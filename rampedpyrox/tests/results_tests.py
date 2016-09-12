@@ -25,7 +25,7 @@ from rampedpyrox.results.results_helper import(
 	_R13_diff, 
 	_R13_to_d13C, 
 	_rpo_blk_corr,
-	_rpo_cont_ptf,
+	_rpo_cont_ctf,
 	_rpo_extract_iso
 	)
 
@@ -193,12 +193,12 @@ class test_results_helper_functions:
 		# print(R13_CO2.min())
 		# print(R13_CO2.max())
 
-	def test_rpo_cont_ptf(self):
+	def test_rpo_cont_ctf(self):
 
-		cont, ind_min, ind_max, ind = _rpo_cont_ptf(
+		cont, ind_min, ind_max, ind = _rpo_cont_ctf(
 			result,
 			timedata,
-			ptf = True)
+			ctf = True)
 
 		#assert types
 		assert_is_instance(cont, np.ndarray)

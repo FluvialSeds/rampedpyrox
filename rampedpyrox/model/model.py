@@ -103,10 +103,10 @@ class Model(object):
 		nOm : int
 			Number of omega values to consider. Defaults to 150.
 
-		om_max : int
+		om_max : float or int
 			Maximum omega value to search. Defaults to 1e2.
 
-		om_min : int
+		om_min : float or int
 			Minimum omega value to search. Defaults to 1e-3.
 
 		plot : Boolean
@@ -131,8 +131,8 @@ class Model(object):
 
 		See Also
 		--------
-		plot_L_curve
-			Package-level method for ``plot_L_curve``.
+		calc_L_curve
+			Package-level method for ``calc_L_curve``.
 
 		References
 		----------
@@ -313,7 +313,7 @@ class Daem(LaplaceTransform):
 
 	Examples
 	--------
-	Creating a DAEM using manually-inputted Ea, k0, t, and T::
+	Creating a DAEM using manually-inputted `Ea`, `k0`, `t`, and `T`::
 
 		#import modules
 		import numpy as np
@@ -340,11 +340,12 @@ class Daem(LaplaceTransform):
 		tg = rp.RpoThermogram.from_csv('some_data_file.csv')
 
 		#create Daem instance
-		daem = rp.Daem.from_timedata(tg, 
-									Ea_max=350, 
-									Ea_min=50, 
-									nEa=250, 
-									log10k0=10)
+		daem = rp.Daem.from_timedata(
+			tg, 
+			Ea_max = 350, 
+			Ea_min = 50, 
+			nEa = 250, 
+			log10k0 = 10)
 
 	Creating a DAEM from an energy complex using the
 	``rp.Daem.from_ratedata`` class method::
@@ -356,13 +357,14 @@ class Daem(LaplaceTransform):
 		ec = rp.EnergyComplex(Ea, fEa)
 
 		#create Daem instance
-		daem = rp.Daem.from_ratedata(ec, 
-									beta=0.08, 
-									log10k0=10, 
-									nt=250, 
-									t0=0, 
-									T0=373, 
-									tf=1e4)
+		daem = rp.Daem.from_ratedata(
+			ec, 
+			beta = 0.08, 
+			log10k0 = 10, 
+			nt = 250, 
+			t0 = 0, 
+			T0 = 373, 
+			tf = 1e4)
 
 	Plotting the L-curve of a Daem to find the best-fit omega value::
 
@@ -373,12 +375,13 @@ class Daem(LaplaceTransform):
 		fig, ax = plt.subplots(1,1)
 
 		#plot L curve
-		om_best, ax = daem.calc_L_curve(tg,
-										ax=None, 
-										plot=False,
-										om_min = 1e-3,
-										om_max = 1e2,
-										nOm = 150)
+		om_best, ax = daem.calc_L_curve(
+			tg,
+			ax = None, 
+			plot = True,
+			om_min = 1e-3,
+			om_max = 1e2,
+			nOm = 150)
 
 	**Attributes**
 
@@ -394,7 +397,7 @@ class Daem(LaplaceTransform):
 		Number of timepoints.
 
 	t : np.ndarray
-		Array of timep, in seconds. Length `nt`.
+		Array of timepoints, in seconds. Length `nt`.
 
 	T : np.ndarray
 		Array of temperature, in Kelvin. Length `nt`.
@@ -546,8 +549,8 @@ class Daem(LaplaceTransform):
 		Class method to directly generate an ``rp.Daem`` instance using data
 		stored in an ``rp.RateData`` instance.
 
-		Paramters
-		---------
+		Parameters
+		----------
 		ratedata : rp.RateData
 			``rp.RateData`` instance containing the Ea array to use for
 			creating the DAEM. 
@@ -574,6 +577,12 @@ class Daem(LaplaceTransform):
 		tf : int or float
 			The final time to be used in the model, in seconds. Defaults to
 			10,000.
+
+		Warnings
+		--------
+		UserWarning
+			If attempting to create a DAEM with a non-EnergyComplex ratedata 
+			instance.
 
 		See Also
 		--------

@@ -35,7 +35,7 @@ from ..core.plotting_helper import(
 	)
 
 from ..core.summary_helper import(
-	_timedata_peak_info
+	_timedata_cmpt_info
 	)
 
 from ..model.model_helper import(
@@ -155,7 +155,7 @@ class TimeData(object):
 		----------
 		cmpt : array-like
 			Array of fraction of each component remaining at each timestep.
-			Gets converted to 2d rparray. Shape [`nt` x `nPeak`].
+			Gets converted to 2d rparray. Shape [`nt` x `nCmpt`].
 		'''
 
 		#ensure type and size
@@ -163,12 +163,12 @@ class TimeData(object):
 		cmpt = assert_len(cmpt, nt)
 
 		#force to be 2d (for derivatives and sums, below)
-		nPeak = int(cmpt.size/nt)
-		cmpt = cmpt.reshape(nt, nPeak)
+		nCmpt = int(cmpt.size/nt)
+		cmpt = cmpt.reshape(nt, nCmpt)
 
 		#store attributes
-		self.dof = nt - 3*nPeak + 1
-		self.nPeak = nPeak
+		self.dof = nt - 3*nCmpt + 1
+		self.nCmpt = nCmpt
 		self.cmpt = cmpt
 
 		#generate gamma array
@@ -190,8 +190,8 @@ class TimeData(object):
 			self.red_chi_sq = rcs
 			self.rmse = rmse
 
-		#store peak info
-		self.peak_info = _timedata_peak_info(self)
+		#store component info
+		self.cmpt_info = _timedata_cmpt_info(self)
 
 	#define plotting method
 	def plot(self, ax = None, labs = None, md = None, rd = None):
@@ -262,7 +262,7 @@ class TimeData(object):
 					cpt,
 					color='k',
 					alpha=0.2,
-					label='Components (n = %.0f)' %self.nPeak)
+					label='Components (n = %.0f)' %self.nCmpt)
 
 		#remove duplicate legend entries
 		han_list, lab_list = _rem_dup_leg(ax)
@@ -341,7 +341,7 @@ class RpoThermogram(TimeData):
 		tg = rp.RpoThermogram(t,T)
 
 	Generating a real thermogram using an RPO output .csv file and the
-	``rp.RpoThermogram.from_csv`` class method::
+	``rp.RpoThermogram.from_csv`` class method, and subtracting the baseline::
 
 		#import modules
 		import rampedpyrox as rp
@@ -350,11 +350,12 @@ class RpoThermogram(TimeData):
 		file = 'path_to_folder_containing_data/thermogram_data.csv'
 
 		#create instance using baseline-subtracted CO2 data
-		tg = rp.RpoThermogram.from_csv(file,
-										bl_subtract = True,
-										nt = 250,
-										ppm_CO2_err = 5,
-										T_err = 3)
+		tg = rp.RpoThermogram.from_csv(
+			file,
+			bl_subtract = True,
+			nt = 250,
+			ppm_CO2_err = 5,
+			T_err = 3)
 
 	Manually adding some model-estimated component data as `cmpt`::
 
@@ -376,33 +377,35 @@ class RpoThermogram(TimeData):
 		fig, ax = plt.subplots(1,2)
 
 		#plot resulting rates against time and temp
-		ax[0] = tg.plot(ax = ax[0], 
-						xaxis = 'time', 
-						yaxis = 'rate')
+		ax[0] = tg.plot(
+			ax = ax[0], 
+			xaxis = 'time', 
+			yaxis = 'rate')
 		
-		ax[1] = tg.plot(ax = ax[1], 
-						xaxis = 'temp', 
-						yaxis = 'rate')
+		ax[1] = tg.plot(
+			ax = ax[1], 
+			xaxis = 'temp', 
+			yaxis = 'rate')
 
 	Printing a summary of the analysis::
 
-		print(tg.peak_info)
+		print(tg.cmpt_info)
 
 	**Attributes**
 
 	cmpt : numpy.ndarray
 		Array of the estimated fraction of carbon remaining in each component 
-		at each timepoint. Shape [`nt` x `nPeak`].
+		at each timepoint. Shape [`nt` x `nCmpt`].
 
 	dcmptdt : numpy.ndarray
 		Array of the derivative of the estimated fraction of carbon remaining
 		in each component with respect to time at each timepoint, in 
-		fraction/second. Shape [`nt` x `nPeak`].
+		fraction/second. Shape [`nt` x `nCmpt`].
 
 	dcmptdT : numpy.ndarray
 		Array of the derivative of the estimated fraction of carbon remaining
 		in each component with respect to temperature at each timepoint, in 
-		fraction/Kelvin. Shape [`nt` x `nPeak`].
+		fraction/Kelvin. Shape [`nt` x `nCmpt`].
 
 	dgamdt : numpy.ndarray
 		Array of the derivative of the estimated fraction of carbon remaining
@@ -424,7 +427,7 @@ class RpoThermogram(TimeData):
 		Length `nt`.
 
 	dof : int
-		Degrees of freedom of model fit, defined as ``nt - 3*nPeak + 1``.
+		Degrees of freedom of model fit, defined as ``nt - 3*nCmpt + 1``.
 
 	dTdt : numpy.ndarray
 		Array of the derivative of temperature with respect to time (*i.e.*
@@ -442,15 +445,15 @@ class RpoThermogram(TimeData):
 		Array of the estimated fraction of carbon remaining at each timepoint.
 		Length `nt`.
 
-	nPeak : int
-		Number of peaks in estimated thermogram, **after being combined**
-		(*i.e.* number of components)
+	nCmpt : int
+		Number of components in estimated thermogram, *i.e.* the number of Ea
+		peaks **after being combined**.
 
 	nt : int
 		Number of timepoints.
 
-	peak_info : pd.DataFrame
-		Dataframe containing the forward-modeled peak isotope summary info: 
+	cmpt_info : pd.DataFrame
+		Dataframe containing the forward-modeled component summary info: 
 
 			t_max (s), \n
 			T_max (K), \n
@@ -458,7 +461,7 @@ class RpoThermogram(TimeData):
 			max_rate (frac/K), \n
 			relative area
 		
-		Combined peaks are treated as a single peak.
+		Combined peaks are treated as a single component.
 
 	red_chi_sq : float
 		The reduced chi square metric for the model fit.
@@ -521,7 +524,7 @@ class RpoThermogram(TimeData):
 			Tells the program whether or not to linearly subtract the baseline
 			such that ppmCO2 returns to 0 at the end of the run. Defaults to
 			`True`. **To minimize boundary effects, this should typically be**
-			**set to `True` regardless of previous data treatment.**
+			**set to 'True' regardless of previous data treatment.**
 
 		nt : int
 			The number of time points to use. Defaults to 250.
@@ -608,10 +611,6 @@ class RpoThermogram(TimeData):
 			``rp.RateData`` instance.
 
 		ArrayError
-			If `nEa` is not the same in the ``rp.Model`` instance and the 
-			``rp.RateData`` instance.
-
-		ArrayError
 			If `nt` is not the same in the ``rp.Model`` instance and the
 			``rp.TimeData`` instance.
 
@@ -673,14 +672,14 @@ class RpoThermogram(TimeData):
 	#define method for inputting model-estimate data
 	def input_estimated(self, cmpt):
 		'''
-		Inputs estimated thermogram into the ``tp.RpoThermogram`` instance and 
+		Inputs estimated thermogram into the ``rp.RpoThermogram`` instance and 
 		calculates statistics.
 		
 		Parameters
 		----------
 		cmpt : array-like
 			Array of the estimated fraction of carbon remaining in each 
-			component at each timepoint. Shape [`nt` x `nPeak`].
+			component at each timepoint. Shape [`nt` x `nCmpt`].
 
 		See Also
 		--------
@@ -695,7 +694,7 @@ class RpoThermogram(TimeData):
 	def plot(self, ax = None, xaxis = 'time', yaxis = 'rate'):
 		'''
 		Plots the true and model-estimated thermograms (including individual 
-		peaks) against time or temp.
+		components) against time or temp.
 
 		Parameters
 		----------

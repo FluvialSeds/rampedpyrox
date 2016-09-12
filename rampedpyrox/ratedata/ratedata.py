@@ -414,7 +414,8 @@ class EnergyComplex(RateData):
 		Ea = np.arange(50, 350)
 
 		def Gaussian(x, mu, sig):
-			y = (1/np.sqrt(2*np.pi*sig**2))*np.exp(-(x-mu)**2/(2*sig**2))
+			scalar = (1/np.sqrt(2*np.pi*sig**2))*
+			y = scalar*np.exp(-(x-mu)**2/(2*sig**2))
 			return y
 
 		f = Gaussian(Ea, 150, 10)
@@ -434,21 +435,25 @@ class EnergyComplex(RateData):
 		peak_info = pd.Series([150, 10, 1.0],
 			index = ['mu', 'sigma', 'rel. area'])
 
-		ec.input_estimated(phi, peak_info, 
-							omega = None, 
-							resid_rmse = None,
-							rgh_rmse = None)
+		ec.input_estimated(
+			phi, 
+			peak_info, 
+			omega = None, 
+			resid_rmse = None,
+			rgh_rmse = None)
 
 	Or, insteand run the inversion to generate an energy complex using an 
 	``rp.RpoThermogram`` instance, tg, and an ``rp.Daem`` instance, daem::
 
 		#keeping defaults, not combining any peaks
-		ec = rp.EnergyComplex(daem, tg, 
-							combined = None, 
-							nPeaks = 'auto',
-							omega = 'auto', 
-							peak_shape = 'Gaussian', 
-							thres = 0.05)
+		ec = rp.EnergyComplex(
+			daem, 
+			tg, 
+			combined = None, 
+			nPeaks = 'auto',
+			omega = 'auto', 
+			peak_shape = 'Gaussian', 
+			thres = 0.05)
 
 	Same as above, but now setting `omega` and combining peaks::
 
@@ -457,12 +462,14 @@ class EnergyComplex(RateData):
 		combined = [(0,1), (6,7)]
 
 		#create the instance
-		ec = rp.EnergyComplex(daem, tg, 
-							combined = combined, 
-							nPeaks = 'auto',
-							omega = omega, 
-							peak_shape = 'Gaussian', 
-							thres = 0.05)
+		ec = rp.EnergyComplex(
+			daem, 
+			tg, 
+			combined = combined, 
+			nPeaks = 'auto',
+			omega = omega, 
+			peak_shape = 'Gaussian', 
+			thres = 0.05)
 
 	Plotting the resulting "true" and estimated energy complex::
 
@@ -498,8 +505,7 @@ class EnergyComplex(RateData):
 		Number of Ea points.
 
 	nPeak : int
-		Number of Gaussian peaks in estimated energy complex before being 
-		combined (*i.e.* number of components).
+		Number of Gaussian peaks in estimated energy complex.
 
 	omega : float
 		Tikhonov regularization weighting factor.
@@ -659,6 +665,12 @@ class EnergyComplex(RateData):
 		RpoThermogram.forward_model
 			``rp.TimeData`` method for forward-modeling an ``rp.RateData`` 
 			instance using a particular model.
+
+		References
+		----------
+		[1] B. de Caprariis et al. (2012) Double-Gaussian distributed activation
+  			energy model for coal devolatilization. *Energy & Fuels*, **26**,
+ 			 6153-6159.
 		'''
 
 		#warn if model is not Daem
@@ -802,8 +814,7 @@ class EnergyComplex(RateData):
 
 		Notes
 		-----
-		Number of peaks declared in the legend is **before** peaks have been
-		combined!
+		Number of peaks declared in the legend is **before** being combined!
 		'''
 
 		#create axis label tuple

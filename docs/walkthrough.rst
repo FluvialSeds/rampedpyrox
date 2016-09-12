@@ -4,7 +4,7 @@ The following examples should form a comprehensive walkthough of downloading
 the package, getting thermogram data into the right form for importing,
 running the DAEM inverse model, peak-fitting the activation energy (Ea) 
 probability density function, determining the isotope composition of each Ea 
-Gaussian peak, and performing Monte Carlo uncertainty estimates.
+Gaussian peak, and performing Monte Carlo isotope uncertainty estimates.
 
 
 Quick guide
@@ -14,44 +14,54 @@ Basic runthrough::
 
 	#import modules
 	import matplotlib.pyplot as plt
+	import numpy as np
 	import pandas as pd
 	import rampedpyrox as rp
-	import matplotlib.pyplot as plt
 
 	#generate string to data
-	tg_data = '/folder_containing_data/data.csv'
+	tg_data = '/folder_containing_data/tg_data.csv'
 	iso_data = '/folder_containing_data/iso_data.csv'
 
-	#make thermogram
-	tg = rp.RpoThermogram.from_csv(tg_data)
+	#make the thermogram instance
+	tg = rp.RpoThermogram.from_csv(
+		tg_data,
+		bl_subtract = True,
+		nt = 250)
 
-	#generate daem model
-	daem = rp.Daem.from_timedata(tg)
+	#generate the DAEM
+	daem = rp.Daem.from_timedata(
+		tg,
+		log10k0 = 10, #assume a constant value of 10
+		Ea_max = 350,
+		Ea_min = 50,
+		nEa = 400)
 
-	#calculate rate data
-	ec = rp.EnergyComplex.inverse_model(tg, daem)
+	#run the inverse model to generate energy complex
+	ec = rp.EnergyComplex.inverse_model(
+		daem, 
+		tg,
+		combined = [(1,2), (6, 7)],
+		nPeaks = 'auto',
+		omega = 3,
+		peak_shape = 'Gaussian',
+		thres = 0.02)
 
-	#add estimated data back to tg
-	tg.forward_model(ec, daem)
+	#forward-model back onto the thermogram
+	tg.forward_model(daem, ec)
 
-	#calculate isotope estimates
-	iso = tg.RpoIsotopes.from_csv(iso_data)
-	iso.fit(tg)
+	#make the isotope results instance
+	ri = rp.RpoIsotopes.from_csv(
+		iso_data,
+		blk_corr = True, #uses values for NOSAMS instrument
+		mass_err = 0.01)
 
-	#save summary reports
-	rp.save_summaries(tg, ec, iso, 'summary_file.csv')
-
-	#generate Monte Carlo uncertainty estimates 
-	res = rp.RpoMC(tg, daem, ec, iso, 
-		nIter = 10000, 
-		include_temp = True)
-
-
-Estimate some other time-temperature history::
-	
-	tg_geo = rp.RpoThermogram(t_geo, T_geo)
-	daem_geo = rp.Daem.from_timedata(tg_geo)
-	tg_geo.forward_model(ec, daem_geo)
+	#fit the component isotope values and uncertainty
+	ri.fit(
+		daem, 
+		ec, 
+		tg,
+		DEa = 0.0018, #uses values for NOSAMS instrument
+		nIter = 10000)
 
 
 Downloading the package
@@ -59,11 +69,15 @@ Downloading the package
 
 Using the ``pip`` package manager
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-(coming with first full release)
 ``rampedpyrox`` and the associated dependent packages can be downloaded
 directly from the command line using ``pip``::
 
-	pip install rampedpyrox
+	$ pip install rampedpyrox
+
+You can check that your installed version is up to date with the latest 
+release by doing::
+
+	$ pip freeze
 
 
 Downloading from source
@@ -78,10 +92,7 @@ And keep up-to-date with the latest version by doing::
 
 	$ git pull
 
-from within the rampedpyrox directory. You can check that your installed 
-version is up to date with the latest release by doing::
-
-	$ git freeze
+from within the rampedpyrox directory.
 
 Dependencies
 ~~~~~~~~~~~~
@@ -111,10 +122,9 @@ Getting data in the right format
 
 Importing thermogram data
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-For thermogram data (*i.e.* an `all_data` file), this package requires that
-the file is in `.csv` format, that the first column is `date_time` index in an
-**hh:mm:ss AM/PM** format, and that the file contains 'CO2_scaled' and 'temp' 
-columns [1]_. For example:
+For thermogram data, this package requires that the file is in `.csv` format, that 
+the first column is `date_time` index in an **hh:mm:ss AM/PM** format, and that the 
+file contains 'CO2_scaled' and 'temp' columns [1]_. For example:
 
 +-------------+------------+--------------+
 |  date_time  |    temp    |  CO2_scaled  |
@@ -136,12 +146,11 @@ like this::
 
 Importing isotope data
 ~~~~~~~~~~~~~~~~~~~~~~
-If you are importing isotope data (*i.e.* a `sum_data` file), this package 
-requires that the file is in `.csv` format and that the first two rows 
-correspond to the starting time of the experiment and the initial trapping
-time of fraction 1, respectively. Additionally, the file must contain the 
-columns: 'fraction', 'ug_frac', 'd13C', 'd13C_std', 'Fm', and 'Fm_std' [2]_.
-For example:
+If you are importing isotope data, this package requires that the file is in `.csv` 
+format and that the first two rows correspond to the starting time of the 
+experiment and the initial trapping time of fraction 1, respectively. Additionally, 
+the file must contain a 'fraction' column and isotope/mass columns must have 
+`ug_frac`, `d13C`, `d13C_std`, `Fm`, and `Fm_std` headers [2]_. For example:
 
 +-------------+----------+---------+--------+----------+--------+----------+
 |  date_time  | fraction | ug_frac |  d13C  | d13C_std |   Fm   |  Fm_std  |
@@ -156,8 +165,8 @@ For example:
 +-------------+----------+---------+--------+----------+--------+----------+
 
 **Important:** The `date_time` value for fraction '-1' must be the same as the 
-`date_time` value for the first row in `all_data` **and** the value for
-fraction '0' must the initial time when trapping for fraction 1 began.
+`date_time` value for the first row in the `all_data` thermogram file **and** the 
+value for fraction '0' must the initial time when trapping for fraction 1 began.
 
 Once the file is in this format, generate a string pointing to it in python
 like this::
@@ -528,8 +537,8 @@ Saving the output
 	`all_data` file generated by LabView are not used and can be deleted or 
 	given an arbitrary name.
 
-.. [2] Note: 'd13C_std' and 'Fm_std' are unused if passed into an 
-	``rp.IsotopeResult`` instance with ``add_noise=False``.
+.. [2] Note: 'd13C_std' and 'Fm_std' default to zero (no uncertainty) if these
+	columns do not exist in the .csv file.
 
 .. [3] Note: For the NOSAMS Ramped PyrOx instrument, plotting against temp.
 	results in a noisy thermogram due to the variability in the ramp rate,

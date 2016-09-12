@@ -2,15 +2,12 @@
 *.pyc
 
 #setuptools distribution folder
-/dist/
+dist/
 
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
 
-#test thermogram data
-*.csv
-
 #doc builds
-/docs/_build/
-/docs/_static/
-/docs/_templates/
+docs/_build/
+docs/_static/
+docs/_templates/
