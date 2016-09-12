@@ -239,6 +239,9 @@ class TimeData(object):
 				color='k',
 				label='Real Data')
 
+			#set limits
+			ax.set_ylim([0, 1.1*np.max(rd[1])])
+			
 		#add model-estimated data if it exists
 		if md is not None:
 
@@ -303,6 +306,13 @@ class RpoThermogram(TimeData):
 		If attempting to use isothermal data to create an ``rp.RpoThermogram``
 		instance. Consider using alternate ``rp.TimeData`` subclass.
 
+	Notes
+	-----
+	**Important:** The inverse model used herein is highly sensitive 
+	to boundary effects. To avoid unnecessarily large regularizations 
+	ensure that inputted data return completely to baseline ppmCO2 by 
+	the end of the experiment.
+
 	See Also
 	--------
 	Daem
@@ -339,8 +349,9 @@ class RpoThermogram(TimeData):
 		#create path to data file
 		file = 'path_to_folder_containing_data/thermogram_data.csv'
 
-		#create instance
+		#create instance using baseline-subtracted CO2 data
 		tg = rp.RpoThermogram.from_csv(file,
+										bl_subtract = True,
 										nt = 250,
 										ppm_CO2_err = 5,
 										T_err = 3)
@@ -489,7 +500,13 @@ class RpoThermogram(TimeData):
 
 	#define class method for creating instance directly from .csv file
 	@classmethod
-	def from_csv(cls, file, nt = 250, ppm_CO2_err = 5, T_err = 3):
+	def from_csv(
+			cls, 
+			file, 
+			bl_subtract = True, 
+			nt = 250, 
+			ppm_CO2_err = 5, 
+			T_err = 3):
 		'''
 		Class method to directly import RPO data from a .csv file and create
 		an ``rp.RpoThermogram`` class instance.
@@ -499,6 +516,12 @@ class RpoThermogram(TimeData):
 		file : str or pd.DataFrame
 			File containing isotope data, either as a path string or a
 			dataframe.
+
+		bl_subtract : Boolean
+			Tells the program whether or not to linearly subtract the baseline
+			such that ppmCO2 returns to 0 at the end of the run. Defaults to
+			`True`. **To minimize boundary effects, this should typically be**
+			**set to `True` regardless of previous data treatment.**
 
 		nt : int
 			The number of time points to use. Defaults to 250.
@@ -547,7 +570,11 @@ class RpoThermogram(TimeData):
 		'''
 
 		#extract data from file
-		g, g_std, t, T = _rpo_extract_tg(file, nt, ppm_CO2_err)
+		g, g_std, t, T = _rpo_extract_tg(
+			file, 
+			nt, 
+			ppm_CO2_err, 
+			bl_subtract = bl_subtract)
 
 		return cls(t, T, g = g, g_std = g_std, T_std = T_err)
 

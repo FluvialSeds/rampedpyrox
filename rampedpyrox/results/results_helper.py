@@ -25,10 +25,15 @@ from scipy.optimize import nnls
 #import exceptions
 from ..core.exceptions import(
 	FileError,
+	LengthError,
 	ScalarError,
 	)
 
 #import helper functions
+from ..core.core_functions import(
+	assert_len
+	)
+
 from ..ratedata.ratedata_helper import(
 	_calc_phi
 	)
@@ -48,6 +53,10 @@ def _d13C_to_R13(d13C):
 	R13 : np.ndarray
 		Corresponding 13C/12C ratios.
 	'''
+
+	#assert d13C is array with float dtype
+	d13C = assert_len(d13C, len(d13C))
+
 
 	Rpdb = 0.011237 #13C/12C ratio VPDB
 
@@ -115,7 +124,8 @@ def _kie_d13C(DEa, ind_wgh, model, ratedata, vals):
 	#ensure success
 	if not res.success:
 		warnings.warn(
-			'R13 peak calc. could not converge on a successful fit')
+			'R13 peak calc. could not converge on a successful fit',
+			UserWarning)
 
 	#extract best-fit result
 	R13_peak = res.x
@@ -171,7 +181,29 @@ def _kie_d13C_MC(DEa, ind_wgh, model, nIter, result, ratedata):
 
 	rmse : float
 		Average RMSE between the measured and predicted fraction isotopes.
+	
+	Raises
+	------
+	LengthError
+		If length of `ind_wgh` is not `nFrac`.
 	'''
+
+	################################################################
+	# assert all datatypes here as to prevent checking nIter times #
+	################################################################
+	
+	#assert DEa and ind_wgh are the right length
+	DEa = assert_len(DEa, ratedata._pkinf.shape[0])
+	
+	if len(ind_wgh) != result.nFrac:
+		raise LengthError(
+			'ind_wgh of length = %r is not compatable with a model with'
+			' nFrac = %r. Ensure this is the right model instance'
+			%(len(ind_wgh), result.nFrac))
+
+	#ensure that ind_wgh and nIter dtype is integer
+	ind_wgh = [int(i) for i in ind_wgh]
+	nIter = int(nIter)
 
 	#nPeaks AFTER BEING COMBINED!
 	_, nPeak = np.shape(ratedata.peaks)
@@ -218,7 +250,7 @@ def _nnls_MC(cont, nIter, vals, vals_std):
 	----------
 	cont : np.ndarray
 		2d array of the contribution of each peak to each fraction (for Fm) or
-		of each fraction to each peak (for mass)
+		of each fraction to each peak (for mass). Shape [`nFrac` x `nPeak`].
 
 	nIter : int
 		The number of times to iterate.
@@ -244,7 +276,10 @@ def _nnls_MC(cont, nIter, vals, vals_std):
 		masses.
 	'''
 
+	#extract shapes and ensure lengths
 	nFrac, nPeak = cont.shape
+	vals = assert_len(vals, nFrac)
+	vals_std = assert_len(vals_std, nFrac)
 
 	#generate noise matrix
 	noise = np.random.standard_normal(size = (nFrac, nIter))
@@ -392,12 +427,14 @@ def _R13_diff(R13_peak, DEa, ind_wgh, model, R13_frac, ratedata):
 		fraction, length nFrac.
 	'''
 
+	#calculate the R13 of instantaneously produced CO2 at each point
 	R13_CO2 = _R13_CO2(
 		DEa, 
 		model, 
 		R13_peak, 
 		ratedata)
 
+	#calculate difference at ind_wgh
 	R13_diff = R13_CO2[ind_wgh] - R13_frac
 
 	return R13_diff
@@ -417,6 +454,9 @@ def _R13_to_d13C(R13):
 	d13C : np.ndarray
 		Resulting d13C values.
 	'''
+
+	#assert R13 is array with float dtype
+	R13 = assert_len(R13, len(R13))
 
 	Rpdb = 0.011237 #13C/12C ratio VPDB
 
@@ -443,7 +483,7 @@ def _rpo_blk_corr(d13C, d13C_std, Fm, Fm_std, m, m_std, t):
 	Fm_std : np.ndarray
 		Array of Fm stdev. for each fraction, length nFrac.
 
-	m : None or np.ndarray
+	m : np.ndarray
 		Array of masses (ugC) for each fraction, length nFrac.
 
 	m_std : np.ndarray
@@ -466,7 +506,7 @@ def _rpo_blk_corr(d13C, d13C_std, Fm, Fm_std, m, m_std, t):
 	Fm_std_corr : np.ndarray
 		Array of corrected Fm stdev. for each fraction, length nFrac.
 
-	m_corr : None or np.ndarray
+	m_corr : np.ndarray
 		Array of corrected masses (ugC) for each fraction, length nFrac.
 
 	m_std_corr : np.ndarray
@@ -496,16 +536,10 @@ def _rpo_blk_corr(d13C, d13C_std, Fm, Fm_std, m, m_std, t):
 	#perform blank correction
 
 	#correct mass
-	if m is not None:
-
-		m_corr = m - bl_mass
-		m_std_corr = norm(
-			[m_std, dt*bl_flux_std], 
-			axis = 0)
-
-	else:
-		m_corr = None
-		m_std_corr = 0
+	m_corr = m - bl_mass
+	m_std_corr = norm(
+		[m_std, dt*bl_flux_std], 
+		axis = 0)
 
 	#correct d13C
 	if d13C is not None:
@@ -612,7 +646,8 @@ def _rpo_cont_ptf(result, timedata, ptf = True):
 	if nPeak > nFrac:
 		warnings.warn(
 			'Warning: nPeak = %r, nFrac = %r. Problem is underconstrained!'
-			' Solution is not unique!' %(nPeak, nFrac))
+			' Solution is not unique!' %(nPeak, nFrac),
+			UserWarning)
 
 	#pre-allocate cont_ptf matrix and index arrays
 	cont_ptf = np.zeros([nFrac,nPeak])

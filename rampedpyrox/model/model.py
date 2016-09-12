@@ -190,9 +190,9 @@ class Model(object):
 		#function for curvature
 		k = np.abs(dy2d2x)/(1+dydx**2)**1.5
 
-		#find first occurrance of argmax k
-		i = np.argmax(k)
-		om_best = om_vec[i]
+		#find first occurrance of argmax k, ignoring first and last points
+		i = np.argmax(k[1:-1])
+		om_best = om_vec[i + 1]
 
 		#plot if necessary
 		if plot:
@@ -523,7 +523,7 @@ class Daem(LaplaceTransform):
 			warnings.warn(
 				'Attempting to calculate isotopes using an isothermal timedata'
 				' instance of type %r. Consider using rp.RpoThermogram' 
-				' instance instead' % td_type)
+				' instance instead' % td_type, UserWarning)
 
 		#generate Ea, t, and T array
 		Ea = np.linspace(Ea_min, Ea_max, nEa)
@@ -590,7 +590,7 @@ class Daem(LaplaceTransform):
 			warnings.warn(
 				'Attempting to calculate isotopes using a ratedata instance of'
 				' type %r. Consider using rp.EnergyComplex instance instead'
-				% rd_type)
+				% rd_type, UserWarning)
 
 		#generate Ea, t, and T array
 		Ea = ratedata.Ea

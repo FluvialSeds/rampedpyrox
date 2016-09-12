@@ -13,6 +13,7 @@ __all__ = ['EnergyComplex']
 #import modules
 import matplotlib.pyplot as plt
 import numpy as np
+import warnings
 
 from numpy.linalg import norm
 
@@ -116,8 +117,9 @@ class RateData(object):
 
 		Warnings
 		--------
-		Warns if ``scipy.optimize.least_squares`` cannot converge on a 
-		solution.
+		UserWarning
+			If ``scipy.optimize.least_squares`` cannot converge on a 
+			solution.
 
 		Notes
 		-----
@@ -220,14 +222,22 @@ class RateData(object):
 		------
 		ScalarError
 			If omega is not scalar or None.
+
+		Warnings
+		--------
+		UserWarning
+			If peaks do not integrate to one, the program automatically scales
+			all peaks equally to ensure proper integration value.
 		'''
 
 		#extract n rate/Ea (necessary since models have different nomenclature)
 		if hasattr(self, 'nk'):
 			nk = self.nk
+			k = self.k
 		
 		elif hasattr(self, 'nEa'):
 			nk = self.nEa
+			k = self.Ea
 
 		#ensure type and size
 		peaks = assert_len(peaks, nk)
@@ -236,19 +246,29 @@ class RateData(object):
 		nPeak = int(peaks.size/nk)
 		peaks = peaks.reshape(nk, nPeak)
 
+		#ensure that peaks integrate to one, and warn if not
+		phi = np.sum(peaks, axis = 1)
+		a = np.sum(phi*np.gradient(k))
+
+		if np.around(a - 1, decimals = 2) != 0:
+			warnings.warn(
+				'Peaks do not integrate to one with 1 percent precision.'
+				' Integral is: %r. Automatically scalaing to unity.' %a,
+				UserWarning)
+
+			peaks = peaks/a
+
 		#store attributes
 		self.dof = nk - 3*nPeak + 1
 		self.nPeak = nPeak
 		self.peak_shape = peak_shape
 		self.peaks = peaks
+		self.phi = phi
 		self.resid_rmse = resid_rmse
 		self.rgh_rmse = rgh_rmse
 
 		#store protected _pkinf attribute (used for isotope calcs.)
 		self._pkinf = peak_info
-
-		#calculate phi and store
-		self.phi = np.sum(peaks, axis = 1)
 
 		#input omega if it exists for bookkeeping
 		if omega is not None:
@@ -269,7 +289,7 @@ class RateData(object):
 			self.rmse = rmse
 
 	#define plotting method
-	def plot(self, ax=None, labs=None, md=None, rd=None):
+	def plot(self, ax = None, labs = None, md = None, rd = None):
 		'''
 		Method for plotting ``rp.RateData`` instance data.
 
@@ -313,6 +333,9 @@ class RateData(object):
 				linewidth=2,
 				color='k',
 				label=r'Real Data ($\omega$ = %.2f)' %self.omega)
+
+			#set limits
+			ax.set_ylim([0, 1.1*np.max(rd[1])])
 
 		#add model-estimated data if it exists
 		if md is not None:
@@ -363,6 +386,11 @@ class EnergyComplex(RateData):
 
 	f_std : scalar or array-like
 		Standard deviation of `f`, with length `nEa`. Defaults to zeros. 
+
+	Raises
+	------
+	ArrayError
+		If the any value in `Ea` is negative.
 
 	See Also
 	--------
@@ -523,7 +551,17 @@ class EnergyComplex(RateData):
 
 		#store activation energy attributes
 		nEa = len(Ea)
-		self.Ea = assert_len(Ea, nEa)
+
+		#ensure types
+		Ea = assert_len(Ea, nEa)
+
+		#ensure that Ea is non-negative
+		if np.min(Ea) < 0:
+			raise ArrayError(
+				'Minimum value for Ea is: %r. Elements in Ea must be'
+				' non-negative.' % np.min(Ea))
+
+		self.Ea = Ea
 		self.nEa = nEa
 		
 		#create protected _cmbd attribute to store combined peaks
@@ -630,7 +668,7 @@ class EnergyComplex(RateData):
 			warnings.warn(
 				'Attempting to calculate isotopes using a model instance of'
 				' type %r. Consider using rp.Daem instance instead'
-				% rd_type)
+				% rd_type, UserWarning)
 
 		#warn if timedata is not RpoThermogram
 		td_type = type(timedata).__name__
@@ -639,7 +677,7 @@ class EnergyComplex(RateData):
 			warnings.warn(
 				'Attempting to calculate isotopes using an isothermal timedata'
 				' instance of type %r. Consider using rp.RpoThermogram' 
-				' instance instead' % td_type)
+				' instance instead' % td_type, UserWarning)
 
 		ec = super(EnergyComplex, cls).inverse_model(
 			model, 
@@ -691,11 +729,11 @@ class EnergyComplex(RateData):
 	def input_estimated(
 			self, 
 			peaks, 
-			omega = None, 
+			omega = 0, 
 			peak_info = None, 
 			peak_shape = 'Gaussian', 
-			resid_rmse = None, 
-			rgh_rmse = None):
+			resid_rmse = 0, 
+			rgh_rmse = 0):
 		'''
 		Inputs estimated rate data into the ``rp.EnergyComplex`` instance and
 		calculates statistics.
@@ -715,8 +753,9 @@ class EnergyComplex(RateData):
 
 			Defaults to `None`.
 
-		omega : scalar or 'auto'
-			Tikhonov regularization weighting factor. Defaults to 'auto'.
+		omega : scalar
+			Tikhonov regularization weighting factor used to generate
+			estimated data. Defaults to 0.
 
 		peak_shape : str
 			Peak shape to use for deconvolved peaks. Acceptable strings are:
@@ -726,10 +765,10 @@ class EnergyComplex(RateData):
 			Defaults to 'Gaussian'.
 
 		resid_rmse : float
-			Residual RMSE from inverse model.
+			Residual RMSE for the inputted estimated data. Defaults to 0.
 
 		rgh_rmse : float
-			Roughness RMSE from inverse model.
+			Roughness RMSE for the inputted estimated data. Defaults to 0.
 		'''
 
 		super(EnergyComplex, self).input_estimated(

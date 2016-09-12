@@ -33,6 +33,7 @@ sum_data = 'test_data/5C_min_sum.csv'
 
 tg = rp.RpoThermogram.from_csv(
 	data,
+	bl_subtract = True,
 	nt=250,
 	ppm_CO2_err=5,
 	T_err=3)

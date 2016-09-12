@@ -535,7 +535,7 @@ class RpoIsotopes(Results):
 			warnings.warn(
 				'Attempting to calculate isotopes using a model instance of'
 				' type %r. Consider using rp.Daem instance instead'
-				% rd_type)
+				% rd_type, UserWarning)
 
 		#warn if ratedata is not EnergyComplex
 		rd_type = type(ratedata).__name__
@@ -544,7 +544,7 @@ class RpoIsotopes(Results):
 			warnings.warn(
 				'Attempting to calculate isotopes using a ratedata instance of'
 				' type %r. Consider using rp.EnergyComplex instance instead'
-				% rd_type)
+				% rd_type, UserWarning)
 
 		#warn if timedata is not RpoThermogram
 		td_type = type(timedata).__name__
@@ -553,7 +553,7 @@ class RpoIsotopes(Results):
 			warnings.warn(
 				'Attempting to calculate isotopes using an isothermal timedata'
 				' instance of type %r. Consider using rp.RpoThermogram' 
-				' instance instead' % td_type)
+				' instance instead' % td_type, UserWarning)
 
 		#raise exception if timedata does not have fitted data attributes
 		if not hasattr(timedata, 'cmpt'):

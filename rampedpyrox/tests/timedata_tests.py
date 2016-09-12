@@ -359,3 +359,12 @@ class test_thermogram_plots:
 			tg.plot,
 			xaxis = 'time',
 			yaxis = 'garbage')
+
+if __name__ == '__main__':
+
+	import nose
+
+	nose.runmodule(
+		argv = [__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+		exit=False)
+

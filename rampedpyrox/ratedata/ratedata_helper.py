@@ -37,17 +37,23 @@ def _calc_phi(k, mu, sigma, height, peak_shape):
 
 	Parameters
 	----------
-	k : np.ndarray
+	k : array-like
 		Array of k/Ea values, length `nk`.
 
-	mu : np.ndarray
-		Array of peak means, length `nPeak`.
+	mu : int, float, or array-like
+		Peak means (kJ/mol), either a single scalar for one peak or an 
+		array for simultaneously calculating multiple peaks. If array, 
+		length `nPeak`.
 
-	sigma : np.ndarray
-		Array of peak standard deviations, length `nPeak`.
+	sigma : int, float, or array-like
+		Peak standard deviations (kJ/mol), either a single scalar for one 
+		peak or an array for simultaneously calculating multiple peaks. If 
+		array, length `nPeak`.
 
-	height : np.ndarray
-		Array of peak heights (unitless), length `nPeak`.
+	height : int, float, or array-like
+		Peak heights (unitless), either a single scalar for one peak or an
+		array for simultaneously calculating multiple peaks. If array,
+		length `nPeak`.
 
 	Returns
 	-------
@@ -65,7 +71,7 @@ def _calc_phi(k, mu, sigma, height, peak_shape):
 		If `peak_shape` is not an acceptable string.
 	'''
 
-	if peak_shape == 'Gaussian':
+	if peak_shape in ['Gaussian', 'gaussian']:
 		#generate Gaussian peaks
 		y = _gaussian(k, mu, sigma)
 
@@ -73,6 +79,18 @@ def _calc_phi(k, mu, sigma, height, peak_shape):
 		raise StringError(
 			'Peak shape: %r is not recognized. Peak shape must be:'
 			'	Gaussian,' % peak_shape)
+
+	#check that height is the same shape as mu and sigma
+	if isinstance(mu, (int, float)):
+		#ensure float
+		height = float(height)
+
+	else:
+		n = len(mu)
+
+		#assert height is array with same shape as mu
+		height = assert_len(height, n)
+
 
 	#scale peaks to inputted height
 	H = np.max(y, axis=0)
@@ -131,17 +149,6 @@ def _deconvolve(
 			sigma (kJ/mol), \n
 			height (unitless), \n
 
-	Raises
-	------
-	ScalarError
-		If `nPeaks` is not int or 'auto'.
-
-	ScalarError
-		If `thres` is not a float.
-
-	StringError
-		If `peak_shape` is not an acceptable string.
-
 	Warnings
 	--------
 	UserWarning
@@ -150,26 +157,17 @@ def _deconvolve(
 	Notes
 	-----
 	`peak_info` stores the peak information **before** being combined!
+	After finding best-fit peak parameters, heights are scaled uniformly such
+	that the sum of all peaks integreates to unity (*i.e.* ensures that phi is
+	a pdf).
 
 	'''
 
-	#assert types
-	if not isinstance(nPeaks, int):
-		if nPeaks not in ['auto', 'Auto']:
-			raise ScalarError(
-				'nPeaks must be int or "auto"')
-
-	if peak_shape not in ['gaussian', 'Gaussian']:
-		raise StringError(
-			'peak_shape must be "Gaussian"')
-
-	if not isinstance(thres, float):
-		raise ScalarError(
-			'thres must be float')
-
-
 	#find peak indices and bounds
-	ind, lb_ind, ub_ind = _peak_indices(f, nPeaks=nPeaks, thres=thres)
+	ind, lb_ind, ub_ind = _peak_indices(
+		f, 
+		nPeaks = nPeaks, 
+		thres = thres)
 
 	#calculate initial guess parameters
 	n = len(ind)
@@ -210,19 +208,25 @@ def _deconvolve(
 	#ensure success
 	if not res.success:
 		warnings.warn(
-			'least_squares could not converge on a successful fit!')
+			'least_squares could not converge on a successful fit!',
+			UserWarning)
 
 	#extract best-fit parameters
 	mu = res.x[:n]
 	sigma = res.x[n:2*n]
 	height = res.x[2*n:]
 
-	#calculate peak info
+	#calculate peak arrays
+	phi, peaks = _calc_phi(k, mu, sigma, height, peak_shape)
+
+	#scale peak heights to ensure peaks integrates to one
+	a = np.sum(phi*np.gradient(k))
+	peaks = peaks/a
+	height = height/a
+
+	#combine peak info
 	peak_info = np.column_stack(
 		(mu, sigma, height))
-
-	#calculate peak arrays
-	_, peaks = _calc_phi(k, mu, sigma, height, peak_shape)
 
 	return peaks, peak_info
 
@@ -281,7 +285,7 @@ def _gaussian(x, mu, sigma):
 
 	Parameters
 	----------
-	x : np.ndarray
+	x : array-like
 		Array of x values for Gaussian calculation.
 
 	mu : int, float, or array-like
@@ -299,6 +303,8 @@ def _gaussian(x, mu, sigma):
 	'''
 
 	#check data types and broadcast if necessary
+	x = assert_len(x, len(x))
+
 	if isinstance(mu, (int, float)) and isinstance(sigma, (int, float)):
 		#ensure mu and sigma are floats
 		mu = float(mu)
@@ -320,10 +326,10 @@ def _gaussian(x, mu, sigma):
 	#calculate Gaussian
 	y = scalar*np.exp(-(x-mu)**2/(2.*sigma**2))
 
-	return np.array(y)
+	return y
 
 #define a function to find the indices of each peak in `k`.
-def _peak_indices(f, nPeaks='auto', thres=0.05):
+def _peak_indices(f, nPeaks = 'auto', thres = 0.05):
 	'''
 	Finds the indices and the bounded range of the mu values for peaks in f.
 
@@ -362,9 +368,21 @@ def _peak_indices(f, nPeaks='auto', thres=0.05):
 		
 	FitError
 		If `nPeaks` is greater than the total number of peaks detected.
+
+	FitError
+		If no peaks are detected.
 		
 	ScalarError
 		If `nPeaks` is not 'auto' or int.
+
+	ScalarError
+		If `nPeaks` is not int or 'auto'.
+
+	ScalarError
+		If `thres` is not a float.
+
+	ScalarError
+		If `thres` is not between (0, 1).
 
 	Notes
 	-----
@@ -374,6 +392,20 @@ def _peak_indices(f, nPeaks='auto', thres=0.05):
 	If `nPeaks` is not 'auto', these peaks are sorted according to decreasing
 	peak heights and the first `nPeaks` peaks are saved.
 	'''
+
+	#assert types and strings
+	if not isinstance(nPeaks, int):
+		if nPeaks not in ['auto', 'Auto']:
+			raise ScalarError(
+				'nPeaks must be int or "auto"')
+
+	if not isinstance(thres, float):
+		raise ScalarError(
+			'thres must be float')
+	
+	elif thres > 1 or thres < 0:
+		raise ScalarError(
+			'thres must be between 0 and 1 (fractional height)')
 
 	#convert thres to absolute value
 	thres = thres*(np.max(f) - np.min(f)) + np.min(f)
@@ -391,19 +423,27 @@ def _peak_indices(f, nPeaks='auto', thres=0.05):
 		(d2f > 0) &
 		(np.hstack([0., d2f[:-1]]) <= 0))[0]
 
-	#remove first UB (initial increase), last LB (final decrease), and check len
+	#first point gets picked up as an upper bound. Remove and check len.
 	ub_ind = ub_ind[1:]
-	lb_ind = lb_ind[:-1]
 	
 	if len(ub_ind) != len(lb_ind):
-		raise ArrayError(
-			'UB and LB arrays have different lenghts')
+		#final point gets picked up as a lower bound. Remove.
+		lb_ind = lb_ind[:-1]
 
-	#find index of minimum d2f within each bounded range
+	#if still not the same length, raise error
+	if len(ub_ind) != len(lb_ind):
+		raise ArrayError(
+			'UB and LB arrays have different lengths')
+	elif len(ub_ind) == 0:
+		raise FitError(
+			'No peaks detected!')
+
+	#find index of where df is closest to zero within each bounded range
 	ind = np.zeros(len(ub_ind), dtype = int)
 
 	for i, (a, b) in enumerate(zip(lb_ind, ub_ind)):
-		ind[i] = a + np.argmin(d2f[a:b])
+		# ind[i] = a + np.argmin(d2f[a:b])
+		ind[i] = a + np.argmin(np.abs(df[a:b]))
 
 	#remove peaks below threshold
 	ab = np.where(f[ind] >= thres)

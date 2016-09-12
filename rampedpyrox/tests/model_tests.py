@@ -1,3 +1,5 @@
+# *TODO: add L-curve testing!
+
 '''
 This module contains timedata module tests,
 '''
@@ -193,10 +195,27 @@ class test_model_creation:
 			[1,2,3],
 			[1,1,1])
 
+	# def test_from_data_warnings_and_raises(self):
 
+	# 	#can't test warnings since no other model and ratedata types
+	# 	# currently exist.
 
+	# 	#assert that non-thermograms give warning
+	# 	assert_warns(
+	# 		UserWarning, 
+	# 		rp.Daem.from_timedata,
+	# 		timedata) #non-Thermogram timedata instance
 
+	# 	#assert that non-ECs give warning
+	# 	assert_warns(
+	# 		UserWarning, 
+	# 		rp.Daem.from_ratedata,
+	# 		ratedata) #non-Thermogram timedata instance
 
+if __name__ == '__main__':
 
+	import nose
 
-
+	nose.runmodule(
+		argv = [__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
+		exit=False)

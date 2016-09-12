@@ -5,7 +5,7 @@ def readme():
             return f.read()
 
 setup(name='rampedpyrox',
-      version='0.1.2',
+      version='0.0.2',
       description='Ramped PyrOx decolvolution code',
       long_description=readme(),
       classifiers=[
