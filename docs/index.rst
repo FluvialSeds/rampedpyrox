@@ -24,7 +24,7 @@ analysis, 2016-, http://github.com/FluvialSeds/rampedpyrox [online; accessed
 |date|]
 
 Additionally, please cite the following peer-reviewed manuscript describing
-the deveoping of the package:
+the deveopment of the package:
 
 J.D. Hemingway et al. **(in prep)** Ramped-temperature decomposition kinetics
 of organic matter using an inverse reactive continuum model.
@@ -35,7 +35,7 @@ Package information
 	Jordon D. Hemingway (jhemingway@whoi.edu)
 
 :Version:
-	0.1.1 (Pre-release 27 August 2016)
+	0.0.2
 
 :License:
 	GNU GPL v3 (or greater)
@@ -49,7 +49,7 @@ Package features
 
 * Stores and plots thermogram data
 
-* Performs first-order DAEM inverse model
+* Performs first-order DAEM inverse model (other models coming with *v.0.0.3*)
 
   * Smoothes f(Ea) using Tikhonov Regularization
 
@@ -61,19 +61,26 @@ Package features
 
 * Calculates isotope values for each f(Ea) Gaussian peak
 
+  * Can automatically blank-correct inputted values using calculated NOSAMS RPO 
+    blank carbon composition
+
   * Allows for isotope determination of combined peaks
 
   * Determines peak radiocarbon (Fm) values
 
-  * Determines peak stable-carbon (:sup:`13`\ C) values
+  * Determines peak stable-carbon (:sup:`13`\ C) ratios
 
   * Accounts for the kinetic isotope effect (KIE) during heating
 
     * Allows for unique KIE compensation for each peak
 
-* Calculates and stores model performance metrics
+* Calculates and stores model performance metrics and goodness of fit statistics 
 
-* Determines peak shape and isotope value uncertainty using Monte Carlo resampling
+* Determines isotope value uncertainty using Monte Carlo resampling
+
+* Allows for forward-modeling of any arbitrary time-temperature history, *e.g.* to 
+  determine the decomposition rates and isotope fractionation during geologic 
+  organic carbon matruation.
 
 
 Table of contents
