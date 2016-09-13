@@ -26,7 +26,7 @@ Package Information
 :Version:
   0.0.2
 
-:Release Date:
+:Release:
   12 September 2016
 
 :License:
@@ -57,6 +57,8 @@ the deveopment of the package and Ramped PyrOx data treatment:
 
 * J.D. Hemingway et al. **(in prep)** Ramped-temperature decomposition kinetics
   of organic matter using an inverse reactive continuum model.
+
+**Access to rampedpyrox is currently private until the peer-reviewed manuscripts accompanything this package have been published.** Please `contact me directly <jhemingway@whoi.edu>`_ for access.
 
 Package features
 ----------------
