@@ -45,7 +45,8 @@ file = pd.DataFrame.from_csv(file_str)
 #create some timedata, model, and ratedata instances
 timedata = rp.RpoThermogram.from_csv(
 	file_str,
-	nt = 250)
+	nt = 250,
+	bl_subtract = True)
 
 model = rp.Daem.from_timedata(
 	timedata,
@@ -158,7 +159,9 @@ class test_ratedata_helper_functions:
 		assert_equal(peaks.dtype, 'float')
 
 		#assert peaks are nonnegative and go to zero
-		assert_almost_equal(peaks.min(axis=0).all(), 0, places=3)
+		# THIS IS BEFORE BASELINE SUBTRACTION -- MIGHT NOT BE TRUE!
+		# TESTING AGAIN AFTER BASELINE SUBTRACTION.
+		# assert_almost_equal(peaks.min(axis=0).all(), 0, places=3)
 
 		#assert peaks integrate to one
 		a = np.sum(peaks, axis=1)*np.gradient(ratedata.Ea)
@@ -396,6 +399,12 @@ class test_ratedata_creation:
 			timedata,
 			combined = None,
 			omega = [1,2,3])
+
+		#test that peaks are nonnegative and go to zero
+		assert_almost_equal(
+			np.sum(ratedata.peaks.min(axis=0)), 
+			0, 
+			places=3) 
 
 	def test_input_estimated_instances(self):
 

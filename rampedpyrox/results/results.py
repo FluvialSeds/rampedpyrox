@@ -374,7 +374,14 @@ class RpoIsotopes(Results):
 	#define classmethod for creating instance and populating measured values
 	# directly from a .csv file
 	@classmethod
-	def from_csv(cls, file, blk_corr = False, mass_err = 0.01):
+	def from_csv(
+			cls, 
+			file, 
+			blk_corr = False,
+			blk_d13C = (-29.0, 0.1),
+			blk_flux = (0.375, 0.0583),
+			blk_Fm =  (0.555, 0.042),
+			mass_err = 0.01):
 		'''
 		Class method to directly import RPO fraction data from a .csv file and
 		create an ``RpoIsotopes`` class instance.
@@ -387,8 +394,23 @@ class RpoIsotopes(Results):
 
 		blk_corr : Boolean
 			Tells the method whether or not to blank-correct isotope data. If
-			`True`, blank-corrects according to NOSAMS RPO blank as calculated
-			by Hemingway et al. **(in prep)**.
+			`True`, blank-corrects according to inputted blank composition 
+			values.
+
+		blk_d13C : tuple
+			Tuple of the blank d13C composition (VPDB), in the form 
+			(mean, stdev.) to be used of ``blk_corr = True``. Defaults to the
+			NOSAMS RPO blank as calculated by Hemingway et al. **(in prep)**.
+
+		blk_flux : tuple
+			Tuple of the blank flux (ng/s), in the form (mean, stdev.) to
+			be used of ``blk_corr = True``. Defaults to the NOSAMS RPO blank 
+			as calculated by Hemingway et al. **(in prep)**.
+
+		blk_Fm : tuple
+			Tuple of the blank Fm value, in the form (mean, stdev.) to
+			be used of ``blk_corr = True``. Defaults to the NOSAMS RPO blank 
+			as calculated by Hemingway et al. **(in prep)**.
 
 		mass_err : float
 			Relative uncertainty in mass measurements, typically as a sum of
@@ -429,7 +451,7 @@ class RpoIsotopes(Results):
 			mass_err)
 
 		#blank correct if necessary
-		if blk_corr:
+		if blk_corr is True:
 			d13C, d13C_std, Fm, Fm_std, m, m_std = _rpo_blk_corr(
 				d13C, 
 				d13C_std, 
@@ -437,7 +459,10 @@ class RpoIsotopes(Results):
 				Fm_std, 
 				m, 
 				m_std, 
-				t)
+				t,
+				blk_d13C = blk_d13C,
+				blk_flux = blk_flux,
+				blk_Fm = blk_Fm)
 
 		ri = cls(
 			d13C_frac = d13C, 
@@ -485,12 +510,17 @@ class RpoIsotopes(Results):
 		Raises
 		------
 		RunModelError
-			If ratedata does not contain attribute 'peaks' -- i.e. if the
+			If `ratedata` does not contain attribute 'peaks' -- i.e. if the
 			inverse model has not been run.
 
 		RunModelError
-			If timedata does not contain attribute 'cmpt' -- i.e. if the
+			If `timedata` does not contain attribute 'cmpt' -- i.e. if the
 			forward model has not been run.
+
+		RunModelError
+			If the number of components stored in `timedata` is different than
+			that stored in `ratedata` -- i.e. if `ratedata` has been changed
+			since the forward model was run. 
 
 		Warnings
 		--------
@@ -579,6 +609,14 @@ class RpoIsotopes(Results):
 			raise RunModelError(
 				'ratedata instance must have attribute "peaks". Run the'
 				' inverse model before solving for isotopes!')
+
+		#raise exception if ratedata and timedata shapes do not match
+		if timedata.nCmpt != ratedata.peaks.shape[1]:
+			raise RunModelError(
+				'Non-matching number of components! Number of components in'
+				' timedata is: %r. Number of components in ratedata is: %r.'
+				' Re-run the forward model before fitting isotopes!'
+				% (timedata.nCmpt, ratedata.peaks.shape[1]))
 
 		#raise exception if DEa is not int or array-like with length nPeak
 		if DEa is None:

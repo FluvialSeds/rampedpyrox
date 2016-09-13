@@ -356,7 +356,7 @@ class RateData(object):
 					cpt,
 					color='k',
 					alpha=0.2,
-					label='Components (n = %.0f)' %self.nPeak)
+					label='Peaks (n = %.0f)' %self.nPeak)
 
 		#remove duplicate legend entries
 		han_list, lab_list = _rem_dup_leg(ax)

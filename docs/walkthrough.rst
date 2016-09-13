@@ -1,10 +1,9 @@
+.. PB-60 pyrolysis comparison
+.. Sarah's matrix effects
+
 Comprehensive Walkthrough
 =========================
-The following examples should form a comprehensive walkthough of downloading
-the package, getting thermogram data into the right form for importing,
-running the DAEM inverse model, peak-fitting the activation energy (Ea) 
-probability density function, determining the isotope composition of each Ea 
-Gaussian peak, and performing Monte Carlo isotope uncertainty estimates.
+The following examples should form a comprehensive walkthough of downloading the package, getting thermogram data into the right form for importing, running the DAEM inverse model, peak-fitting the activation energy (Ea) probability density function, determining the isotope composition of each Ea Gaussian peak, and performing Monte Carlo isotope uncertainty estimates.
 
 
 Quick guide
@@ -69,22 +68,20 @@ Downloading the package
 
 Using the ``pip`` package manager
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-``rampedpyrox`` and the associated dependent packages can be downloaded
-directly from the command line using ``pip``::
+``rampedpyrox`` and the associated dependent packages can be downloaded directly from the command line using ``pip``::
 
 	$ pip install rampedpyrox
 
-You can check that your installed version is up to date with the latest 
-release by doing::
+You can check that your installed version is up to date with the latest release by doing::
 
 	$ pip freeze
+
+**This option will become available once the peer-reviewed manuscripts accompanying this package have been published.**
 
 
 Downloading from source
 ~~~~~~~~~~~~~~~~~~~~~~~
-Alternatively, ``rampedpyrox`` source code can be downloaded directly from
-`my github repo <http://github.com/FluvialSeds/rampedpyrox>`_. Or, if you have
-git installed::
+Alternatively, ``rampedpyrox`` source code can be downloaded directly from `my github repo <http://github.com/FluvialSeds/rampedpyrox>`_. Or, if you have git installed::
 
 	$ git clone git://github.com/FluvialSeds/rampedpyrox.git
 
@@ -93,6 +90,8 @@ And keep up-to-date with the latest version by doing::
 	$ git pull
 
 from within the rampedpyrox directory.
+
+**This github repo is currently private until the peer-reviewed manuscripts accompanything this package have been published.** Please `contact me directly <jhemingway@whoi.edu>`_ for access.
 
 Dependencies
 ~~~~~~~~~~~~
@@ -117,14 +116,24 @@ The following packages are not required but are highly recommended:
 
 * `ipython <http://www.ipython.org>`_ >= 4.1.1
 
+Additionally, if you are new to the Python environment or programming using the command line, consider using a Python integrated development environment (IDE) such as:
+
+* `wingware <http://wingware.com>`_
+
+* `Enthought Canopy <https://store.enthought.com/downloads/#default>`_
+
+* `Anaconda <https://www.continuum.io/downloads>`_
+
+* `Spyder <https://github.com/spyder-ide/spyder>`_
+
+Python IDEs provide a "MATLAB-like" environment and package management. This option should look familiar for users coming from a MATLAB or RStudio background.
+
 Getting data in the right format
 --------------------------------
 
 Importing thermogram data
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-For thermogram data, this package requires that the file is in `.csv` format, that 
-the first column is `date_time` index in an **hh:mm:ss AM/PM** format, and that the 
-file contains 'CO2_scaled' and 'temp' columns [1]_. For example:
+For thermogram data, this package requires that the file is in `.csv` format, that the first column is `date_time` index in an **hh:mm:ss AM/PM** format, and that the file contains 'CO2_scaled' and 'temp' columns [1]_. For example:
 
 +-------------+------------+--------------+
 |  date_time  |    temp    |  CO2_scaled  |
@@ -146,11 +155,7 @@ like this::
 
 Importing isotope data
 ~~~~~~~~~~~~~~~~~~~~~~
-If you are importing isotope data, this package requires that the file is in `.csv` 
-format and that the first two rows correspond to the starting time of the 
-experiment and the initial trapping time of fraction 1, respectively. Additionally, 
-the file must contain a 'fraction' column and isotope/mass columns must have 
-`ug_frac`, `d13C`, `d13C_std`, `Fm`, and `Fm_std` headers [2]_. For example:
+If you are importing isotope data, this package requires that the file is in `.csv` format and that the first two rows correspond to the starting time of the experiment and the initial trapping time of fraction 1, respectively. Additionally, the file must contain a 'fraction' column and isotope/mass columns must have `ug_frac`, `d13C`, `d13C_std`, `Fm`, and `Fm_std` headers [2]_. For example:
 
 +-------------+----------+---------+--------+----------+--------+----------+
 |  date_time  | fraction | ug_frac |  d13C  | d13C_std |   Fm   |  Fm_std  |
@@ -164,115 +169,120 @@ the file must contain a 'fraction' column and isotope/mass columns must have
 |11:58:23 AM  |     2    | 105.81  | -29.0  |   0.1    | 0.7945 |  0.0022  |
 +-------------+----------+---------+--------+----------+--------+----------+
 
-**Important:** The `date_time` value for fraction '-1' must be the same as the 
-`date_time` value for the first row in the `all_data` thermogram file **and** the 
-value for fraction '0' must the initial time when trapping for fraction 1 began.
+Here, the `ug_frac` column is composed of manometrically determined masses rather than those determined by the infrared gas analyzer (IRGA, *i.e.* photometric). As such, the mass RMSE value determined by the fitting procedure (see `Determining peak isotope composition`_ below) is a metric of the discrepancy between photometric and manometric mass measurements in addition to that between the peak-fitted and true thermograms.
 
-Once the file is in this format, generate a string pointing to it in python
-like this::
+**Important:** The `date_time` value for fraction '-1' must be the same as the `date_time` value for the first row in the `all_data` thermogram file **and** the value for fraction '0' must the initial time when trapping for fraction 1 began.
+
+Once the file is in this format, generate a string pointing to it in python like this::
 
 	#create string of path to data
 	sum_data = '/path_to_folder_containing_data/sum_data.csv'
 
-Making a RealData instance
---------------------------
-Once the ``all_data`` string been defined, you are ready to import the package
-and generate an ``rp.RealData`` instance containing the thermogram data.
-
-It is important to keep in mind that your thermogram will be down-sampled to
-`nT` points in order to smooth out high-frequency noise and to keep Laplace
-transform matrices to a manageable size for inversion (see `Generating the
-f(Ea) distribution`_ below). Additionally, normally distributed noise can be 
-generated for estimating uncertainty (see 
-`Monte Carlo uncertainty estimation`). Here, I'll leave the ``add_noise_pct`` 
-flag at the default value of `0` (*i.e.* no noise)::
+Making a TimeData instance (the Thermogram)
+-------------------------------------------
+Once the `all_data` string been defined, you are ready to import the package and generate an ``rp.RpoThermogram`` instance containing the thermogram data. ``rp.RpoThermogram`` is a subclass of ``rp.TimeData`` -- broadly speaking, this handles any object that contains measured time-series data. It is important to keep in mind that your thermogram will be down-sampled to `nt` points in order to smooth out high-frequency noise and to keep Laplace transform matrices to a manageable size for inversion (see `Generating the rate data distribution`_ below). Additionally, because the inversion model is sensitive to boundary conditions at the beginning and end of the run (see `Deconvolving rate data into peaks`_ below), there is an option when generating the thermogram instance to ensure that the baseline has been subtracted, as well as options for inputting measurement uncertainty (time data uncertainty is currently unused as of v.0.0.2)::
 
 	#load modules
 	import rampedpyrox as rp
 
 	#number of timepoints to be used in down-sampled thermogram
-	nT = 250
+	nt = 250
 
-	#save to RealData instance
-	rd = rp.RealData(all_data, nT=nT, add_noise_pct=0)
+	tg = rp.RpoThermogram.from_csv(
+		data,
+		bl_subtract = True, #subtract baseline
+		nt = nt,
+		ppm_CO2_err = 5, #IRGA measurement uncertainty
+		T_err = 1) #thermocouple uncertainty
 
-Plot the thermogram against temperature [3]_ or time::
+Plot the thermogram and the fraction of carbon remaining against temperature [3]_ or time::
 
 	#load modules
 	import matplotlib.pyplot as plt
 
 	#make a figure
-	fig,ax = plt.subplots(1,2)
+	fig, ax = plt.subplots(2, 2, 
+		figsize = (8,8), 
+		sharex = 'col')
 
 	#plot results
-	ax[0] = rd.plot(ax=ax[0], xaxis='time')
-	ax[1] = rd.plot(ax=ax[1], xaxis='temp')
+	ax[0, 0] = tg.plot(
+		ax = ax[0, 0], 
+		xaxis = 'time',
+		yaxis = 'rate')
+
+	ax[0, 1] = tg.plot(
+		ax = ax[0, 1], 
+		xaxis = 'temp',
+		yaxis = 'rate')
+
+	ax[1, 0] = tg.plot(
+		ax = ax[1, 0], 
+		xaxis = 'time',
+		yaxis = 'fraction')
+
+	ax[1, 1] = tg.plot(
+		ax = ax[1, 1], 
+		xaxis = 'temp',
+		yaxis = 'fraction')
+
 
 	plt.tight_layout()
 
-Resulting plot looks like this:
+Resulting plots look like this:
 
 |realdata|
 
-Generating the f(Ea) distribution
----------------------------------
+Generating the rate data distribution
+-------------------------------------
 
 The Laplace transform
 ~~~~~~~~~~~~~~~~~~~~~
-Once the ``rp.RealData`` instance has been created, you are ready to run
-the inversion model to generate a regularized and discretized probability
-density function (pdf) of the Ea distribution, `phi` [4]_. This is done by
-generating an ``rp.LaplaceTransform`` instance containing the Laplace
-transform matrix to translate between time and Ea space. This matrix contains 
-all the assumptions that go into building the DAEM inverse model as well as
-all of the information pertaining to experimental conditions (*e.g.* ramp
-rate) -- that is, it is the 'heart' of the model [5]_.
+Once the ``rp.RpoThermogram`` instance has been created, you are ready to run the inversion model and generate a regularized and discretized probability density function (pdf) of the rate/activation energy distribution, `f` [4]_. For non-isothermal thermogram data, this is done using a first-order Distributed Activation Energy Model (DAEM) [5]_ by generating an ``rp.Daem`` instance containing the proper Laplace Transform matrix, `A`, to translate between time and activation energy space. This matrix contains all the assumptions that go into building the DAEM inverse model as well as all of the information pertaining to experimental conditions (*e.g.* ramp rate) [6]_. Importantly, the `A` matrix does not contain any information about the sample itself -- it is simply the model "design" -- and a single ``rp.Daem`` instance can be used for multiple samples provided they were analyzed under identical experimental conditions.
 
-One critical user input for the DAEM is the Arrhenius pre-exponential factor,
-`k0` (inputted here as log10). Because there is much discussion in the 
-literature over the constancy and best choice of this parameter (the so-
-called 'kinetic compensation effect' or KCE [6]_), this package allows `logk0`
-to be inputted as a constant, an array, or a function of Ea.
+One critical user input for the DAEM is the Arrhenius pre-exponential factor, `k0` (inputted here in log\ :sub:`10`\  form). Because there is much discussion in the literature over the constancy and best choice of this parameter (the so-called 'kinetic compensation effect' or KCE [7]_), this package allows `log10k0` to be inputted as a constant, an array, or a function of Ea.
 
-Define an Ea array `eps` and `logk0` value, and generate an 
-``rp.LaplaceTransform`` instance in python using the ``rp.RealData`` 
-instance, `rd`, defined above::
+For convenience, you can create any model directly from either time data or rate data, rather than manually inputting time, temperature, and rate vectors. Here, I create a DAEM using the thermogram defined above and allow Ea to range from 50 to 400 kJ/mol::
 
-	#load modules
-	import numpy as np
+	#define log10k0, assume constant value of 10
+	log10k0 = 10
 
-	#Ea range to calculate over, in kJ/mol
-	eps = np.arange(50,350)
-	
-	#log of the pre-exponential (Arrhenius) factor, in inverse seconds
-	logk0 = 10.
-	
-	lt = rp.LaplaceTransform(rd.t,rd.Tau,eps,logk0)
+	#define Ea range (in kJ/mol)
+	Ea_min = 50
+	Ea_max = 400
+	nEa = 400 #number of points in the vector
 
-Regularizing f(Ea)
-~~~~~~~~~~~~~~~~~~
-Once the ``rp.LaplaceTransform`` instance has been created, you must tell the
-package how much to 'smooth' the resulting f(Ea) distribution. This is done
-by choosing an `omega` value to be used as a smoothness weighting factor for 
-Tikhonov regularization [7]_. This package can calculate a best-fit `omega` 
-value using the L-curve method [5]_ by doing::
+	#create the DAEM instance
+	daem = rp.Daem.from_timedata(
+		tg,
+		log10k0 = log10k0,
+		Ea_max = Ea_max,
+		Ea_min = Ea_min,
+		nEa = nEa)
+
+Regularizing the inversion
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+Once the model has been created, you must tell the package how much to 'smooth' the resulting f(Ea) distribution. This is done by choosing an `omega` value to be used as a smoothness weighting factor for Tikhonov regularization [8]_. Higher values of `omega` increase how much emphasis is placed on minimizing changes in the first derivative at the expense of a better fit to the measured data, which includes analytical uncertainty -- practically speaking, regularization aims to "fit the data while ignoring the noise." This package can calculate a best-fit `omega` value using the L-curve method [6]_ by doing.
+
+Here, I calculate and plot L curve for the thermogram and model defined above::
 
 	#make a figure
-	fig,ax = plt.subplots(1,1)
+	fig,ax = plt.subplots(1, 1,
+		figsize = (5, 5))
 
-	#calculate and plot L curve for RealData rd and LaplaceTransform lt
-	om_best, ax = lt.plot_L_curve(rd, ax=ax)
+	om_best, ax = daem.calc_L_curve(rd, ax = ax)
+
+	plt.tight_layout()
 
 Resulting L-curve plot looks like this, here with a calculated best-fit omega
-value of 0.534:
+value of 0.448:
 
 |lcurve|
 
-**Important:** Best-fit `omega` values generated by the L-curve method 
-typically under-regularize f(Ea) with respect to Ramped PyrOx isotope 
-deconvolution. That is, f(Ea) distributions will contain more Gaussian peaks 
-than can be resolved using the ~5-7 CO2 fractions typically collected during 
-a Ramped PyrOx run. This can be partially addressed by combining high-Ea 
+**Important:** Best-fit `omega` values generated by the L-curve method typically under-regularize f(Ea) when used for Ramped PyrOx isotope deconvolution. That is, f(Ea) distributions will contain more peaks than can be resolved using the ~5-7 CO\ :sub:`2`\  fractions typically collected during a Ramped PyrOx run. This can be partially addressed by combining peaks when deconvolving the rate data (see `Deconvolving rate data into peaks`_ below) [9]_. 
+
+
+
 peaks using the `combine_last` flag when creating an ``rp.EnergyComplex`` 
 instance (see `Generating and plotting f(Ea)`_ below), as this region 
 typically contains low isotope resolution. Alternatively, you can increase 
@@ -295,14 +305,14 @@ Here, I'll show the results for ``omega='auto'`` as well as ``omega=3``::
 		rd, omega=3)
 
 
-Deconvolving f(Ea) into Gaussians
+Deconvolving rate data into peaks
 ---------------------------------
 The next step is to deconvolve the f(Ea) distribution into individual 
 Gaussian peaks. It is important to realize that, until now, the model has 
 made no assumptions about the shape of f(Ea) or the DAEM energy complexes 
 that it consists of. The fact that the regularized f(Ea) resembles a sum of 
 Gaussian peaks appears to be a fundamental property of complex organic carbon 
-mixtures, as has been assumed before [8]_.
+mixtures, as has been assumed before [10]_.
 
 Generate an ``rp.EnergyComplex`` instance to perform the Gaussian 
 deconvolution and plot results. Here, I'll let ``nPeaks='auto'`` and 
@@ -443,7 +453,7 @@ class instance.
 If the sample was run on the NOSAMS Ramped PyrOx instrument, setting
 ``blank_corr = True`` and an appropriate value for ``mass_rsd`` will 
 automatically blank-correct values according to the blank carbon estimation 
-of Hemingway et al. **(in prep)** [9]_. Additionally, setting 
+of Hemingway et al. **(in prep)** [11]_. Additionally, setting 
 ``add_noise = True`` will generate normally distributed uncertainty in 
 isotope values using the inputted isotope uncertainty (see `Monte Carlo 
 uncertainty estimation` below for further details).
@@ -505,13 +515,13 @@ Which results in something similar to:
 Kinetic Isotope Effect (KIE)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 While the KIE has no effect on Fm values, as they are fractionation-corrected 
-by definition [10]_, the above caclulation explicitly incorporates 
+by definition [12]_, the above caclulation explicitly incorporates 
 mass-dependent kinetic fractionation effects when calculating stable-carbon 
 isotope ratios by using the `DEa` value inputted into the ``rp.EnergyComplex``
 instance. While the KIE is potentially important during the pyrolysis of 
-organic matter to form hydrocarbons over geologic timescales [8]_, the 
+organic matter to form hydrocarbons over geologic timescales [10]_, the 
 magnitude of this effect is likely minimal within the NOSAMS Ramped PyrOx 
-instrument [9]_ and will therefore lead to small corrections in isotope 
+instrument [11]_ and will therefore lead to small corrections in isotope 
 values (*i.e.* less than 1 per mille).
 
 Monte Carlo uncertainty estimation
@@ -533,43 +543,34 @@ Saving the output
 
 .. |modeleddata| image:: _images/doc_modeleddata.png
 
-.. [1] Note: If analyzing samples run at NOSAMS, all other columns in the 
-	`all_data` file generated by LabView are not used and can be deleted or 
-	given an arbitrary name.
+.. [1] Note: If analyzing samples run at NOSAMS, all other columns in the `all_data` file generated by LabView are not used and can be deleted or given an arbitrary name.
 
-.. [2] Note: 'd13C_std' and 'Fm_std' default to zero (no uncertainty) if these
-	columns do not exist in the .csv file.
+.. [2] Note: 'd13C_std' and 'Fm_std' default to zero (no uncertainty) if these columns do not exist in the .csv file.
 
-.. [3] Note: For the NOSAMS Ramped PyrOx instrument, plotting against temp.
-	results in a noisy thermogram due to the variability in the ramp rate,
-	dT/dt.
+.. [3] Note: For the NOSAMS Ramped PyrOx instrument, plotting against temperature results in a noisy thermogram due to the variability in the ramp rate, dT/dt.
 
-.. [4] Note: Throughout this package, continuous variables are named with
-	Roman letters -- *e.g.* f(Ea) (Ea pdf), T (temp) -- and corresponding 
-	discretized variables are named with Greek letters -- *e.g.* phi (Ea pdf),
-	Tau (temp). Additionally, fitted model estimates end in `_hat` -- *e.g.* 
-	phi_hat.
+.. [4] Note: Throughout this package, "true" measurements are named with Roman letters -- *e.g.* f (pdf of rates/activation energies), g (fraction of carbon remaining) -- and fitted model variables are named with Greek letters -- *e.g.* phi (sum-of-peak approximation of f), gamma (sum-of-component approximation of g).
 
-.. [5] See Forney and Rothman, (2012), *Biogeosciences*, **9**, 3601-3612
-	for information on building and regularizing a Laplace transform matrix
-	using the L-curve method.
+.. [5] Braun and Burnham (1999), *Energy & Fuels*, **13(1)**, 1-22 provides a comprehensive review of the kinetic theory, mathematical derivation, and forward-model implementation of the DAEM. 
 
-.. [6] See White et al., (2011), *J. Anal. Appl. Pyrolysis*, **91**, 1-33 for
-	a review on the KCE and choice of `logk0`.
+.. [6] See Forney and Rothman, (2012), *Biogeosciences*, **9**, 3601-3612 for information on building and regularizing a Laplace transform matrix to be used to solve the inverse model using the L-curve method.
 
-.. [7] See Hansen (1994), *Numerical Algorithms*, **6**, 1-35 for a discussion
-	on Tikhonov regularization.
+.. [7] See White et al., (2011), *J. Anal. Appl. Pyrolysis*, **91**, 1-33 for a review on the KCE and choice of `log10k0`.
 
-.. [8] See Cramer, (2004), *Org. Geochem.*, **35**, 379-392 for a discussion 
+.. [8] See Hansen (1994), *Numerical Algorithms*, **6**, 1-35 for a discussion on Tikhonov regularization.
+
+.. [9] Note: Throughout this package, deconvolved rate data peaks (*e.g.* Gaussians) are referred to as "peaks", while the forward-modeled components that make-up the thermogram are referred to as "components". This is due to the fact that multiple "peaks" can be combined into a single "component".
+
+.. [9] See Cramer, (2004), *Org. Geochem.*, **35**, 379-392 for a discussion 
 	on the relationship between Gaussian Ea peak shape and organic carbon 
 	complexity, as well as the KIE.
 
-.. [9] Hemingway et al., (2016), *Radiocarbon*, **in prep** determine that a 
+.. [10] Hemingway et al., (2016), *Radiocarbon*, **in prep** determine that a 
 	DEa value of 1.8J/mol best explains the NOSAMS Ramped PyrOx stable-carbon 
 	isotope KIE, in addition to determining the blank carbon contribution for 
 	this instrument.
 
-.. [10] Stuiver and Polach (1977), *Radiocarbon*, **19(3)**, 355-363 is 
+.. [11] Stuiver and Polach (1977), *Radiocarbon*, **19(3)**, 355-363 is 
 	generally accepted as the standard reference on radiocarbon notation.
 
 

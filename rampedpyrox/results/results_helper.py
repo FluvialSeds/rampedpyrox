@@ -72,7 +72,7 @@ def _kie_d13C(DEa, ind_wgh, model, ratedata, vals):
 	Parameters
 	----------
 	DEa : np.ndarray
-		Array of DEa values (in kJ/mol) for each component in timedata.
+		Array of DEa values (in kJ/mol) for each peak in ratedata.
 
 	ind_wgh : np.ndarray
 		Array of the mass-weighted center indices of each fraction.
@@ -348,7 +348,7 @@ def _R13_CO2(DEa, model, R13_cmpt, ratedata):
 	sigma = ratedata._pkinf[:,1]
 	C12_height = ratedata._pkinf[:,2]
 
-	#if peaks have been combined, repeat R13_peak as necessary
+	#if peaks have been combined, repeat R13_cmpt as necessary
 	if ratedata._cmbd is not None:
 
 		#calculate indices of deleted peaks
@@ -461,7 +461,17 @@ def _R13_to_d13C(R13):
 	return d13C
 
 #define a function to blank-correct fraction isotopes
-def _rpo_blk_corr(d13C, d13C_std, Fm, Fm_std, m, m_std, t):
+def _rpo_blk_corr(
+		d13C, 
+		d13C_std, 
+		Fm, 
+		Fm_std, 
+		m, 
+		m_std, 
+		t,
+		blk_d13C = (-29.0, 0.1),
+		blk_flux = (0.375, 0.0583),
+		blk_Fm =  (0.555, 0.042)):
 	'''
 	Performs blank correction (NOSAMS RPO instrument) on raw isotope values.
 
@@ -487,6 +497,21 @@ def _rpo_blk_corr(d13C, d13C_std, Fm, Fm_std, m, m_std, t):
 
 	t : np.ndarray
 		2d array of time for each fraction (in seconds), length nFrac.
+
+	blk_d13C : tuple
+		Tuple of the blank d13C composition (VPDB), in the form 
+		(mean, stdev.) to be used of ``blk_corr = True``. Defaults to the
+		NOSAMS RPO blank as calculated by Hemingway et al. **(in prep)**.
+
+	blk_flux : tuple
+		Tuple of the blank flux (ng/s), in the form (mean, stdev.) to
+		be used of ``blk_corr = True``. Defaults to the NOSAMS RPO blank 
+		as calculated by Hemingway et al. **(in prep)**.
+
+	blk_Fm : tuple
+		Tuple of the blank Fm value, in the form (mean, stdev.) to
+		be used of ``blk_corr = True``. Defaults to the NOSAMS RPO blank 
+		as calculated by Hemingway et al. **(in prep)**.
 
 	Returns
 	-------
@@ -516,14 +541,23 @@ def _rpo_blk_corr(d13C, d13C_std, Fm, Fm_std, m, m_std, t):
 	'''
 
 	#define constants
-	bl_flux = 0.375/1000 #ug/s
-	bl_flux_std = 5.83e-5
+	# bl_flux = 0.375/1000 #ug/s
+	# bl_flux_std = 5.83e-5
 
-	bl_d13C = -29.0
-	bl_d13C_std = 0.1
+	# bl_d13C = -29.0
+	# bl_d13C_std = 0.1
 
-	bl_Fm = 0.555
-	bl_Fm_std = 0.042
+	# bl_Fm = 0.555
+	# bl_Fm_std = 0.042
+
+	bl_flux = blk_flux[0]
+	bl_flux_std = blk_flux[1]
+
+	bl_d13C = blk_d13C[0]
+	bl_d13C_std = blk_d13C[1]
+
+	bl_Fm = blk_Fm[0]
+	bl_Fm_std = blk_Fm[1]
 
 	#calculate blank mass for each fraction
 	dt = t[:,1] - t[:,0]
