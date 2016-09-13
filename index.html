@@ -1,0 +1,193 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Rampedpyrox by FluvialSeds</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <meta name="viewport" content="width=device-width">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Rampedpyrox</h1>
+        <p>Deconvolution code for Ramped PyrOx results</p>
+
+        <p class="view"><a href="https://github.com/FluvialSeds/rampedpyrox">View the Project on GitHub <small>FluvialSeds/rampedpyrox</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/FluvialSeds/rampedpyrox/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/FluvialSeds/rampedpyrox/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/FluvialSeds/rampedpyrox">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a id="about-rampedpyrox" class="anchor" href="#about-rampedpyrox" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>About rampedpyrox</h1>
+
+<p><code>rampedpyrox</code> is a Python package for analyzing experimental kinetic data 
+and accompanying chemical/isotope compositional information. <code>rampedpyrox</code> 
+is especially suited for deconvolution of results from ramped-temperature 
+instruments such as Ramped PyrOx, RockEval, pyrolysis gc (pyGC), 
+thermogravimitry (TGA), etc. This package deconvolves time-series kinetic data 
+into rate/activation energy components using a selection of reactive continuum 
+models, including the Distributed Activation Energy Model (DAEM) for 
+non-isothermal data. Additionally, this package calculates the chemical/
+isotope composition associated with each component, accounting for any kinetic 
+fractionation effects, and uses a bootstrap method for constraining 
+uncertainty.</p>
+
+<h2>
+<a id="package-information" class="anchor" href="#package-information" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Package Information</h2>
+
+<p>:Authors:
+  Jordon D. Hemingway (<a href="mailto:jhemingway@whoi.edu">jhemingway@whoi.edu</a>)</p>
+
+<p>:Version:
+  0.0.2</p>
+
+<p>:Release Date:
+  12 September 2016</p>
+
+<p>:License:
+  GNU GPL v3 (or greater)</p>
+
+<p>:url:
+  <a href="http://github.com/FluvialSeds/rampedpyrox">http://github.com/FluvialSeds/rampedpyrox</a></p>
+
+<h2>
+<a id="how-to-cite" class="anchor" href="#how-to-cite" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>How to Cite</h2>
+
+<p>When analyzing data with <code>rampedpyrox</code> to be used in a peer-reviewed
+journal, please cite this package as:</p>
+
+<ul>
+<li>J.D. Hemingway. <em>rampedpyrox</em>: open-source tools for thermoanalytical data
+analysis, 2016-, <a href="http://github.com/FluvialSeds/rampedpyrox">http://github.com/FluvialSeds/rampedpyrox</a> [online; accessed
+|date|]</li>
+</ul>
+
+<p>Additionally, please cite the following peer-reviewed manuscripts describing
+the deveopment of the package and Ramped PyrOx data treatment:</p>
+
+<ul>
+<li><p>J.D. Hemingway et al. <strong>(in prep)</strong> Assessing the blank carbon contribution, 
+isotope mass balance, and kinetic isotope fractionation of the ramped 
+pyrolysis/oxidation instrument at NOSAMS.</p></li>
+<li><p>J.D. Hemingway et al. <strong>(in prep)</strong> Ramped-temperature decomposition kinetics
+of organic matter using an inverse reactive continuum model.</p></li>
+</ul>
+
+<h2>
+<a id="documentation" class="anchor" href="#documentation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Documentation</h2>
+
+<p>The documentation for the latest release, including detailed package 
+references as well as a comprehensive walkthrough for analyzing Ramped PyrOx 
+data, is available at:</p>
+
+<pre><code>http://rampedpyrox.readthedocs.io
+</code></pre>
+
+<h2>
+<a id="main-features" class="anchor" href="#main-features" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Main Features</h2>
+
+<p><code>rampedpyrox</code> contains the following features:</p>
+
+<ul>
+<li><p>Stores and plots thermogram data</p></li>
+<li>
+<p>Performs first-order DAEM inverse model</p>
+
+<ul>
+<li>
+<p>Smoothes f(Ea) using Tikhonov Regularization</p>
+
+<ul>
+<li>Automated or user-defined regularization value</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Deconvolves f(Ea) distribution into Gaussian Peaks</p>
+
+<ul>
+<li>Automated or user-defined peak number selection</li>
+</ul>
+</li>
+<li>
+<p>Calculates isotope values for each f(Ea) Gaussian peak</p>
+
+<ul>
+<li><p>Can automatically blank-correct inputted values using calculated NOSAMS 
+RPO blank carbon composition</p></li>
+<li><p>Allows for isotope determination of combined peaks</p></li>
+<li><p>Determines peak radiocarbon (Fm) values</p></li>
+<li><p>Determines peak stable-carbon (:sup:<code>13</code>\ C) ratios</p></li>
+<li>
+<p>Accounts for the kinetic isotope effect (KIE) during heating</p>
+
+<ul>
+<li>Allows for unique KIE compensation for each peak</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Calculates and stores model performance metrics and goodness of fit 
+statistics </p></li>
+<li><p>Determines isotope value uncertainty using Monte Carlo resampling</p></li>
+<li><p>Allows for forward-modeling of any arbitrary time-temperature history, 
+<em>e.g.</em> to determine the decomposition rates and isotope fractionation 
+during geologic organic carbon matruation</p></li>
+</ul>
+
+<p>Future Additions</p>
+
+<pre><code>Future versions of ``rampedpyrox`` will aim to include:
+
+* Choice of non-Gaussian fitted peak shapes
+
+* Better support for isothermal experimental conditions
+
+* Non-first-order kinetic models
+
+
+How to Obtain
+=============
+Source code can be directly downloaded from GitHub:
+
+    http://github.com/FluvialSeds/rampedpyrox
+
+Binaries can be installed through the Python package index::
+
+    $ pip install rampedpyrox
+
+License
+=======
+This product is licensed under the GNU GPL license, version 3 or greater.
+
+Bug Reports
+===========
+This software is still in active deveopment. Please report any bugs directly to me at:
+
+    jhemingway@whoi.edu
+
+
+.. |date| date::
+</code></pre>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/FluvialSeds">FluvialSeds</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
