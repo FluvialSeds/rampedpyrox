@@ -132,8 +132,8 @@ def calc_L_curve(
 
 	See Also
 	--------
-	Daem.plot_L_curve
-		Instance method for ``plot_L_curve``.
+	Daem.calc_L_curve
+		Instance method for ``calc_L_curve``.
 
 	References
 	----------

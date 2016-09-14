@@ -550,8 +550,8 @@ def _rpo_blk_corr(
 	# bl_Fm = 0.555
 	# bl_Fm_std = 0.042
 
-	bl_flux = blk_flux[0]
-	bl_flux_std = blk_flux[1]
+	bl_flux = blk_flux[0]/1000 #make ug/s
+	bl_flux_std = blk_flux[1]/1000 #make ug/s
 
 	bl_d13C = blk_d13C[0]
 	bl_d13C_std = blk_d13C[1]

@@ -41,15 +41,15 @@ tg.forward_model(daem, ec)
 
 ri = rp.RpoIsotopes.from_csv(
 	sum_data,
-	blk_corr=True,
-	mass_err=0.01)
+	blk_corr = True,
+	mass_err = 0.01)
 
 ri.fit(
 	daem, 
 	ec, 
 	tg,
 	DEa=0.001,
-	nIter=10)
+	nIter=10000)
 
 
 
