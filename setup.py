@@ -12,10 +12,22 @@ setup(name='rampedpyrox',
             'Development Status :: 3 - Alpha',
             'Intended Audience :: Science/Research',
             'License :: Free for non-commercial use',
+            'Programming Language :: Python',
+            'Programming Language :: Python :: 3',
+            'Programming Language :: Python :: 2',
             'Programming Language :: Python :: 3.5',
+            'Programming Language :: Python :: 2.7',
             'Topic :: Scientific/Engineering'
       ],
-      url='http://github.com/FluvialSeds/rampedpyrox',
+      url='https://github.com/FluvialSeds/rampedpyrox',
+      download_url='https://github.com/FluvialSeds/rampedpyrox/tarball/0.0.2',
+      keywords=[
+            'geochemistry',
+            'isotopes',
+            'kinetics',
+            'inverse modeling',
+            'carbon cycle'
+      ]
       author='Jordon D. Hemingway',
       author_email='jhemingway@whoi.edu',
       license='GNU GPL Version 3',
