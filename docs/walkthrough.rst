@@ -658,9 +658,9 @@ Notes and References
 
 .. |lcurve| image:: _images/doc_Lcurve.png
 
-.. |phis| image:: _images/doc_phis.png
+.. |phis| image:: _images/doc_phis2.png
 
-.. |modeleddata| image:: _images/doc_modeleddata.png
+.. |modeleddata| image:: _images/doc_modeleddata2.png
 
 .. |fastmodeleddata| image:: _images/doc_fast_modeleddata.png
 
