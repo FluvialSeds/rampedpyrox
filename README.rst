@@ -19,10 +19,6 @@ Package Information
 :url:
   http://github.com/FluvialSeds/rampedpyrox
 
-Bug Reports
------------
-This software is still in active deveopment. Please report any bugs directly to me.
-
 How to Cite
 -----------
 When analyzing data with ``rampedpyrox`` to be used in a peer-reviewed
