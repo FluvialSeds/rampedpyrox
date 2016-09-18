@@ -31,7 +31,7 @@ daem = rp.Daem.from_timedata(
 ec = rp.EnergyComplex.inverse_model(
 	daem, 
 	tg,
-	combined=[(1,2), (6, 7)],
+	combined=None,
 	nPeaks='auto',
 	omega=3,
 	peak_shape='Gaussian',
@@ -48,9 +48,69 @@ ri.fit(
 	daem, 
 	ec, 
 	tg,
-	DEa=0.001,
-	nIter=10000)
+	DEa=None,
+	nIter=10)
 
+# #fit different DEa values
+# ri2 = rp.RpoIsotopes.from_csv(
+# 	sum_data,
+# 	blk_corr = True,
+# 	mass_err = 0.01)
 
+# ri2.fit(
+# 	daem, 
+# 	ec, 
+# 	tg,
+# 	DEa=0.001,
+# 	nIter=10)
 
+# ri3 = rp.RpoIsotopes.from_csv(
+# 	sum_data,
+# 	blk_corr = True,
+# 	mass_err = 0.01)
 
+# ri3.fit(
+# 	daem, 
+# 	ec, 
+# 	tg,
+# 	DEa=0.01,
+# 	nIter=10)
+
+# ri4 = rp.RpoIsotopes.from_csv(
+# 	sum_data,
+# 	blk_corr = True,
+# 	mass_err = 0.01)
+
+# ri4.fit(
+# 	daem, 
+# 	ec, 
+# 	tg,
+# 	DEa=0.1,
+# 	nIter=10)
+
+# #make plot
+
+# fig,ax = plt.subplots(1,1,figsize=(9.5,6))
+
+# ax.plot(tg.t, ri.d13C_product,
+# 	linewidth = 2,
+# 	color = 'k',
+# 	label = r'$\Delta Ea$ = 0 J/mol')
+
+# ax.plot(tg.t, ri2.d13C_product,
+# 	linewidth = 2,
+# 	color = 'r',
+# 	label = r'$\Delta Ea$ = 1 J/mol')
+
+# ax.plot(tg.t, ri3.d13C_product,
+# 	linewidth = 2,
+# 	color = 'b',
+# 	label = r'$\Delta Ea$ = 10 J/mol')
+
+# ax.plot(tg.t, ri4.d13C_product,
+# 	linewidth = 2,
+# 	color = 'g',
+# 	label = r'$\Delta Ea$ = 100 J/mol')
+
+# ax.legend(loc='best',frameon=False)
+# ax.set_ylim([-35, -25])

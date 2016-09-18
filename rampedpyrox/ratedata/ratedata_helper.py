@@ -8,14 +8,15 @@ from __future__ import(
 	)
 
 __docformat__ = 'restructuredtext en'
-__all__ = ['_calc_phi', '_deconvolve', '_f_phi_diff', '_gaussian', 
-			'_peak_indicies']
+__all__ = ['_calc_phi', '_deconvolve', '_f_phi_diff', '_gamma', 
+			'_gaussian', '_lorentzian', '_peak_indicies']
 
 import  numpy as np
 import pandas as pd
 import warnings
 
 from scipy.optimize import least_squares
+from scipy.special import gamma
 
 #import exceptions
 from ..core.exceptions import(
@@ -62,8 +63,7 @@ def _calc_phi(k, mu, sigma, height, peak_shape):
 		Length `nk`.
 
 	peaks : np.ndarray
-		Array of individual estimated Ea Gaussian peaks. Shape 
-		[`nk` x `nPeak`].
+		Array of individual estimated Ea peaks. Shape [`nk` x `nPeak`].
 	
 	Raises
 	------
@@ -75,10 +75,20 @@ def _calc_phi(k, mu, sigma, height, peak_shape):
 		#generate Gaussian peaks
 		y = _gaussian(k, mu, sigma)
 
+	elif peak_shape in ['Gamma', 'gamma']:
+		#generate gamma peaks
+		y = _gamma(k, mu, sigma)
+
+	elif peak_shape in ['Lorentzian', 'lorentzian']:
+		#generate Lorentzian peaks
+		y = _lorentzian(k, mu, sigma)
+
 	else:
 		raise StringError(
 			'Peak shape: %r is not recognized. Peak shape must be:'
-			'	Gaussian,' % peak_shape)
+			'	gamma,'
+			'	Gaussian'
+			'	Lorentzian' % peak_shape)
 
 	#check that height is the same shape as mu and sigma
 	if isinstance(mu, (int, float)):
@@ -127,7 +137,9 @@ def _deconvolve(
 	peak_shape : str
 		Peak shape to use for deconvolved peaks. Acceptable strings are:
 
-			'Gaussian'
+			'gamma',
+			'Gaussian',
+			'Lorentzian'
 		
 		Defaults to 'Gaussian'.
 
@@ -278,6 +290,63 @@ def _f_phi_diff(params, k, f, peak_shape):
 
 	return phi - f
 
+#define function to generate gamma peaks
+def _gamma(x, mu, alpha):
+	'''
+	Calculates a gamma peak for a given x vector, mean parameter mu and shape
+	parameter alpha.
+
+	Parameters
+	----------
+	x : array-like
+		Array of x values for gamma calculation.
+
+	mu : int, float, or array-like
+		gamma means, either a single scalar for one peak or an array for 
+		simultaneously calculating multiple peaks.
+
+	alpha : int, float, or array-like
+		gamma shape parameters, either a single scalar for one peak or 
+		an array for simultaneously calculating multiple peaks.
+
+	Returns
+	-------
+	y : np.ndarray
+		Array of resulting y values of shape [`len(x)` x `len(mu)`].
+	'''
+
+	#check data types and broadcast if necessary
+	x = assert_len(x, len(x))
+
+	if isinstance(mu, (int, float)) and isinstance(alpha, (int, float)):
+		#ensure mu and k are floats
+		mu = float(mu)
+		alpha = float(alpha)
+
+	else:
+		n = len(mu)
+
+		#assert mu and k are array-like and the same shape
+		mu = assert_len(mu, n)
+		alpha = assert_len(alpha, n)
+
+		#broadcast x into matrix
+		x = np.outer(x, np.ones(n))
+
+	#convert mu to beta
+	beta = alpha/mu
+
+	#calculate log of scalar to make integral equal to unity
+	logscalar = alpha*np.log10(beta) - np.log10(gamma(alpha))
+
+	#calculate log of gamma distribution
+	logy = logscalar + (alpha-1)*np.log10(x) - beta*x/2.30258
+
+	#calculate gamma distribution
+	y = 10**logy
+
+	return y
+
 #define function to generate Gaussian peaks
 def _gaussian(x, mu, sigma):
 	'''
@@ -327,6 +396,56 @@ def _gaussian(x, mu, sigma):
 	y = scalar*np.exp(-(x-mu)**2/(2.*sigma**2))
 
 	return y
+
+#define function to generate Lorentzian peaks
+def _lorentzian(x, mu, sigma):
+	'''
+	Calculates a Lorentzian peak for a given x vector, mu, and sigma.
+
+	Parameters
+	----------
+	x : array-like
+		Array of x values for Lorentzian calculation.
+
+	mu : int, float, or array-like
+		Lorentzian means, either a single scalar for one peak or an array for 
+		simultaneously calculating multiple peaks.
+
+	sigma : int, float, or array-like
+		Lorentzian scale parameters, either a single scalar for one peak or 
+		an array for simultaneously calculating multiple peaks.
+
+	Returns
+	-------
+	y : np.ndarray
+		Array of resulting y values of shape [`len(x)` x `len(mu)`].
+	'''
+
+	#check data types and broadcast if necessary
+	x = assert_len(x, len(x))
+
+	if isinstance(mu, (int, float)) and isinstance(sigma, (int, float)):
+		#ensure mu and sigma are floats
+		mu = float(mu)
+		sigma = float(sigma)
+
+	else:
+		n = len(mu)
+
+		#assert mu and sigma are array-like and the same shape
+		mu = assert_len(mu, n)
+		sigma = assert_len(sigma, n)
+
+		#broadcast x into matrix
+		x = np.outer(x, np.ones(n))
+
+	#calculate pdf
+	y = 1/(np.pi*sigma*(1 + ((x - mu)/sigma)**2))
+
+	return y
+
+
+
 
 #define a function to find the indices of each peak in `k`.
 def _peak_indices(f, nPeaks = 'auto', thres = 0.05):

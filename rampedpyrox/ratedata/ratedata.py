@@ -101,7 +101,9 @@ class RateData(object):
 		peak_shape : str
 			Peak shape to use for deconvolved peaks. Acceptable strings are:
 
+				'gamma',
 				'Gaussian'
+				'Lorentzian'
 			
 			Defaults to 'Gaussian'.
 
@@ -208,7 +210,9 @@ class RateData(object):
 		peak_shape : str
 			Peak shape to use for deconvolved peaks. Acceptable strings are:
 
-				'Gaussian'
+				'gamma',
+				'Gaussian',
+				'Lorentzian'
 			
 			Defaults to 'Gaussian'.
 
@@ -505,7 +509,7 @@ class EnergyComplex(RateData):
 		Number of Ea points.
 
 	nPeak : int
-		Number of Gaussian peaks in estimated energy complex.
+		Number of peaks in estimated energy complex.
 
 	omega : float
 		Tikhonov regularization weighting factor.
@@ -619,7 +623,9 @@ class EnergyComplex(RateData):
 		peak_shape : str
 			Peak shape to use for deconvolved peaks. Acceptable strings are:
 
-				'Gaussian'
+				'gamma',
+				'Gaussian',
+				'Lorentzian'
 			
 			Defaults to 'Gaussian'.
 
@@ -772,7 +778,9 @@ class EnergyComplex(RateData):
 		peak_shape : str
 			Peak shape to use for deconvolved peaks. Acceptable strings are:
 				
-				'Gaussian'
+				'gamma',
+				'Gaussian',
+				'Lorentzian'
 
 			Defaults to 'Gaussian'.
 
