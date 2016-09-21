@@ -27,7 +27,7 @@ setup(name='rampedpyrox',
             'kinetics',
             'inverse modeling',
             'carbon cycle'
-      ]
+      ],
       author='Jordon D. Hemingway',
       author_email='jhemingway@whoi.edu',
       license='GNU GPL Version 3',
