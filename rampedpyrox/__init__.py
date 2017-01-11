@@ -15,7 +15,7 @@ documentation can be found at:
 
 	http://rampedpyrox.readthedocs.io
 
-Version 0.0.2 is current as of 12 September 2016.
+Version 0.0.3 is current as of 11 January 2017.
 '''
 
 from __future__ import(
@@ -23,7 +23,7 @@ from __future__ import(
 	print_function,
 	)
 
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 
 __docformat__ = 'restructuredtext en'
 

@@ -1,3 +1,5 @@
+# TODO: Update examples
+
 '''
 This module contains the Results superclass and all corresponding subclasses.
 '''
@@ -28,20 +30,15 @@ from ..core.core_functions import(
 	)
 
 from ..core.summary_helper import(
-	_rpo_isotopes_frac_info,
-	_rpo_isotopes_cmpt_info,
+	_rpo_isotopes_frac_info
 	)
 
 from .results_helper import(
-	_d13C_to_R13,
-	_kie_d13C,
-	_kie_d13C_MC,
-	_nnls_MC,
-	_R13_CO2,
-	_R13_to_d13C,
 	_rpo_blk_corr,
-	_rpo_cont_ctf,
+	_rpo_calc_E_frac,
 	_rpo_extract_iso,
+	_rpo_kie_corr,
+	_rpo_mass_bal_corr,
 	)
 
 
@@ -70,8 +67,9 @@ class Results(object):
 
 class RpoIsotopes(Results):
 	__doc__='''
-	Class for inputting Ramped PyrOx isotopes, calculating estimated component 
-	isotope values, and storing corresponding statistics.
+	Class for inputting Ramped PyrOx isotopes, calculating p0(E) contained in
+	each RPO fraction, correcting d13C values for kinetic fractionation, and
+	storing resulting data and statistics.
 
 	Parameters
 	----------
@@ -119,11 +117,10 @@ class RpoIsotopes(Results):
 	--------
 	Daem
 		``Model`` subclass used to generate the Laplace transform for RPO
-		data and translate between time- and Ea-space.
+		data and translate between time- and E-space.
 
 	EnergyComplex
-		``RateData`` subclass for storing, deconvolving, and analyzing RPO
-		rate data.
+		``RateData`` subclass for storing and analyzing RPO rate data.
 
 	RpoThermogram
 		``TimeData`` subclass containing the time and fraction remaining data
@@ -164,72 +161,27 @@ class RpoIsotopes(Results):
 			blk_corr = True,
 			mass_err = 0.01)
 
-	This automatically corrected inputted isotopes for the NOSAMS instrument
+	This automatically corrected inputted isotopes for the inputted instrument
 	blank carbon contribution using the `blk_corr` flag and assumed a 1\% 
 	uncertainty in mass measurements. **NOTE:** See ``from_csv`` documentation
 	for instructions on getting the .csv file in the right format.
 
-	Fitting the isotope results for a given Ea distribution and bootstrapping
-	the uncertainty::
+	Correcting the d13C results for a given E distribution for kinetic isotope
+	fractionation effects::
 
 		#assuming there exists some Daem, EnergyComplex, and 
 		# RpoThermogram instances already created
 
-		ri.fit(
+		ri.d13C_correct(
 			daem, 
 			ec, 
 			tg, 
-			DEa = None,
-			nIter = 10000)
-
-	Same as above, but now setting a constant value for `DEa` to include
-	kinetic isotope fractionation::
-
-		ri.fit(
-			daem, 
-			ec, 
-			tg, 
-			DEa = 0.0018, #value estimated for NOSAMS
-			nIter = 10000)
-
-	Additionally, each peak/component can be given a different `DEa` value::
-
-		#assuming there are 5 components and arbitrarily
-		# making DEa values
-		DEa = [0., 0.001, 0., 0.005, 0.02]
-
-		ri.fit(
-			daem, 
-			ec, 
-			tg, 
-			DEa = DEa,
-			nIter = 10000)
-
-	If d13C data exist, the d13C value of instantaneously produced CO2 can be
-	plotted against time::
-
-		#import additional modules
-		import matplotlib.pyplot as plt
-
-		#create figure
-		fig, ax = plt.subplots(1,1)
-
-		#plot data
-		ax.plot(
-			tg.t, 
-			ri.d13C_product,
-			linewidth = 2,
-			color = 'k')
-
-		#label axes
-		ax.set_xlabel('time (s)')
-		ax.set_ylabel(r'instantaneous $\\delta^{13}C$')
+			DEa = 0.0018)
 
 	Printing a summary of the analysis::
 
 		#fraction and component information
 		print(ri.frac_info)
-		print(ri.cmpt_info)
 
 		#RMSE values
 		m = 'mass RMSE (ugC): %.2f' %ri.m_rmse
@@ -247,20 +199,21 @@ class RpoIsotopes(Results):
 	d13C_frac_std : np.ndarray
 		The standard deviation of `d13C_frac` with length `nFrac`.
 
-	d13C_cmpt : np.ndarray
-		Array of the d13C values (VPDB) of each modeled component (treating
-		combined peaks as one component), length `nCmpt`.
+	d13C_corr : np.ndarray
+		Array of the d13C values (VPDB) of each measured fraction, corrected
+		for kinetic isotope fractionation. Length `nFrac`.
 
-	d13C_cmpt_std : np.ndarray
-		The standard deviation of `d13C_cmpt` with length `nCmpt` 
+	d13C_corr_std : np.ndarray
+		The standard deviation of the d13C values (VPDB) of each measured 
+		fraction, corrected for kinetic isotope fractionation. Length `nFrac`.
 
-	d13C_product : np.ndarray
-		The d13C values (VPDB) of instantaneously produced product at each
-		timepoint in ``ratedata.t``. Length `nt`.
+	E_frac : np.ndarray
+		Array of the mean E value (kJ) contained in each measured fraction as
+		calculated by the inverse model, length `nFrac`.
 
-	d13C_rmse : float
-		The RMSE between the true and estimated d13C values of each fraction,
-		in VPDB.
+	E_frac_std : np.ndarray
+		The standard deviation of E (kJ) contained in each measured fraction
+		as calculated by the inverse model, length `nFrac`.
 
 	Fm_frac : np.ndarray
 		Array of the Fm values of each measured fraction, length `nFrac`.
@@ -268,23 +221,15 @@ class RpoIsotopes(Results):
 	Fm_frac_std : np.ndarray
 		The standard deviation of `Fm_frac` with length `nFrac`.
 
-	Fm_cmpt : np.ndarray
-		Array of the Fm values of each modeled component (treating combined 
-		peaks as one component), length `nCmpt`.
-
-	Fm_cmpt_std : np.ndarray
-		The standard deviation of `Fm_cmpt` with length `nCmpt`.
-
-	Fm_rmse : float
-		The RMSE between the true and estimated Fm values of each fraction.
-
 	frac_info : pd.DataFrame
 		Dataframe containing the inputted fraction isotope summary info: 
 
 			time (init. and final), \n
 			mass (mean and std.), \n
 			d13C (mean and std.), \n
+			d13C corrected (mean and std.), \n
 			Fm (mean and std.), \n
+			E (mean and std.) \n
 
 	m_frac : np.ndarray
 		Array of the masses (ugC) of each measured fraction, length `nFrac`.
@@ -292,33 +237,8 @@ class RpoIsotopes(Results):
 	m_frac_std : np.ndarray
 		The standard deviation of `m_frac` with length `nFrac`.
 
-	m_cmpt : np.ndarray
-		Array of the masses (ugC) of each modeled component (treating combined 
-		peaks as one component), length `nCmpt`.
-
-	m_cmpt_std : np.ndarray
-		The standard deviation of `m_cmpt` with length `nCmpt`.
-
-	m_rmse : float
-		The RMSE between the true and estimated masses of each fraction.
-
 	nFrac : int
 		The number of measured fractions.
-
-	nIter : int
-		The number of iterations, used for bootstrapping component mass/isotope
-		uncertainty.
-
-	cmpt_info : pd.DataFrame
-		Dataframe containing the inverse-modeled component isotope summary info: 
-
-			mass (mean and std.), \n
-			d13C (mean and std.), \n
-			Fm (mean and std.), \n
-			DEa
-		
-		Combined peak info is repeated with an asterisk (*) next to the 
-		repeated row indices.
 
 	t_frac : np.ndarray
 		2d array of the initial and final times of each fraction, in seconds.
@@ -329,6 +249,8 @@ class RpoIsotopes(Results):
 			self, 
 			d13C_frac = None, 
 			d13C_frac_std = 0, 
+			E_frac = None,
+			E_frac_std = 0,
 			Fm_frac = None,
 			Fm_frac_std = 0, 
 			m_frac = None, 
@@ -361,6 +283,10 @@ class RpoIsotopes(Results):
 				self.d13C_frac = assert_len(d13C_frac, n)
 				self.d13C_frac_std = assert_len(d13C_frac_std, n)
 
+			if E_frac is not None:
+				self.E_frac = assert_len(E_frac, n)
+				self.E_frac_std = assert_len(E_frac_std, n)
+
 			if Fm_frac is not None:
 				self.Fm_frac = assert_len(Fm_frac, n)
 				self.Fm_frac_std = assert_len(Fm_frac_std, n)
@@ -370,6 +296,7 @@ class RpoIsotopes(Results):
 
 		#store self._corrected for blank correction bookkeeping
 		self._corrected = False
+		self._kie_corrected = False
 
 	#define classmethod for creating instance and populating measured values
 	# directly from a .csv file
@@ -381,6 +308,7 @@ class RpoIsotopes(Results):
 			blk_d13C = (-29.0, 0.1),
 			blk_flux = (0.375, 0.0583),
 			blk_Fm =  (0.555, 0.042),
+			bulk_d13C_true = None,
 			mass_err = 0.01):
 		'''
 		Class method to directly import RPO fraction data from a .csv file and
@@ -395,22 +323,32 @@ class RpoIsotopes(Results):
 		blk_corr : Boolean
 			Tells the method whether or not to blank-correct isotope data. If
 			`True`, blank-corrects according to inputted blank composition 
-			values.
+			values. If `bulk_d13C_true` is not `None`, further corrects d13C 
+			values to ensure isotope mass balance (see Hemingway et al.,
+			Radiocarbon **2017** for details).
 
 		blk_d13C : tuple
 			Tuple of the blank d13C composition (VPDB), in the form 
 			(mean, stdev.) to be used of ``blk_corr = True``. Defaults to the
-			NOSAMS RPO blank as calculated by Hemingway et al. **(in prep)**.
+			NOSAMS RPO blank as calculated by Hemingway et al., Radiocarbon
+			**2017**.
 
 		blk_flux : tuple
 			Tuple of the blank flux (ng/s), in the form (mean, stdev.) to
 			be used of ``blk_corr = True``. Defaults to the NOSAMS RPO blank 
-			as calculated by Hemingway et al. **(in prep)**.
+			as calculated by Hemingway et al., Radiocarbon **2017**.
 
 		blk_Fm : tuple
 			Tuple of the blank Fm value, in the form (mean, stdev.) to
 			be used of ``blk_corr = True``. Defaults to the NOSAMS RPO blank 
-			as calculated by Hemingway et al. **(in prep)**.
+			as calculated by Hemingway et al., Radiocarbon **2017**.
+
+		bulk_d13C_true : None or array
+			True measured d13C value (VPDB) for bulk material as measured
+			independently (e.g. on a EA-IRMS). If not `None`, this value is
+			used to mass-balance-correct d13C values as described in Hemingway
+			et al., Radiocarbon **2017**. If not `none`, must be inputted in
+			the form [mean, stdev.]
 
 		mass_err : float
 			Relative uncertainty in mass measurements, typically as a sum of
@@ -439,19 +377,20 @@ class RpoIsotopes(Results):
 
 		References
 		----------
-		[1] J.D. Hemingway et al. **(in prep)** Assessing the blank carbon
+		[1] J.D. Hemingway et al. (2017) Assessing the blank carbon
 			contribution, isotope mass balance, and kinetic isotope 
 			fractionation of the ramped pyrolysis/oxidation instrument at 
-			NOSAMS.
+			NOSAMS. *Radiocarbon*
 		'''
 
-		#estract data from file
+		#extract data from file
 		d13C, d13C_std, Fm, Fm_std, m, m_std, t = _rpo_extract_iso(
 			file,
 			mass_err)
 
 		#blank correct if necessary
 		if blk_corr is True:
+
 			d13C, d13C_std, Fm, Fm_std, m, m_std = _rpo_blk_corr(
 				d13C, 
 				d13C_std, 
@@ -464,9 +403,19 @@ class RpoIsotopes(Results):
 				blk_flux = blk_flux,
 				blk_Fm = blk_Fm)
 
+		#additionally mass-balance correct d13C if necessary
+		if bulk_d13C_true is not None:
+
+			d13C, d13C_std = _rpo_mass_bal_corr(
+				d13C,
+				d13C_std,
+				m,
+				m_std,
+				bulk_d13C_true)
+
 		ri = cls(
 			d13C_frac = d13C, 
-			d13C_frac_std = d13C_std, 
+			d13C_frac_std = d13C_std,
 			Fm_frac = Fm,
 			Fm_frac_std = Fm_std, 
 			m_frac = m, 
@@ -479,11 +428,14 @@ class RpoIsotopes(Results):
 
 		return ri
 
-	def fit(self, model, ratedata, timedata, DEa = None, nIter = 1):
+	def calc_E_frac(
+		self, 
+		model, 
+		ratedata):
 		'''
-		Method for fitting ``RpoResults`` instance in order to calculate the 
-		isotope composition of each inverse-modeled component in an 
-		``RpoThermogram`` instance.
+		Method for determining the distribution of E values contained within
+		each RPO fraction. Used for calculating `E_frac` and `E_frac_std` in
+		order to compare with measured isotope values.
 
 		Parameters
 		----------
@@ -494,81 +446,14 @@ class RpoIsotopes(Results):
 		ratedata : rp.RateData
 			``rp.Ratedata`` instance containing the reactive continuum data.
 
-		timedata : rp.TimeData
-			``rp.TimeData`` instance containing the estimated timeseries data.
-
-		DEa : None, scalar, or array-like
-			The difference in Ea between 12C- and 13C-containing molecules
-			within each Ea peak, in kJ/mol. If `None`, no kinetic isotope 
-			effect is included. If scalar, a single value will be used for 
-			all Ea peaks.
-
-		nIter : int
-			The number of iterations, used for bootstrapping component mass/
-			isotope uncertainty.
-
-		Raises
-		------
-		RunModelError
-			If `ratedata` does not contain attribute 'peaks' -- i.e. if the
-			inverse model has not been run.
-
-		RunModelError
-			If `timedata` does not contain attribute 'cmpt' -- i.e. if the
-			forward model has not been run.
-
-		RunModelError
-			If the number of components stored in `timedata` is different than
-			that stored in `ratedata` -- i.e. if `ratedata` has been changed
-			since the forward model was run. 
-
 		Warnings
 		--------
-		UserWarning
-			If nCmpt is greater than nFrac, the problem is underconstrained.
-
-		UserWarning
-			If attempting to use timedata that is not a ``rp.RpoThermogram``
-			instance.
-
 		UserWarning
 			If attempting to use ratedata that is not a ``rp.EnergyComplex``
 			instance.
 
 		UserWarning
 			If attempting to use a model that is not a ``rp.Daem`` instance.
-
-		UserWarning
-			If ``scipy.optimize.least_squares`` cannot converge on a
-			successful fit when estimating d13C values for each component.
-
-		Notes
-		-----
-		When analyzing Ramped PyrOx thermograms, component masses (and mass RMSE)
-		are calculated by comparing the component shapes (a function of the 
-		thermogram) to inputted fraction masses, which are typically measured
-		manometrically. Thus, mass RMSE serves as a metric for the agreement 
-		between photometically and manometrically determined masses (see 
-		Rosenheim et al., 2008).
-
-		Attempting to deconvolve a thermogram containing multiple components that 
-		(nearly) exclusively reside within a single fraction will lead to
-		spurrious results such as 0 masses and wildly varying d13C values.
-		Consider combining peaks until the problem is overconstrained.
-
-		References
-		----------
-		[1] B. Cramer et al. (2001) Reaction kinetics of stable carbon isotopes in
-  			natural gas -- Insights from dry, open system pyrolysis experiments.
-  			*Energy & Fuels*, **15**, 517-532.
-
-		[2] B. Cramer (2004) Methane generation from coal during open system 
-			pyrolysis investigated by isotope specific, Gaussian distributed 
-			reaction kinetics. *Organic Geochemistry*, **35**, 379-392.
-
-		[3] Rosenheim et al. (2008) Antarctic sediment chronology by 
-			programmed-temperature pyrolysis: Methodology and data treatment. 
-			*Geochemistry, Geophysics, Geosystems*, **9(4)**, GC001816.
 		'''
 
 		#warn if model is not Daem
@@ -589,121 +474,107 @@ class RpoIsotopes(Results):
 				' type %r. Consider using rp.EnergyComplex instance instead'
 				% rd_type, UserWarning)
 
-		#warn if timedata is not RpoThermogram
-		td_type = type(timedata).__name__
+		#calculate resulting E_frac and E_frac_std
+		E_frac, E_frac_std, p_frac = _rpo_calc_E_frac(self, model, ratedata)
 
-		if td_type not in ['RpoThermogram']:
+		#store results in self
+		self.E_frac = E_frac
+		self.E_frac_std = E_frac_std
+
+		#create protected 2d array for storing p distribution contained
+		# in each fraction (for plotting purposes)
+		self._p_frac = p_frac
+
+	def d13C_correct(
+		self,
+		model,
+		ratedata,
+		DE = 0.0018):
+		'''
+		Method for further correcting d13C values to account for kinetic 
+		isotope fractionation occurring within the instrument.
+
+		Parameters
+		----------
+		model : rp.Model
+			``rp.Model`` instance containing the A matrix to use for 
+			inversion.
+
+		ratedata : rp.RateData
+			``rp.Ratedata`` instance containing the reactive continuum data.
+
+		DE : scalar
+			Value for the difference in E between 12C- and 13C-containing
+			atoms, in kJ. Defaults to 0.0018 (the best-fit value calculated
+			in Hemingway et al., **2017**).
+
+		Warnings
+		--------
+		UserWarning
+			If already corrected for kinetic fractionation
+
+		References
+		----------
+		[1] J.D. Hemingway et al. (2017) Assessing the blank carbon
+			contribution, isotope mass balance, and kinetic isotope 
+			fractionation of the ramped pyrolysis/oxidation instrument at 
+			NOSAMS. *Radiocarbon*
+		'''
+
+		#raise warnings
+		if self._kie_corrected == True:
 			warnings.warn(
-				'Attempting to calculate isotopes using an isothermal timedata'
-				' instance of type %r. Consider using rp.RpoThermogram' 
-				' instance instead' % td_type, UserWarning)
+				'd13C has already been corrected for kinetic fractionation!'
+				' Proceeding anyway', UserWarning)
 
-		#raise exception if timedata does not have fitted data attributes
-		if not hasattr(timedata, 'cmpt'):
-			raise RunModelError(
-				'timedata instance must have attribute "cmpt". Run the'
-				' forward model before solving for isotopes!')
+		#calculate resulting E_frac and E_frac_std
+		d13C_corr, d13C_corr_std = _rpo_kie_corr(self, model, ratedata, DE)
 
-		#raise exception if ratedata does not have fitted data attributes
-		if not hasattr(ratedata, 'peaks'):
-			raise RunModelError(
-				'ratedata instance must have attribute "peaks". Run the'
-				' inverse model before solving for isotopes!')
+		#store results in self
+		self.d13C_corr = d13C_corr
+		self.d13C_corr_std = d13C_corr_std
 
-		#raise exception if ratedata and timedata shapes do not match
-		if timedata.nCmpt != ratedata.peaks.shape[1]:
-			raise RunModelError(
-				'Non-matching number of components! Number of components in'
-				' timedata is: %r. Number of components in ratedata is: %r.'
-				' Re-run the forward model before fitting isotopes!'
-				% (timedata.nCmpt, ratedata.peaks.shape[1]))
+		#flag as corrected for bookkeeping
+		self._kie_corrected = True
 
-		#raise exception if DEa is not int or array-like with length nPeak
-		if DEa is None:
-			DEa = assert_len(0, ratedata.nPeak)
-		
-		else:
-			try:
-				DEa = assert_len(DEa, ratedata.nPeak)
-			
-			except LengthError:
+	def summary(self, file = None):
+		'''
+		Generates a summary of all isotope and E data.
 
-					#add DEa for deleted peaks so len(DEa) = ratedata.nPeak
-					dp = [val - i for i, val in enumerate(ratedata._cmbd)]
-					dp = np.array(dp)
-					DEa = np.insert(DEa, dp, DEa[dp-1])
+		Parameters
+		----------
+		file : None or string
+			If not `None`, summary saves the summary dataframe to a .csv file
+			with the name inputted.
 
-					#assert length is nPeak
-					DEa = assert_len(DEa, ratedata.nPeak)
+		Returns
+		-------
+		sum_df : pd.DataFrame
+			Dataframe containing all information:
+				
+				time (init. and final), \n
+				mass (mean and std.), \n
+				d13C (mean and std.), \n
+				d13C corrected (mean and std.), \n
+				Fm (mean and std.), \n
+				E (mean and std.) \n
+		'''
 
-		#calculate component contribution to each fraction
-		cont_ctf, ind_min, ind_max, ind_wgh = _rpo_cont_ctf(
-			self, 
-			timedata, 
-			ctf = True)
+		#create sum_df dataframe
+		sum_df = _rpo_isotopes_frac_info(self)
 
-		cont_ftc, _, _, _ = _rpo_cont_ctf(
-			self, 
-			timedata, 
-			ctf = False) #frac to component for mass calc.
+		#add E data to sum_df
+		sum_df['E mean (kJ)'] = self.E_frac
+		sum_df['E std (kJ)'] = self.E_frac_std
 
-		#solve each isotope/mass, and calculate Monte Carlo uncertainty
-		nIter = int(nIter)
-		self.nIter = nIter
+		#add corrected d13C data to sum_df
+		sum_df['d13C KIE corr. mean'] = self.d13C_corr
+		sum_df['d13C KIE corr. std'] = self.d13C_corr_std
 
-		#if has mass, calculate component mass
-		if hasattr(self, 'm_frac'):
+		if file:
+			sum_df.to_csv(file)
 
-			m_cmpt, m_cmpt_std, m_rmse = _nnls_MC(
-				cont_ftc, 
-				nIter, 
-				self.m_frac, 
-				self.m_frac_std)
-
-			self.m_cmpt = m_cmpt
-			self.m_cmpt_std = m_cmpt_std
-			self.m_rmse = m_rmse
-
-		#if has Fm, calculate component Fm
-		if hasattr(self, 'Fm_frac'):
-
-			Fm_cmpt, Fm_cmpt_std, Fm_rmse = _nnls_MC(
-				cont_ctf, 
-				nIter, 
-				self.Fm_frac, 
-				self.Fm_frac_std)
-
-			self.Fm_cmpt = Fm_cmpt
-			self.Fm_cmpt_std = Fm_cmpt_std
-			self.Fm_rmse = Fm_rmse
-
-		#if has d13C, calculate component d13C and instantaneous CO2 d13C
-		if hasattr(self, 'd13C_frac'):
-
-			d13C_cmpt, d13C_cmpt_std, d13C_rmse = _kie_d13C_MC(
-				DEa, 
-				ind_wgh, 
-				model, 
-				nIter, 
-				self, 
-				ratedata)
-
-			self.d13C_cmpt = d13C_cmpt
-			self.d13C_cmpt_std = d13C_cmpt_std
-			self.d13C_rmse = d13C_rmse
-
-			#calculate d13C of CO2 at each timepoint
-			R13_cmpt = _d13C_to_R13(d13C_cmpt)
-			R13_CO2 = _R13_CO2(DEa, model, R13_cmpt, ratedata)
-			d13C_CO2 = _R13_to_d13C(R13_CO2)
-
-			self.d13C_product = d13C_CO2
-
-		#store results in summary table
-		self.cmpt_info = _rpo_isotopes_cmpt_info(
-			ratedata._cmbd, 
-			DEa, 
-			self)
+		return sum_df
 
 if __name__ == '__main__':
 

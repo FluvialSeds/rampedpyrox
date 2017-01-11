@@ -8,7 +8,7 @@ from __future__ import(
 	)
 
 __docformat__ = 'restructuredtext en'
-__all__ = ['_calc_cmpt', '_calc_f', '_calc_R', '_rpo_calc_A']
+__all__ = ['_calc_ghat', '_calc_p', '_calc_R', '_rpo_calc_A']
 
 import numpy as np
 
@@ -21,7 +21,7 @@ from ..core.core_functions import(
 	)
 
 #define a function to generate estimated time data from model and ratedata
-def _calc_cmpt(model, ratedata):
+def _calc_ghat(model, ratedata):
 	'''
 	Calculates the timedata for a given ``rp.RateData`` and ``rp.Model`` 
 	instance.
@@ -36,17 +36,17 @@ def _calc_cmpt(model, ratedata):
 
 	Returns
 	-------
-	cmpt : np.ndarray
-		A 2d array of the fraction of each component remaining at each
-		timepoint. Shape [`nt` x `nPeak`] (after combining).
+	ghat : array-like
+		Array of estimated fraction of total carbon remaining at each 
+		timestep. Length `nt`.
 	'''
 
-	return np.inner(model.A, ratedata.peaks.T)
+	return np.inner(model.A, ratedata.p)
 
 #define a function to generate estimated rate data from model and timedata
-def _calc_f(model, timedata, omega):
+def _calc_p(model, timedata, omega):
 	'''
-	Calculates the reactive continuum of rates (or Ea, for DAEM) for a given
+	Calculates the reactive continuum of rates (or E, for DAEM) for a given
 	``rp.TimeData`` and ``rp.Model`` instance.
 
 	Parameters
@@ -63,9 +63,9 @@ def _calc_f(model, timedata, omega):
 
 	Returns
 	-------
-	f : np.ndarray
-		Array of the pdf of the discretized distribution of rates (or Ea,
-		for DAEM).
+	p : np.ndarray
+		Array of the pdf of the discretized distribution of rates (or E, for 
+		DAEM).
 
 	resid_rmse : float
 		Residual RMSE between true and modeled time data.
@@ -103,15 +103,15 @@ def _calc_f(model, timedata, omega):
 		(timedata.g, np.zeros(nk+1)))
 
 	#calculate inverse results and estimated g
-	f, _ = nnls(A_reg, g_reg)
-	g_hat = np.inner(model.A, f)
-	rgh = np.inner(R, f)
+	p, _ = nnls(A_reg, g_reg)
+	ghat = np.inner(model.A, p)
+	rgh = np.inner(R, p)
 
 	#calculate errors
-	resid_rmse = norm(timedata.g - g_hat)/nt**0.5
+	resid_rmse = norm(timedata.g - ghat)/nt**0.5
 	rgh_rmse = norm(rgh)/nk**0.5
 
-	return f, resid_rmse, rgh_rmse
+	return p, resid_rmse, rgh_rmse
 
 #define a function to calculate the Tikhonov regularization matrix
 def _calc_R(n):
@@ -161,19 +161,19 @@ def _calc_R(n):
 	return R
 
 #define function to calculte the A matrix for DAEM models
-def _rpo_calc_A(Ea, log10k0, t, T):
+def _rpo_calc_A(E, log10k0, t, T):
 	'''
 	Calculates the A matrix for a DAEM model (e.g. a Ramped Pyrox run).
 
 	Parameters
 	----------
-	Ea : array-like
+	E : array-like
 		Array of activation energy points to be used in the A matrix, in kJ.
-		Length `nEa`.
+		Length `nE`.
 
 	log10k0 : scalar or array-like
 		Arrhenius pre-exponential factor, either a constant value, array with
-		length `nEa`, or a lambda function of Ea.
+		length `nE`, or a lambda function of E.
 
 	t : array-like
 		Array of timepoints to be used in the A matrix, in seconds. Length `nt`.
@@ -185,7 +185,7 @@ def _rpo_calc_A(Ea, log10k0, t, T):
 	-------
 	A : np.ndarray
 		2d array of the Laplace transform for the Daem model. 
-		Shape [`nt` x `nEa`].
+		Shape [`nt` x `nE`].
 
 	References
 	----------
@@ -200,27 +200,27 @@ def _rpo_calc_A(Ea, log10k0, t, T):
 
 	#set constants
 	nt = len(t)
-	nEa = len(Ea)
+	nE = len(E)
 	R = 8.314/1000 #kJ/mol/K
 
 	#get arrays in the right format and ensure lengths
-	Ea = assert_len(Ea, nEa) #kJ
+	E = assert_len(E, nE) #kJ
 	t = assert_len(t, nt) #s
 	T = assert_len(T, nt) #K
 
 	#get log10k0 into the right format
 	if hasattr(log10k0,'__call__'):
-		log10k0 = log10k0(Ea)
+		log10k0 = log10k0(E)
 	
-	log10k0 = assert_len(log10k0, nEa) 
+	log10k0 = assert_len(log10k0, nE) 
 	k0 = 10**log10k0 #s-1
 
-	#calculate time and Ea gradients
+	#calculate time and E gradients
 	dt = np.gradient(t)
-	dEa = np.gradient(Ea)
+	dE = np.gradient(E)
 
 	#pre-allocate A
-	A = np.zeros([nt,nEa])
+	A = np.zeros([nt,nE])
 
 	#loop through each timestep
 	for i, _ in enumerate(T):
@@ -230,12 +230,12 @@ def _rpo_calc_A(Ea, log10k0, t, T):
 		dtau = dt[:i] #seconds, [1,i]
 
 		#generate matrices
-		eps_mat = np.outer(Ea, np.ones(i)) #kJ, [nEa,i]
-		k0_mat = np.outer(k0, np.ones(i)) #s-1, [nEa,i]
-		u_mat = np.outer(np.ones(nEa), U) #Kelvin, [nEa,i]
+		eps_mat = np.outer(E, np.ones(i)) #kJ, [nE,i]
+		k0_mat = np.outer(k0, np.ones(i)) #s-1, [nE,i]
+		u_mat = np.outer(np.ones(nE), U) #Kelvin, [nE,i]
 
 		#generate A for row i (i.e. for each timepoint) and store in A
 		hE_mat = -k0_mat*dtau*np.exp(-eps_mat/(R*u_mat)) #unitless, [nEa,i]
-		A[i] = np.exp(np.sum(hE_mat, axis = 1))*dEa #kJ
+		A[i] = np.exp(np.sum(hE_mat, axis = 1))*dE #kJ
 
 	return A

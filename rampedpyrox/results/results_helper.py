@@ -1,5 +1,3 @@
-#* TODO: Test _kie_d13C_MC memory allocation and improve speed!
-
 '''
 This module contains helper functions for the Results class.
 '''
@@ -10,20 +8,24 @@ from __future__ import(
 	)
 
 __docformat__ = 'restructuredtext en'
-__all__ = ['_d13C_to_R13', '_kie_d13C', '_kie_d13C_MC', '_nnls_MC', 
-			'_R13_CO2', '_R13_diff', '_R13_to_d13C', '_rpo_blk_corr',
-			'_rpo_cont_ctf', '_rpo_extract_iso']
+__all__ = ['_calc_cutoff','_rpo_blk_corr', '_rpo_calc_E_frac', 
+	'_rpo_extract_iso', '_rpo_kie_corr', '_rpo_mass_bal_corr']
 
 import numpy as np
 import pandas as pd
 import warnings
 
+from collections import Sequence
 from numpy.linalg import norm
 from scipy.optimize import least_squares
 from scipy.optimize import nnls
 
+#import Daem
+from ..model.model import(Daem)
+
 #import exceptions
 from ..core.exceptions import(
+	ArrayError,
 	FileError,
 	LengthError,
 	ScalarError,
@@ -34,431 +36,54 @@ from ..core.core_functions import(
 	assert_len
 	)
 
-from ..ratedata.ratedata_helper import(
-	_calc_phi
-	)
-
-#define a function to convert d13C to 13C/12C ratio.
-def _d13C_to_R13(d13C):
+#define a function to calculate cutoff indices for each RPO fraction
+def _calc_cutoff(result, model):
 	'''
-	Converts d13C values to 13R values using VPDB standard.
+	Calculates the time index corresponding to the start and stop of each RPO
+	fraction. Used for calculating E_frac.
 
 	Parameters
 	----------
-	d13C : np.ndarray
-		Inputted d13C values, in per mille VPDB.
-
-	Returns
-	-------
-	R13 : np.ndarray
-		Corresponding 13C/12C ratios.
-	'''
-
-	#assert d13C is array with float dtype
-	d13C = assert_len(d13C, len(d13C))
-
-
-	Rpdb = 0.011237 #13C/12C ratio VPDB
-
-	R13 = (d13C/1000 + 1)*Rpdb
-
-	return R13
-
-#define a function to calculate the d13C of each component, incorporating any KIE
-def _kie_d13C(DEa, ind_wgh, model, ratedata, vals):
-	'''
-	Calculates the d13C of each component, accounting for any KIE fractionation.
-
-	Parameters
-	----------
-	DEa : np.ndarray
-		Array of DEa values (in kJ/mol) for each peak in ratedata.
-
-	ind_wgh : np.ndarray
-		Array of the mass-weighted center indices of each fraction.
+	result : rp.RpoIsotopes
+		``RpoIsotopes`` instance containing CO2 fraction information.
 
 	model : rp.Model
-		``rp.Model`` instance containing the proper inversion model.
-		Used to calculate 13C rates.
-
-	ratedata : rp.RateData
-		``rp.Ratedata`` instance containing the rate distribution leading
-		to the KIE.
-
-	vals : np.ndarray
-		Array of fraction d13C values, length `nFrac`.
+		``rp.Model`` instance containing the A matrix to use for inversion.
 
 	Returns
 	-------
-	d13C_cmpt : np.ndarray
-		Best-fit 13C/12C ratios for each component as determined by
-		``scipy.optimize.least_squares`` and converted to d13C VPDB scale.
+	ind_min : np.ndarray
+		Index in ``timedata.t`` corresponding to the minimum time for each 
+		fraction. Length nFrac.
 
-	d13C_err : float
-		Fitting err determined as ``norm(Ax-b)``, and converted
-		to d13C VPDB scale.
-
-	Warnings
-	--------
-	UserWarning
-		If ``scipy.optimize.least_squares`` cannot converge on a
-		best-fit solution.
+	ind_max : np.ndarray
+		Index in ``timedata.t`` corresponding to the maximum time for each 
+		fraction. Length nFrac.
 	'''
 
-	#extract shapes -- NPEAKS AFTER COMBINED!
-	_, nCmpt = np.shape(ratedata.peaks)
-
-	#set initial guess of 0 permille
-	r0 = _d13C_to_R13(np.zeros(nCmpt))
-
-	#convert fraction d13C to R13
-	R13_frac = _d13C_to_R13(vals)
-
-	#perform fit
-	res = least_squares(
-		_R13_diff, 
-		r0,
-		bounds = (0, np.inf),
-		args = (DEa, ind_wgh, model, R13_frac, ratedata))
-
-	#ensure success
-	if not res.success:
-		warnings.warn(
-			'R13 component calc. could not converge on a successful fit',
-			UserWarning)
-
-	#extract best-fit result
-	R13_cmpt = res.x
-	d13C_cmpt = _R13_to_d13C(R13_cmpt)
-
-	#calculate predicted R13 of each fraction and convert to d13C
-	R13_frac_pred = res.fun + R13_frac
-	d13C_frac_pred = _R13_to_d13C(R13_frac_pred)
-
-	#calculate err
-	d13C_err = norm(vals - d13C_frac_pred)
-
-	return d13C_cmpt, d13C_err
-
-#define a function to run _kie_d13C in Monte Carlo fashion
-def _kie_d13C_MC(DEa, ind_wgh, model, nIter, result, ratedata):
-	'''
-	Calculates the d13C of each component, accounting for any KIE fractionation,
-	and bootstraps uncertainty.
-
-	Parameters
-	----------
-	DEa : np.ndarray
-		Array of DEa values (in kJ/mol) for each component in timedata.
-
-	ind_wgh : np.ndarray
-		Array of the mass-weighted center indices of each fraction.
-
-	model : rp.Model
-		``rp.Model`` instance containing the proper inversion model.
-		Used to calculate 13C rates.
-
-	nIter : int
-		The number of times to iterate.
-
-	result : rp.Result
-		``rp.Result`` instance containing the fraction isotopes used for
-		deconvolution.
-
-	ratedata : rp.RateData
-		``rp.Ratedata`` instance containing the rate distribution leading
-		to the KIE.
-
-	Returns
-	-------
-	pk_val : np.ndarray
-		Resulting estimated component isotope values, length `nCmpt`.
-
-	pk_std : np.ndarray
-		Resulting estimated component isotope stdev., length `nCmpt`.
-
-	rmse : float
-		Average RMSE between the measured and predicted fraction isotopes.
-	
-	Raises
-	------
-	LengthError
-		If length of `ind_wgh` is not `nFrac`.
-	'''
-
-	################################################################
-	# assert all datatypes here as to prevent checking nIter times #
-	################################################################
-	
-	#assert DEa and ind_wgh are the right length
-	DEa = assert_len(DEa, ratedata._pkinf.shape[0])
-	
-	if len(ind_wgh) != result.nFrac:
-		raise LengthError(
-			'ind_wgh of length = %r is not compatable with a model with'
-			' nFrac = %r. Ensure this is the right model instance'
-			%(len(ind_wgh), result.nFrac))
-
-	#ensure that ind_wgh and nIter dtype is integer
-	ind_wgh = [int(i) for i in ind_wgh]
-	nIter = int(nIter)
-
-	#nPeaks AFTER BEING COMBINED!
-	_, nCmpt = np.shape(ratedata.peaks)
+	#extract shapes
 	nFrac = result.nFrac
-
-	#extract data
-	vals =  result.d13C_frac.reshape(nFrac, 1)
-	vals_std = result.d13C_frac_std.reshape(nFrac, 1)
-
-	#generate noise matrix
-	noise = np.random.standard_normal(size = (nFrac, nIter))
+	nt = model.nt
 	
-	#generate noisy fraction isotoes
-	vals_MC = vals + vals_std*noise
+	#extract arrays
+	t_frac = result.t_frac
+	t = model.t
 
-	#pre-allocate results
-	pks = np.zeros([nIter, nCmpt])
-	errs = np.zeros(nIter)
+	#pre-allocate index arrays
+	ind_min = np.zeros(nFrac, dtype = int)
+	ind_max = np.zeros(nFrac, dtype = int)
 
-	#loop through and store each iteration
-	for i, v in enumerate(vals_MC.T):
+	#loop through and calculate indices
+	for i, row in enumerate(t_frac):
 
-		#calculate result
-		res = _kie_d13C(DEa, ind_wgh, model, ratedata, v)
+		#extract indices for each fraction
+		ind = np.where((t > row[0]) & (t <= row[1]))[0]
 
-		#store result
-		pks[i] = res[0]
-		errs[i] = res[1]
+		#store first and last indices
+		ind_min[i] = ind[0]
+		ind_max[i] = ind[-1]
 
-	#calculate statistics
-	pk_val = np.mean(pks, axis = 0)
-	pk_std = np.std(pks, axis = 0)
-
-	rmse = np.mean(errs)/(nFrac**0.5) 
-
-	return pk_val, pk_std, rmse
-
-#define a function to run nnls in Monte Carlo fashion
-def _nnls_MC(cont, nIter, vals, vals_std):
-	'''
-	Calculates the component mass or Fm using nnls and Monte Carlo.
-	
-	Parameters
-	----------
-	cont : np.ndarray
-		2d array of the contribution of each component to each fraction (for Fm) or
-		of each fraction to each component (for mass). Shape [`nFrac` x `nCmpt`].
-
-	nIter : int
-		The number of times to iterate.
-
-	vals : np.ndarray
-		Array of the isotope/mass values, length `nFrac`.
-
-	vals_std :
-		Array of the isotope/mass standard deviations, length `nFrac`.
-
-	Returns
-	-------
-	pk_val : np.ndarray
-		Resulting estimated component isotope/mass values, length `nCmpt`.
-
-	pk_std : np.ndarray
-		Resulting estimated component isotope/mass stdev., length `nCmpt`.
-
-	rmse : float
-		Average RMSE between the measured and predicted fraction isotopes/
-		masses.
-	'''
-
-	#extract shapes and ensure lengths
-	nFrac, nCmpt = cont.shape
-	vals = assert_len(vals, nFrac)
-	vals_std = assert_len(vals_std, nFrac)
-
-	#generate noise matrix
-	noise = np.random.standard_normal(size = (nFrac, nIter))
-	
-	#generate noisy fraction isotopes
-	vals = vals.reshape(nFrac, 1)
-	vals_std = vals_std.reshape(nFrac, 1)
-
-	vals_MC = vals + vals_std*noise
-
-	#pre-allocate results
-	pks = np.zeros([nIter, nCmpt])
-	errs = np.zeros(nIter)
-
-	#loop through and store each iteration
-	for i, v in enumerate(vals_MC.T):
-
-		#calculate result
-		res = nnls(cont, v)
-
-		#store result
-		pks[i] = res[0]
-		errs[i] = res[1]
-
-	#calculate statistics
-	pk_val = np.mean(pks, axis = 0)
-	pk_std = np.std(pks, axis = 0)
-
-	rmse = np.mean(errs)/(nFrac**0.5) 
-
-	return pk_val, pk_std, rmse
-
-#define a function to calculate CO2 13C/12C ratios.
-def _R13_CO2(DEa, model, R13_cmpt, ratedata):
-	'''
-	Calculates the 13C/12C ratio for instantaneously eluted CO2 at each
-	timepoint for a given 13C/12C ratio of each component.
-	
-	Parameters
-	----------
-	DEa : np.ndarray
-		Array of DEa values (in kJ/mol) for each peak, length nPeak.
-
-	model : rp.Model
-		``rp.Model`` instance containing the model to generate forward-
-		modeled 12C and 13C decomposition rates.
-
-	R13_cmpt : np.ndarray
-		13C/12C ratio for each component, length `nCmpt`.
-
-	ratedata : rp.RateData
-		``rp.RateData`` instance containing the k/Ea distribution to use for
-		calculating the KIE.
-
-	Returns
-	-------
-	R13_CO2 : np.ndarray
-		Array of 13C/12C ratio of instantaneously eluted CO2 at each 
-		timepoint, length `nt`.
-	'''
-
-	#extract k/Ea (necessary since models have different nomenclature)
-	if hasattr(ratedata, 'k'):
-		k = ratedata.k
-	elif hasattr(ratedata, 'Ea'):
-		k = ratedata.Ea
-	
-	#extract 12C and 13C peaks from ratedata
-	C12_mu = ratedata._pkinf[:,0]
-	sigma = ratedata._pkinf[:,1]
-	C12_height = ratedata._pkinf[:,2]
-
-	#if peaks have been combined, repeat R13_cmpt as necessary
-	if ratedata._cmbd is not None:
-
-		#calculate indices of deleted peaks
-		dp = [val - i for i, val in enumerate(ratedata._cmbd)]
-		dp = np.array(dp) #convert to nparray
-		
-		#insert deleted peaks back in
-		R13_cmpt = np.insert(R13_cmpt, dp, R13_cmpt[dp-1])
-
-	#calculate C13 means and heights
-	C13_mu = C12_mu + DEa
-	C13_height = C12_height*R13_cmpt
-
-	#calculate the rate distribution for C12 and C13
-	C12_phi, _ = _calc_phi(
-		k, 
-		C12_mu, 
-		sigma, 
-		C12_height, 
-		ratedata.peak_shape)
-
-	C13_phi, _ = _calc_phi(
-		k, 
-		C13_mu, 
-		sigma, 
-		C13_height, 
-		ratedata.peak_shape)
-
-	#forward-model 13C and 12C gam
-	C12_gam = np.inner(model.A, C12_phi)
-	C13_gam = np.inner(model.A, C13_phi)
-
-	#convert to 13C and 12C thermograms, and calculate R13_CO2
-	C12_dgamdt = -np.gradient(C12_gam)
-	C13_dgamdt = -np.gradient(C13_gam)
-
-	return C13_dgamdt/C12_dgamdt
-
-#define a function to calculate true - predicted R13 difference
-def _R13_diff(R13_cmpt, DEa, ind_wgh, model, R13_frac, ratedata):
-	'''
-	Calculates the difference between measured and predicted 13C/12C ratio. 
-	To be used by ``scipy.optimize.least_squares``.
-
-	Parameters
-	----------
-	R13_cmpt : np.ndarray
-		13C/12C ratio for each component, length nCmpt.
-
-	DEa : np.ndarray
-		Array of DEa values (in kJ/mol) for each peak.
-
-	ind_wgh : np.ndarray
-		Index in ``timedata.t`` corresponding to the mass-weighted mean time
-		for each fraction. Length nFrac.
-
-	model : rp.Model
-		``rp.Model`` instance containing the proper inversion model.
-		Used to calculate 13C rates.
-
-	R13_frac : np.ndarray
-		Array of 13C/12C ratios for each fraction, length nFrac.
-
-	ratedata : rp.RateData
-		``rp.Ratedata`` instance containing the rate distribution leading
-		to the KIE.
-
-	Returns
-	-------
-	R13_diff : np.ndarray
-		Difference between measured and predicted 13C/12C ratio for each 
-		fraction, length nFrac.
-	'''
-
-	#calculate the R13 of instantaneously produced CO2 at each point
-	R13_CO2 = _R13_CO2(
-		DEa, 
-		model, 
-		R13_cmpt, 
-		ratedata)
-
-	#calculate difference at ind_wgh
-	R13_diff = R13_CO2[ind_wgh] - R13_frac
-
-	return R13_diff
-
-#define a function to convert 13C/12C ratio to d13C.
-def _R13_to_d13C(R13):
-	'''
-	Converts 13R values to d13C values using VPDB standard.
-
-	Parameters
-	----------
-	R13 : np.ndarray
-		13C/12C ratio values to be converted to d13C in VPDB scale.
-
-	Returns
-	-------
-	d13C : np.ndarray
-		Resulting d13C values.
-	'''
-
-	#assert R13 is array with float dtype
-	R13 = assert_len(R13, len(R13))
-
-	Rpdb = 0.011237 #13C/12C ratio VPDB
-
-	d13C = (R13/Rpdb - 1)*1000
-
-	return d13C
+	return ind_min, ind_max
 
 #define a function to blank-correct fraction isotopes
 def _rpo_blk_corr(
@@ -473,7 +98,7 @@ def _rpo_blk_corr(
 		blk_flux = (0.375, 0.0583),
 		blk_Fm =  (0.555, 0.042)):
 	'''
-	Performs blank correction (NOSAMS RPO instrument) on raw isotope values.
+	Performs blank correction on raw isotope values.
 
 	Parameters
 	----------
@@ -501,17 +126,17 @@ def _rpo_blk_corr(
 	blk_d13C : tuple
 		Tuple of the blank d13C composition (VPDB), in the form 
 		(mean, stdev.) to be used of ``blk_corr = True``. Defaults to the
-		NOSAMS RPO blank as calculated by Hemingway et al. **(in prep)**.
+		NOSAMS RPO blank as calculated by Hemingway et al. **2017**.
 
 	blk_flux : tuple
 		Tuple of the blank flux (ng/s), in the form (mean, stdev.) to
 		be used of ``blk_corr = True``. Defaults to the NOSAMS RPO blank 
-		as calculated by Hemingway et al. **(in prep)**.
+		as calculated by Hemingway et al. **2017**.
 
 	blk_Fm : tuple
 		Tuple of the blank Fm value, in the form (mean, stdev.) to
 		be used of ``blk_corr = True``. Defaults to the NOSAMS RPO blank 
-		as calculated by Hemingway et al. **(in prep)**.
+		as calculated by Hemingway et al. **2017**.
 
 	Returns
 	-------
@@ -535,21 +160,12 @@ def _rpo_blk_corr(
 	
 	References
 	----------
-	[1] J.D. Hemingway et al. **(in prep)** Assessing the blank carbon
-		contribution, isotope mass balance, and kinetic isotope fractionation
-		of the ramped pyrolysis/oxidation instrument at NOSAMS.
+	[1] J.D. Hemingway et al. (2017) Assessing the blank carbon contribution, 
+		isotope mass balance, and kinetic isotope fractionation of the ramped 
+		pyrolysis/oxidation instrument at NOSAMS. **Radiocarbon**
 	'''
 
 	#define constants
-	# bl_flux = 0.375/1000 #ug/s
-	# bl_flux_std = 5.83e-5
-
-	# bl_d13C = -29.0
-	# bl_d13C_std = 0.1
-
-	# bl_Fm = 0.555
-	# bl_Fm_std = 0.042
-
 	bl_flux = blk_flux[0]/1000 #make ug/s
 	bl_flux_std = blk_flux[1]/1000 #make ug/s
 
@@ -612,106 +228,88 @@ def _rpo_blk_corr(
 			m_corr, 
 			m_std_corr)
 
-#define function to calculate the component to fraction contribution.
-def _rpo_cont_ctf(result, timedata, ctf = True):
+#define function to calculate the E values of each RPO fraction
+def _rpo_calc_E_frac(
+	result,
+	model,
+	ratedata):
 	'''
-	Calculates the contribution of each component to each fraction or of each
-	fraction to each component.
+	Calculates the distribution of E values contained within each RPO fraction
+	as determined by p0(E) and each fraction start/stop time.
 
 	Parameters
 	----------
-	result : rp.RpoIsotopes
-		``RpoIsotopes`` instance containing CO2 fraction information.
+	result : rp.Results
+		Result instance containing the start/stop times to be used to calculate
+		E_frac
 
-	timedata : rp.TimeData
-		``TimeData`` instance containing the thermogram of interest.
+	model : rp.Model
+		``rp.Model`` instance containing the A matrix to use for inversion.
 
-	ctf : Boolean
-		If True, calculates the contribution of each component to each fraction.
-		If False, calculates the contribution of each fraction to each component.
+	ratedata : rp.RateData
+		``rp.Ratedata`` instance containing the reactive continuum data.
 
 	Returns
 	-------
-	cont_ctf : np.ndarray
-		Array of the contribution by each component to each measured CO2
-		fraction or each fraction to each component, shape [`nFrac` x `nCmpt`].
+	E_frac : np.ndarray
+		Array of mean E value contained in each RPO fraction, length `nFrac`.
 
-	ind_min : np.ndarray
-		Index in ``timedata.t`` corresponding to the minimum time for each 
-		fraction. Length nFrac.
+	E_frac_std : np.ndarray
+		Array of the standard deviation of E contained in each RPO fraction,
+		length `nFrac`.
 
-	ind_max : np.ndarray
-		Index in ``timedata.t`` corresponding to the maximum time for each 
-		fraction. Length nFrac.
-
-	ind_wgh : np.ndarray
-		Index in ``timedata.t`` corresponding to the mass-weighted mean time
-		for each fraction. Length nFrac.
-
-	Warnings
-	------
-	UserWarning
-		If nCmpt is greater than nFrac, the problem is underconstrained.
-
-	Notes
-	-----
-	This method uses peaks **after** the "combined"  flag has been 
-	implemented. That is, it treats combined peaks as a single  component when 
-	calculating indices and contributions to each fraction.
+	p_frac : np.ndarray
+		2d array of the distribution of E contained in each RPO fraction,
+		shape [`nFrac` x `nE`].
 	'''
 
-	#extract shapes
-	nFrac = result.nFrac
-	nCmpt = timedata.nCmpt
-	nt = timedata.nt
-	
-	#extract arrays
-	t_frac = result.t_frac
-	t = timedata.t
-	dt = np.gradient(t).reshape(nt,1)
-	wgh = -timedata.dgamdt
-	cmpts = -timedata.dcmptdt
+	#calculate cutoff indices
+	ind_min, ind_max = _calc_cutoff(result, model)
 
-	#raise warnings
-	if nCmpt > nFrac:
-		warnings.warn(
-			'Warning: nCmpt = %r, nFrac = %r. Problem is underconstrained!'
-			' Solution is not unique!' %(nCmpt, nFrac),
-			UserWarning)
+	#extract necessary data
+	A = model.A
+	E = ratedata.E
+	nE = ratedata.nE
+	nF = result.nFrac
+	p = ratedata.p
 
-	#pre-allocate cont_ctf matrix and index arrays
-	cont_ctf = np.zeros([nFrac,nCmpt])
-	ind_min = np.zeros(nFrac, dtype = int)
-	ind_max = np.zeros(nFrac, dtype = int)
-	ind_wgh = np.zeros(nFrac, dtype = int)
+	#make an empty matrix to store results
+	p_frac = np.zeros([nF, nE])
+	E_frac = np.zeros(nF)
+	E_frac_std = np.zeros(nF)
 
-	#loop through and calculate contributions and indices
-	for i, row in enumerate(t_frac):
+	#loop through each time window and calculate p0E_diff distribution
+	for i in range(nF):
 
-		#extract indices for each fraction
-		ind = np.where((t > row[0]) & (t <= row[1]))[0]
+		#extract indices
+		imin = ind_min[i]
+		imax = ind_max[i]
 
-		#store first and last indices
-		ind_min[i] = ind[0]
-		ind_max[i] = ind[-1]
+		#p(E,t) at time 0
+		pt0 = p*A[imin,:]
 
-		#calculate mass-weighted average index
-		av = np.average(ind, weights = wgh[ind])
-		ind_wgh[i] = int(np.round(av))
+		#p(E,t) at time final
+		ptf = p*A[imax,:]
 
-		if ctf is True:
-			#calculate component to fraction contribution
-			ctf_i = np.sum(cmpts[ind], axis = 0)/np.sum(wgh[ind])
+		#difference -- i.e. p(E) evolved of Dt
+		Dpt = pt0 - ptf
 
-		else:
-			#calculate contribution of each fraction to each component
-			ctf_i = np.sum(cmpts[ind]*dt[ind], axis = 0)/np.sum(cmpts*dt, 
-				axis = 0)
+		#scale difference so that integral is 1
+		scalar = 1/np.sum(Dpt*np.gradient(E))
 
-		#store in row i
-		cont_ctf[i] = ctf_i
+		#store in matrix
+		p_frac[i, :] = Dpt
 
-	return cont_ctf, ind_min, ind_max, ind_wgh
+		#calculate the mean and stdev
+		mu = np.sum(E*Dpt*scalar*np.gradient(E))
+		var = np.sum((E - mu)**2 * Dpt*scalar*np.gradient(E))
+
+		#store results
+		E_frac[i] = mu
+		E_frac_std[i] = var**0.5
+
+	return E_frac, E_frac_std, p_frac
+
 
 #define function to extract Rpo isotope data from .csv file
 def _rpo_extract_iso(file, mass_err):
@@ -844,3 +442,153 @@ def _rpo_extract_iso(file, mass_err):
 			m, 
 			m_std, 
 			t)
+
+#define function to correct d13C for kinetic fractionation
+def _rpo_kie_corr(
+	result,
+	model,
+	ratedata,
+	DE):
+	'''
+	Corrects d13C values for each RPO fraction for kinetic isotope effects.
+
+	Parameters
+	----------
+	result : rp.Results
+		Result instance containing the start/stop times to be used to calculate
+		E_frac
+
+	model : rp.Model
+		``rp.Model`` instance containing the A matrix to use for inversion.
+
+	ratedata : rp.RateData
+		``rp.Ratedata`` instance containing the reactive continuum data.
+
+	DE : scalar
+		Value for the difference in E between 12C- and 13C-containing
+		atoms, in kJ. Defaults to 0.0018 (the best-fit value calculated
+		in Hemingway et al., **2017**).
+
+	Returns
+	-------
+	d13C_corr : np.ndarray
+		Array of the fractionation-corrected d13C values (VPDB) of each 
+		measured fraction, length `nFrac`.
+
+	d13C_corr_std : np.ndarray
+		The standard deviation of `d13C_corr` with length `nFrac`.
+	'''
+
+	#generate daem for 13C-containing atoms
+	daem13 = Daem(model.E+DE, model.log10k0, model.t, model.T)
+
+	#calculate ratio of rates, the KIE
+	tg12 = np.dot(model.A,ratedata.p)
+	tg13 = np.dot(daem13.A,ratedata.p)
+	r = np.gradient(tg13)/np.gradient(tg12)
+
+	#for each time slice, calculate KIE-corrected d13C
+	d13C_corr = []
+
+	#calculate cutoff indices
+	ind_min, ind_max = _calc_cutoff(result, model)
+
+	#loop through and correct each measurement
+	for mi, ma, d13i in zip(ind_min, ind_max, result.d13C_frac):
+		
+		#weighted-average kie for each slice
+		kie_i = np.average(r[mi:ma], weights = -np.gradient(tg12)[mi:ma])
+
+		#convert measured d13C to ratio
+		R13_i = (d13i/1000 + 1)*0.011237
+
+		#divide by kie_i to correct
+		R13_i_corr = R13_i/kie_i
+
+		#convert back to d13C
+		d13C_i_corr = (R13_i_corr/0.011237 - 1)*1000
+
+		#append list
+		d13C_corr.append(d13C_i_corr)
+
+	#since uncertainty is unknown, d13C_std is unchanged
+	d13C_corr_std = result.d13C_frac_std
+
+	return d13C_corr, d13C_corr_std
+
+#define function to correct d13C for isotope mass balance
+def _rpo_mass_bal_corr(
+	d13C,
+	d13C_std,
+	m,
+	m_std,
+	bulk_d13C_true):
+	'''
+	Corrects d13C values for the difference between mass-weighted mean and
+	independently measured bulk values (i.e. isotope mass balance).
+
+	Parameters
+	----------
+	d13C : np.ndarray
+		Array of the d13C values (VPDB) of each measured fraction, 
+		length `nFrac`.
+
+	d13C_std : np.ndarray
+		The standard deviation of `d13C` with length `nFrac`.
+
+	m : np.ndarray
+		Array of the masses (ugC) of each measured fraction, length `nFrac`.
+
+	m_frac : np.ndarray
+		The standard deviation of `m_frac` with length `nFrac`.
+
+	bulk_d13C_true: array
+		The true, independently measured bulk d13C value for the sample.
+		Inputted in the form [mean, stdev.].
+
+	Returns
+	-------
+	d13C_corr : np.ndarray
+		Array of the mass-balance-corrected d13C values (VPDB) of each
+		measured fraction, length `nFrac`.
+
+	d13C_corr_std : np.ndarray
+		The standard deviation of `d13C_corr` with length `nFrac`.
+
+	Raises
+	------
+	ArrayError
+		If `bulk_d13C_true` is not array-like
+
+	LengthError
+		If `bulk_d13C_true` is not an array of length 2.
+
+	References
+	----------
+	[1] J.D. Hemingway et al. (2017) Assessing the blank carbon contribution, 
+		isotope mass balance, and kinetic isotope fractionation of the ramped 
+		pyrolysis/oxidation instrument at NOSAMS. **Radiocarbon**
+	'''
+
+	#ensure bulk_d13C_true is in the right format, and raise error if not
+	if not isinstance(bulk_d13C_true, Sequence) and not hasattr(bulk_d13C_true, '__array__'):
+		raise ArrayError(
+			'bulk_d13C_true must be array-like')
+
+	if len(bulk_d13C_true) != 2:
+		raise LengthError(
+			'length of bulk_d13C_true must be 2 [mean, stdev.]')
+
+	#calculate the fractional contribution by each RPO fraction
+	f = m/np.sum(m)
+
+	#calculate the weighted-average d13C, d13C_std
+	d13C_wgh = np.average(d13C, weights = f)
+	d13C_wgh_std = norm(f*d13C_std)
+
+	#calculate mass-balance-corrected values
+	d13C_corr = d13C + (bulk_d13C_true[0] - d13C_wgh)
+	d13C_corr_std = (d13C_std**2 + bulk_d13C_true[1] + d13C_wgh_std**2)**0.5
+
+	return d13C_corr, d13C_corr_std
+

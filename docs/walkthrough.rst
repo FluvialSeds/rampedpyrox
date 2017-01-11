@@ -272,7 +272,7 @@ Here, I calculate and plot L curve for the thermogram and model defined above::
 	fig,ax = plt.subplots(1, 1,
 		figsize = (5, 5))
 
-	om_best, ax = daem.calc_L_curve(rd, ax = ax)
+	om_best, ax = daem.calc_L_curve(tg, ax = ax)
 
 	plt.tight_layout()
 
@@ -424,7 +424,7 @@ Resulting plot looks like this:
 Similar to ``rp.EnergyComplex``, you can print and save a summary of the components::
 
 	tg.cmpt_info
-	tg.peak_info.to_csv('tg_peak_info_file.csv')
+	tg.cmpt_info.to_csv('tg_peak_info_file.csv')
 
 Which will print a table similar to:
 
@@ -577,8 +577,8 @@ Using a `DEa` value of 1.8e-3 kJ/mol, I fit the isotopes using 10,000 Monte Carl
 
 The resulting component information can be printed with the ``cmpt_info`` attribute and saved to a `.csv` file::
 
-	ir.cmpt_info
-	ir.cmpt_info.to_csv('isotope_component_info_file.csv')
+	ri.cmpt_info
+	ri.cmpt_info.to_csv('isotope_component_info_file.csv')
 
 Which prints a table similar to:
 

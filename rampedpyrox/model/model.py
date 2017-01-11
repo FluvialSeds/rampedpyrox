@@ -26,7 +26,7 @@ from ..core.core_functions import(
 	)
 
 from .model_helper import(
-	_calc_f,
+	_calc_p,
 	_rpo_calc_A,
 	)
 
@@ -44,7 +44,7 @@ class Model(object):
 		----------
 		A : 2d array-like
 			Array of the transform matrix to convert from time to rate space.
-			Rows are timepoints and columns are k/Ea values. Shape 
+			Rows are timepoints and columns are k/E values. Shape 
 			[`nt` x `nk`].
 
 		t : array-like
@@ -83,7 +83,7 @@ class Model(object):
 			ax = None, 
 			nOm = 150, 
 			om_max = 1e2, 
-			om_min = 1e-3, 
+			om_min = 1e-2, 
 			plot = False):
 		'''
 		Function to calculate the L-curve for a given model and timedata
@@ -107,7 +107,7 @@ class Model(object):
 			Maximum omega value to search. Defaults to 1e2.
 
 		om_min : float or int
-			Minimum omega value to search. Defaults to 1e-3.
+			Minimum omega value to search. Defaults to 1e-2.
 
 		plot : Boolean
 			Tells the method to plot the resulting L curve or not. Defaults to
@@ -172,27 +172,62 @@ class Model(object):
 
 		#for each omega value in the vector, calculate the errors
 		for i, w in enumerate(om_vec):
-			_, res, rgh = _calc_f(self, timedata, w)
+			_, res, rgh = _calc_p(self, timedata, w)
 			res_vec[i] = res
 			rgh_vec[i] = rgh
 
-		#store logs as arrays, and remove noise after 6 sig figs
+		#convert to log space
 		res_vec = np.log10(res_vec)
 		rgh_vec = np.log10(rgh_vec)
 
+		#remove noise after 6 sig figs
 		res_vec = np.around(res_vec, decimals = 6)
 		rgh_vec = np.around(rgh_vec, decimals = 6)
 
-		#calculate derivatives and curvature
-		dydx = derivatize(rgh_vec, res_vec)
-		dy2d2x = derivatize(dydx, res_vec)
+		# #calculate derivatives and curvature
+		# dydx = derivatize(rgh_vec, res_vec)
+		# dy2d2x = derivatize(dydx, res_vec)
 
-		#function for curvature
-		k = np.abs(dy2d2x)/(1+dydx**2)**1.5
+		# #function for curvature
+		# k = np.abs(dy2d2x)/(1+dydx**2)**1.5
 
-		#find first occurrance of argmax k, ignoring first and last points
-		i = np.argmax(k[1:-1])
-		om_best = om_vec[i + 1]
+		# #find first occurrance of argmax k, ignoring first and last points
+		# i = np.argmax(k[1:-1])
+		# i + 1+1 #account for the fact that we dropped the first point
+		# om_best = om_vec[i]
+
+		# FROM FORNEY AND ROTHMAN 2012
+		
+		#calculate derivatives
+		dres = np.diff(res_vec)
+		dres1 = dres[:-1]
+		dres2 = dres[1:]
+
+		drgh = np.diff(rgh_vec)
+		drgh1 = drgh[:-1]
+		drgh2 = drgh[1:]
+
+		dom = np.diff(om_vec)
+		dom1 = dom[:-1]
+		dom2 = dom[1:]    
+
+		#calculate derivative at om_n, the omega value at the center of the 1st
+		#and 2nd derivatives
+		om_n = om_vec[1:-1]/2 + (om_vec[:-2]+om_vec[2:])/4
+
+		#first derivative at om_n
+		drgh_n=(drgh1/dom1+drgh2/dom2)/2
+		dres_n=(dres1/dom1+dres2/dom2)/2
+
+		#second derivative at om_n
+		ddrgh_n=(drgh2/dom2-drgh1/dom1)/(dom1/2+dom2/2)
+		ddres_n=(dres2/dom2-dres1/dom1)/(dom1/2+dom2/2)
+
+		#calculate curvature and find maximum
+		curv = (dres_n*ddrgh_n - ddres_n*drgh_n)/(dres_n**2 + drgh_n**2)**1.5
+
+		i = np.argmax(curv)
+		om_best = om_vec[i]
 
 		#plot if necessary
 		if plot:
@@ -220,18 +255,20 @@ class Model(object):
 
 			#set axis labels and text
 			ax.set_xlabel(
-				r'residual rmse, $log_{10} \parallel Af - g \parallel$')
+				r'residual error, $\log_{10} \left( \frac{\|\| \mathbf{A}\cdot \mathbf{p} - \mathbf{g} \|\|}{\sqrt{n_{j}}} \right)$'
+				)
 			
 			ax.set_ylabel(
-				r'roughness rmse, $log_{10} \parallel Rf \parallel$')
+				r'roughness, $\log_{10} \left( \frac{\|\| \mathbf{R} \cdot\mathbf{p} \|\|}{\sqrt{n_{l}}} \right)$'
+				)
 
 			label1 = r'best-fit $\omega$ = %.3f' %(om_best)
 			
 			label2 = (
-				r'$log_{10} \parallel Af - g \parallel$ = %.3f' %(res_vec[i]))
+				r'$log_{10}$ (resid. err.) = %.3f' %(res_vec[i]))
 			
 			label3 = (
-				r'$log_{10} \parallel Rf \parallel$  = %0.3f' %(rgh_vec[i]))
+				r'$log_{10}$ (roughness)  = %0.3f' %(rgh_vec[i]))
 
 			ax.text(
 				0.5,
@@ -241,44 +278,28 @@ class Model(object):
 				horizontalalignment='left',
 				transform=ax.transAxes)
 
+			#make tight layout
+			plt.tight_layout()
+
 			return om_best, ax
 
 		else:
 			return om_best
 
 
-class LaplaceTransform(Model):
-	'''
-	Class to store Laplace transform model setup. Intended for subclassing,
-	do not call directly.
-	'''
-
-	def __init__(self, A, t, T):
-
-		super(LaplaceTransform, self).__init__(A, t, T)
-
-	@classmethod
-	def from_timedata(self):
-		raise NotImplementedError
-
-	@classmethod
-	def from_ratedata(self):
-		raise NotImplementedError
-
-
-class Daem(LaplaceTransform):
+class Daem(Model):
 	__doc__='''
-	Class to calculate the `DAEM` model Laplace Transform. Used for ramped-
-	temperature kinetic problems such as Ramped PyrOx, pyGC, TGA, etc.
+	Class to calculate the `DAEM` model transform. Used for ramped-temperature
+	kinetic problems such as Ramped PyrOx, pyGC, TGA, etc.
 	
 	Parameters
 	----------
-	Ea : array-like
-		Array of Ea values, in kJ/mol. Length `nEa`.
+	E : array-like
+		Array of E values, in kJ/mol. Length `nE`.
 
 	log10k0 : scalar, array-like, or lambda function
 		Arrhenius pre-exponential factor, either a constant value, array-like
-		with length `nEa`, or a lambda function of Ea. 
+		with length `nE`, or a lambda function of E (in kJ). 
 
 	t : array-like
 		Array of time, in seconds. Length `nt`.
@@ -292,15 +313,6 @@ class Daem(LaplaceTransform):
 		If attempting to use isothermal data to create a ``Daem`` model 
 		instance.
 
-	Notes
-	-----
-	Best-fit omega values using the L-curve approach typically under-
-	regularize for Ramped PyrOx data. That is, `om_best` calculated here
-	results in a "peakier" f(Ea) and a higher number of Ea Gaussian peaks
-	than can be resolved given a typical run with ~5-7 CO2 fractions. Omega
-	values between 1 and 5 typically result in ~5 Ea Gaussian peaks for most
-	Ramped PyrOx samples.
-
 	See Also
 	--------
 	RpoThermogram
@@ -308,12 +320,11 @@ class Daem(LaplaceTransform):
 		time/temperature data.
 
 	EnergyComplex
-		``rp.RateData`` subclass for storing, deconvolving, and analyzing RPO
-		rate data.
+		``rp.RateData`` subclass for storing and analyzing RPO rate data.
 
 	Examples
 	--------
-	Creating a DAEM using manually-inputted `Ea`, `k0`, `t`, and `T`::
+	Creating a DAEM using manually-inputted `E`, `k0`, `t`, and `T`::
 
 		#import modules
 		import numpy as np
@@ -324,11 +335,11 @@ class Daem(LaplaceTransform):
 		beta = 0.5 #K/second
 		T = beta*t + 273.15 #K
 		
-		Ea = np.arange(50, 350) #kJ/mol
-		log10k0 = 10 #seconds-1
+		E = np.arange(50, 350) #kJ/mol
+		log10k0 = 10 #s-1
 
 		#create instance
-		daem = rp.Daem(Ea, log10k0, t, T)
+		daem = rp.Daem(E, log10k0, t, T)
 
 	Creating a DAEM from real thermogram data using the ``rp.Daem.from_timedata``
 	class method::
@@ -342,9 +353,9 @@ class Daem(LaplaceTransform):
 		#create Daem instance
 		daem = rp.Daem.from_timedata(
 			tg, 
-			Ea_max = 350, 
-			Ea_min = 50, 
-			nEa = 250, 
+			E_max = 350, 
+			E_min = 50, 
+			nE = 250, 
 			log10k0 = 10)
 
 	Creating a DAEM from an energy complex using the
@@ -354,7 +365,7 @@ class Daem(LaplaceTransform):
 		import rampedpyrox as rp
 
 		#create energycomplex instance
-		ec = rp.EnergyComplex(Ea, fEa)
+		ec = rp.EnergyComplex(E, p0E)
 
 		#create Daem instance
 		daem = rp.Daem.from_ratedata(
@@ -379,7 +390,7 @@ class Daem(LaplaceTransform):
 			tg,
 			ax = None, 
 			plot = True,
-			om_min = 1e-3,
+			om_min = 1e-2,
 			om_max = 1e2,
 			nOm = 150)
 
@@ -387,10 +398,10 @@ class Daem(LaplaceTransform):
 
 	A : np.ndarray
 
-	Ea : np.ndarray
-		Array of Ea values, in kJ/mol. Length `nEa`.
+	E : np.ndarray
+		Array of E values, in kJ/mol. Length `nE`.
 
-	nEa : int
+	nE : int
 		Number of activation energy points.
 
 	nt : int
@@ -443,44 +454,44 @@ class Daem(LaplaceTransform):
 		*Journal of Analytical and Applied Pyrolysis*, **91**, 1-33.
 	'''
 
-	def __init__(self, Ea, log10k0, t, T):
+	def __init__(self, E, log10k0, t, T):
 
 		#warn if T is scalar
 		if isinstance(T, (int, float)):
 			warnings.warn(
 				'Attempting to use isothermal data for RPO run! T is a scalar'
-				'value of: %r. Consider using an isothermal model type'
-				'instead.' % T, UserWarning)
+				' value of: %r. Consider using an isothermal model type'
+				' instead.' % T, UserWarning)
 
 		elif len(set(T)) == 1:
 			warnings.warn(
 				'Attempting to use isothermal data for RPO run! T is a scalar'
-				'value of: %r. Consider using an isothermal model type'
-				'instead.' % T[0], UserWarning)
+				' value of: %r. Consider using an isothermal model type'
+				' instead.' % T[0], UserWarning)
 
 		#get log10k0 into the right format
 		if hasattr(log10k0,'__call__'):
-			log10k0 = log10k0(Ea)
+			log10k0 = log10k0(E)
 
 		#calculate A matrix
-		A = _rpo_calc_A(Ea, log10k0, t, T)
+		A = _rpo_calc_A(E, log10k0, t, T)
 
 		super(Daem, self).__init__(A, t, T)
 
 		#store Daem-specific attributes
-		nEa = len(Ea)
-		self.log10k0 = assert_len(log10k0, nEa)
-		self.Ea = assert_len(Ea, nEa)
-		self.nEa = nEa
+		nE = len(E)
+		self.log10k0 = assert_len(log10k0, nE)
+		self.E = assert_len(E, nE)
+		self.nE = nE
 
 	@classmethod
 	def from_timedata(
 			cls, 
 			timedata, 
-			Ea_max = 350, 
-			Ea_min = 50, 
+			E_max = 350, 
+			E_min = 50, 
 			log10k0 = 10, 
-			nEa = 250):
+			nE = 250):
 		'''
 		Class method to directly generate an ``rp.Daem`` instance using data
 		stored in an ``rp.TimeData`` instance.
@@ -491,19 +502,19 @@ class Daem(LaplaceTransform):
 			``rp.TimeData`` instance containing the time array to use
 			for creating the DAEM.
 
-		Ea_max : int
+		E_max : int
 			The maximum activation energy value to consider, in kJ/mol.
 			Defaults to 350.
 
-		Ea_min : int
+		E_min : int
 			The minimum activation energy value to consider, in kJ/mol.
 			Defaults to 50.
 
 		log10k0 : scalar, array-like, or lambda function
 			Arrhenius pre-exponential factor, either a constant value, array-
-			likewith length `nEa`, or a lambda function of Ea. Defaults to 10.
+			likewith length `nE`, or a lambda function of E. Defaults to 10.
 		
-		nEa : int
+		nE : int
 			The number of activation energy points. Defaults to 250.
 
 		Warnings
@@ -528,12 +539,12 @@ class Daem(LaplaceTransform):
 				' instance of type %r. Consider using rp.RpoThermogram' 
 				' instance instead' % td_type, UserWarning)
 
-		#generate Ea, t, and T array
-		Ea = np.linspace(Ea_min, Ea_max, nEa)
+		#generate E, t, and T array
+		E = np.linspace(E_min, E_max, nE)
 		t = timedata.t
 		T = timedata.T
 
-		return cls(Ea, log10k0, t, T)
+		return cls(E, log10k0, t, T)
 
 	@classmethod
 	def from_ratedata(
@@ -552,7 +563,7 @@ class Daem(LaplaceTransform):
 		Parameters
 		----------
 		ratedata : rp.RateData
-			``rp.RateData`` instance containing the Ea array to use for
+			``rp.RateData`` instance containing the E array to use for
 			creating the DAEM. 
 
 		beta : int or float
@@ -561,7 +572,7 @@ class Daem(LaplaceTransform):
 
 		log10k0 : scalar, array-like, or lambda function
 			Arrhenius pre-exponential factor, either a constant value, array-
-			likewith length `nEa`, or a lambda function of Ea. Defaults to 10.
+			likewith length `nE`, or a lambda function of E. Defaults to 10.
 
 		nt : int
 			The number of time points to use. Defaults to 250.
@@ -601,12 +612,12 @@ class Daem(LaplaceTransform):
 				' type %r. Consider using rp.EnergyComplex instance instead'
 				% rd_type, UserWarning)
 
-		#generate Ea, t, and T array
-		Ea = ratedata.Ea
+		#generate E, t, and T array
+		E = ratedata.E
 		t = np.linspace(t0, tf, nt)
 		T = T0 + beta*t
 
-		return cls(Ea, log10k0, t, T)
+		return cls(E, log10k0, t, T)
 
 if __name__ == '__main__':
 

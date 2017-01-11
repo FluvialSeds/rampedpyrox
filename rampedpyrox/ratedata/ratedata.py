@@ -32,16 +32,8 @@ from ..core.plotting_helper import(
 	_rem_dup_leg,
 	)
 
-from ..core.summary_helper import(
-	_energycomplex_peak_info,
-	)
-
-from .ratedata_helper import(
-	_deconvolve,
-	)
-
 from ..model.model_helper import(
-	_calc_f,
+	_calc_p,
 	)
 
 
@@ -58,27 +50,21 @@ class RateData(object):
 		Parameters
 		----------
 		k : array-like
-			Array of k/Ea values considered in the model. Length `nk`.
+			Array of k/E values considered in the model. Length `nk`.
 
-		f : array-like
-			Array of a pdf of the distribution of k/Ea values. Length `nk`.
-
-		f_std : 
-			Array of the uncertainty in f. Length `nk`.
+		p : array-like
+			Array of a pdf of the distribution of k/E values. Length `nk`.
 		'''
 		raise NotImplementedError
 
 	#define classmethod to generate instance by inverse modeling timedata with
-	# a model
+	# a given model
 	@classmethod
 	def inverse_model(
 			cls, 
 			model, 
 			timedata, 
-			nPeaks = 'auto',
-			omega = 'auto', 
-			peak_shape = 'Gaussian', 
-			thres = 0.05):
+			omega = 'auto'):
 		'''
 		Inverse models an ``rp.TimeData`` instance using a given ``rp.Model``
 		instance and creates an ``rp.RateData`` instance.
@@ -91,27 +77,6 @@ class RateData(object):
 		timedata : rp.TimeData
 			``rp.TimeData`` instance containing the timeseries data to invert.
 
-		nPeaks : int or 'auto'
-			Tells the program how many peaks to retain after deconvolution.
-			Defaults to 'auto'.
-
-		omega : scalar or 'auto'
-			Tikhonov regularization weighting factor. Defaults to 'auto'.
-
-		peak_shape : str
-			Peak shape to use for deconvolved peaks. Acceptable strings are:
-
-				'gamma',
-				'Gaussian'
-				'Lorentzian'
-			
-			Defaults to 'Gaussian'.
-
-		thres : float
-			Threshold for peak detection cutoff. `thres` is the relative 
-			height of the global maximum under which no peaks will be 
-			detected. Defaults to 0.05 (i.e. 5% of the highest peak).
-
 		Raises
 		------
 		ScalarError
@@ -123,15 +88,6 @@ class RateData(object):
 			If ``scipy.optimize.least_squares`` cannot converge on a 
 			solution.
 
-		Notes
-		-----
-		This method calculates peaks according to changes in curvature in the
-		`f` array resulting from the inverse model. Each bounded section 
-		with a negative second derivative (i.e. concave down) and `f` value 
-		above `thres` is considered a unique peak. If `nPeaks` is not 'auto', 
-		these peaks are sorted according to decreasing peak heights and the 
-		first `nPeaks` peaks are saved.
-
 		See Also
 		--------
 		TimeData.forward_model
@@ -139,13 +95,13 @@ class RateData(object):
 			using a particular model.
 		'''
 
-		#extract model rate/Ea and store as k variable (necessary since models
+		#extract model rate/E and store as k variable (necessary since models
 		#	have different nomenclature)
 		if hasattr(model, 'k'):
 			k = model.k
 		
-		elif hasattr(model, 'Ea'):
-			k = model.Ea
+		elif hasattr(model, 'E'):
+			k = model.E
 
 		#calculate best-fit omega if necessary
 		if omega == 'auto':
@@ -158,26 +114,15 @@ class RateData(object):
 			raise ScalarError(
 				'omega must be int, float, or "auto"')
 
-		#generate regularized "true" pdf, f
-		f, resid_rmse, rgh_rmse = _calc_f(model, timedata, omega)
+		#generate regularized pdf, p
+		p, resid_rmse, rgh_rmse = _calc_p(model, timedata, omega)
 
 		#create class instance
-		rd = cls(k, f = f)
-
-		#deconvolve into individual peaks
-		peaks, peak_info = _deconvolve(
-			k, 
-			f, 
-			nPeaks = nPeaks, 
-			peak_shape = peak_shape,
-			thres = thres)
+		rd = cls(k, p = p)
 
 		#input estimated data
 		rd.input_estimated(
-			peaks, 
 			omega = omega,
-			peak_info = peak_info,
-			peak_shape = peak_shape,
 			resid_rmse = resid_rmse,
 			rgh_rmse = rgh_rmse)
 
@@ -186,10 +131,7 @@ class RateData(object):
 	#define a method to input estimated rate data
 	def input_estimated(
 			self,
-			peaks, 
 			omega = None, 
-			peak_info = None, 
-			peak_shape = 'Gaussian', 
 			resid_rmse = None, 
 			rgh_rmse = None):
 		'''
@@ -197,24 +139,9 @@ class RateData(object):
 
 		Parameters
 		----------		
-		peaks : np.ndarray
-			2d array of the pdf of individual peaks at each rate/Ea point.
-
-		peak_info : np.ndarray
-			2d array of peak mean, stdev., and height
-
-		omega : scalar or 'auto'
-			Smoothing weighting factor for Tikhonov regularization. Defaults
-			to 'auto'.
-
-		peak_shape : str
-			Peak shape to use for deconvolved peaks. Acceptable strings are:
-
-				'gamma',
-				'Gaussian',
-				'Lorentzian'
-			
-			Defaults to 'Gaussian'.
+		omega : scalar
+			Best-fit smoothing weighting factor for Tikhonov regularization.
+			Calculated using L-curve approach.
 
 		resid_rmse : float
 			Residual RMSE from inverse model.
@@ -225,54 +152,21 @@ class RateData(object):
 		Raises
 		------
 		ScalarError
-			If omega is not scalar or None.
-
-		Warnings
-		--------
-		UserWarning
-			If peaks do not integrate to one, the program automatically scales
-			all peaks equally to ensure proper integration value.
+			If omega is not scalar or `None`.
 		'''
 
-		#extract n rate/Ea (necessary since models have different nomenclature)
+		#extract n rate/E (necessary since models have different nomenclature)
 		if hasattr(self, 'nk'):
 			nk = self.nk
 			k = self.k
 		
-		elif hasattr(self, 'nEa'):
-			nk = self.nEa
-			k = self.Ea
-
-		#ensure type and size
-		peaks = assert_len(peaks, nk)
-
-		#force to be 2d (for derivatives and sums, below)
-		nPeak = int(peaks.size/nk)
-		peaks = peaks.reshape(nk, nPeak)
-
-		#ensure that peaks integrate to one, and warn if not
-		phi = np.sum(peaks, axis = 1)
-		a = np.sum(phi*np.gradient(k))
-
-		if np.around(a - 1, decimals = 2) != 0:
-			warnings.warn(
-				'Peaks do not integrate to one with 1 percent precision.'
-				' Integral is: %r. Automatically scalaing to unity.' %a,
-				UserWarning)
-
-			peaks = peaks/a
+		elif hasattr(self, 'nE'):
+			nk = self.nE
+			k = self.E
 
 		#store attributes
-		self.dof = nk - 3*nPeak + 1
-		self.nPeak = nPeak
-		self.peak_shape = peak_shape
-		self.peaks = peaks
-		self.phi = phi
 		self.resid_rmse = resid_rmse
 		self.rgh_rmse = rgh_rmse
-
-		#store protected _pkinf attribute (used for isotope calcs.)
-		self._pkinf = peak_info
 
 		#input omega if it exists for bookkeeping
 		if omega is not None:
@@ -283,17 +177,8 @@ class RateData(object):
 			else:
 				self.omega = omega
 
-		#store statistics if the model has true data, f
-		if hasattr(self, 'f'):
-
-			rcs = norm((self.f - self.phi)/self.f_std)/self.dof
-			rmse = norm(self.f - self.phi)/nk**0.5
-
-			self.red_chi_sq = rcs
-			self.rmse = rmse
-
 	#define plotting method
-	def plot(self, ax = None, labs = None, md = None, rd = None):
+	def plot(self, ax = None, labs = None, rd = None):
 		'''
 		Method for plotting ``rp.RateData`` instance data.
 
@@ -305,10 +190,6 @@ class RateData(object):
 		labs : tuple
 			Tuple of axis labels, in the form (x_label, y_label).
 			Defaults to `None`.
-
-		md : tuple or None
-			Tuple of modeled data, in the form 
-			(x_data, sum_y_data, cmpt_y_data). Defaults to `None`.
 
 		rd : tuple
 			Tuple of real data, in the form (x_data, y_data).
@@ -336,31 +217,10 @@ class RateData(object):
 				rd[1],
 				linewidth=2,
 				color='k',
-				label=r'Real Data ($\omega$ = %.2f)' %self.omega)
+				label=r'Regularized p ($\omega$ = %.2f)' %self.omega)
 
 			#set limits
 			ax.set_ylim([0, 1.1*np.max(rd[1])])
-
-		#add model-estimated data if it exists
-		if md is not None:
-
-			#plot the model-estimated total
-			ax.plot(
-				md[0], 
-				md[1],
-				linewidth=2,
-				color='r',
-				label=r'Deconvolved Data ($\phi$)')
-
-			#plot individual components as shaded regions
-			for cpt in md[2].T:
-
-				ax.fill_between(
-					md[0], 0, 
-					cpt,
-					color='k',
-					alpha=0.2,
-					label='Peaks (n = %.0f)' %self.nPeak)
 
 		#remove duplicate legend entries
 		han_list, lab_list = _rem_dup_leg(ax)
@@ -371,36 +231,36 @@ class RateData(object):
 			loc='best',
 			frameon=False)
 
+		#make tight layout
+		plt.tight_layout()
+
 		return ax
 
 
 class EnergyComplex(RateData):
 	__doc__='''
-	Class for inputting, storing, and deconvolving Ramped PryOx activation
-	energy distributions.
+	Class for inputting and storing Ramped PryOx activation energy 
+	distributions.
 
 	Parameters
 	----------
-	Ea : array-like
-		Array of activation energy, in kJ/mol. Length `nEa`.
+	E : array-like
+		Array of activation energy, in kJ/mol. Length `nE`.
 
-	f : None or array-like
-		Array of the "true" (i.e. before being deconvolved into peaks)
-		pdf of the Ea distribution. Length `nEa`. Defaults to `None`.
-
-	f_std : scalar or array-like
-		Standard deviation of `f`, with length `nEa`. Defaults to zeros. 
+	p : None or array-like
+		Array of the regularized pdf of the E distribution, p0E. Length `nE`.
+		Defaults to `None`.
 
 	Raises
 	------
 	ArrayError
-		If the any value in `Ea` is negative.
+		If the any value in `E` is negative.
 
 	See Also
 	--------
 	Daem
 		``rp.Model`` subclass used to generate the Laplace transform for RPO
-		data and translate between time- and Ea-space.
+		data and translate between time- and E-space.
 
 	RpoThermogram
 		``rp.TimeData`` subclass containing the time and fraction remaining data
@@ -408,43 +268,24 @@ class EnergyComplex(RateData):
 
 	Examples
 	--------
-	Generating a bare-bones energy complex containing only `Ea` and `f`::
+	Generating a bare-bones energy complex containing only `E` and `p`::
 
 		#import modules
 		import rampedpyrox as rp
 		import numpy as np
 
 		#generate arbitrary Gaussian data
-		Ea = np.arange(50, 350)
+		E = np.arange(50, 350)
 
 		def Gaussian(x, mu, sig):
 			scalar = (1/np.sqrt(2*np.pi*sig**2))*
 			y = scalar*np.exp(-(x-mu)**2/(2*sig**2))
 			return y
 
-		f = Gaussian(Ea, 150, 10)
+		p = Gaussian(E, 150, 10)
 
 		#create the instance
-		ec = rp.EnergyComplex(Ea, f = f)
-
-	Manually inputting estimated peak data to the above instance::
-
-		#import additional modules
-		import pandas as pd
-
-		#add 5 percent Gaussian noise to f
-		phi = 0.05*np.max(f)*np.random.randn(len(f))*f
-
-		#create a peak_info pd.series
-		peak_info = pd.Series([150, 10, 1.0],
-			index = ['mu', 'sigma', 'rel. area'])
-
-		ec.input_estimated(
-			phi, 
-			peak_info, 
-			omega = None, 
-			resid_rmse = None,
-			rgh_rmse = None)
+		ec = rp.EnergyComplex(E, p = p)
 
 	Or, insteand run the inversion to generate an energy complex using an 
 	``rp.RpoThermogram`` instance, tg, and an ``rp.Daem`` instance, daem::
@@ -453,29 +294,9 @@ class EnergyComplex(RateData):
 		ec = rp.EnergyComplex(
 			daem, 
 			tg, 
-			combined = None, 
-			nPeaks = 'auto',
-			omega = 'auto', 
-			peak_shape = 'Gaussian', 
-			thres = 0.05)
+			omega = 'auto')
 
-	Same as above, but now setting `omega` and combining peaks::
-
-		#set values
-		omega = 3
-		combined = [(0,1), (6,7)]
-
-		#create the instance
-		ec = rp.EnergyComplex(
-			daem, 
-			tg, 
-			combined = combined, 
-			nPeaks = 'auto',
-			omega = omega, 
-			peak_shape = 'Gaussian', 
-			thres = 0.05)
-
-	Plotting the resulting "true" and estimated energy complex::
+	Plotting the resulting regularized energy complex::
 
 		#import additional modules
 		import matplotlib.pyplot as plt
@@ -483,64 +304,30 @@ class EnergyComplex(RateData):
 		#create figure
 		fig, ax = plt.subplots(1,1)
 
-		#plot resulting Ea pdfs.
+		#plot resulting E pdf, p0E
 		ax = ec.plot(ax = ax)
-
-	Printing a summary of the analysis::
-
-		print(ec.peak_info)
 
 	**Attributes**
 
-	dof : int
-		Degrees of freedom of model fit, defined as ``nEa - 3*nPeak + 1``.
+	E : np.ndarray
+		Array of activation energy, in kJ/mol. Length `nE`.
 
-	Ea : np.ndarray
-		Array of activation energy, in kJ/mol. Length `nEa`.
-
-	f : np.ndarray
-		Array of the "true" (i.e. before being deconvolved into peaks)
-		pdf of the Ea distribution. Length `nEa`.
-
-	f_std : 
-		Standard deviation of `f`, with length `nEa`.
-
-	nEa : int
-		Number of Ea points.
-
-	nPeak : int
-		Number of peaks in estimated energy complex.
+	nE : int
+		Number of E points.
 
 	omega : float
 		Tikhonov regularization weighting factor.
 
-	peak_info : pd.DataFrame
-		Dataframe containing the inverse-modeled peak isotope summary info: 
-
-			mu (kJ/mol), \n
-			sigma (kJ/mol), \n
-			height (unitless), \n
-			relative area
-
-	peaks : np.ndarray
-		Array of the estimated peaks. Shape [`nEa` x `nPeak`].
-
-	phi : np.ndarray
-		Array of the estimated pdf of the Ea distribution. Length `nEa`.
-
-	red_chi_sq : float
-		The reduced chi square metric for the model fit.
+	p : np.ndarray
+		Array of the pdf of the E distribution, p0E. Length `nEa`.
 
 	resid_rmse : float
 		The RMSE between the measured thermogram data and the estimated 
-		thermogram using the "true" pdf of Ea, f. Used for determining the
-		best-fit omega value.
+		thermogram using the p (ghat). Used for determining the best-fit omega
+		value.
 
 	rgh_rmse :
 		The roughness RMSE. Used for determining best-fit omega value.
-
-	rmse : float
-		The RMSE between "true" and estimated energy complex.
 
 	References
 	----------
@@ -557,30 +344,26 @@ class EnergyComplex(RateData):
 		3601-3612.
 	'''
 
-	def __init__(self, Ea, f = None, f_std = 0):
+	def __init__(self, E, p = None):
 
 		#store activation energy attributes
-		nEa = len(Ea)
+		nE = len(E)
 
 		#ensure types
-		Ea = assert_len(Ea, nEa)
+		E = assert_len(E, nE)
 
-		#ensure that Ea is non-negative
-		if np.min(Ea) < 0:
+		#ensure that E is non-negative
+		if np.min(E) < 0:
 			raise ArrayError(
-				'Minimum value for Ea is: %r. Elements in Ea must be'
-				' non-negative.' % np.min(Ea))
+				'Minimum value for E is: %r. Elements in E must be'
+				' non-negative.' % np.min(E))
 
-		self.Ea = Ea
-		self.nEa = nEa
-		
-		#create protected _cmbd attribute to store combined peaks
-		self._cmbd = None
+		self.E = E
+		self.nE = nE
 
-		#check if fEa and store
-		if f is not None:
-			self.f = assert_len(f, nEa)
-			self.f_std = assert_len(f_std, nEa)
+		#check if p exists and store
+		if p is not None:
+			self.p = assert_len(p, nE)
 
 	#define classmethod to generate instance by inverse modeling timedata with
 	# a model
@@ -589,11 +372,7 @@ class EnergyComplex(RateData):
 			cls, 
 			model, 
 			timedata, 
-			combined = None, 
-			nPeaks = 'auto',
-			omega = 'auto', 
-			peak_shape = 'Gaussian', 
-			thres = 0.05):
+			omega = 'auto'):
 		'''
 		Generates an energy complex by inverting an ``rp.TimeData`` instance 
 		using a given ``rp.Model`` instance.
@@ -607,43 +386,9 @@ class EnergyComplex(RateData):
 		timedata : rp.TimeData
 			``rp.TimeData`` instance containing the timeseries data to invert.
 
-		combined :  list of tuples or None
-			Tells the program which peaks to combine when deconvolving the
-			ratedata. Must be a list of tuples -- e.g. [(0,1), (4,5)] will
-			combine peaks 0 and 1, and 4 and 5. Defaults to `None`.
-
-		nPeaks : int or 'auto'
-			Tells the program how many peaks to retain after deconvolution.
-			Defaults to 'auto'.
-
 		omega : scalar or 'auto'
 			Smoothing weighting factor for Tikhonov regularization. Defaults
 			to 'auto'.
-
-		peak_shape : str
-			Peak shape to use for deconvolved peaks. Acceptable strings are:
-
-				'gamma',
-				'Gaussian',
-				'Lorentzian'
-			
-			Defaults to 'Gaussian'.
-
-		thres : float
-			Threshold for peak detection cutoff. `thres` is the relative 
-			height of the global maximum under which no peaks will be 
-			detected. Defaults to 0.05 (i.e. 5% of the highest peak).
-
-		Raises
-		------
-		ArrayError
-			If `combined` is not a list of tuples or `None`.
-
-		ArrayError
-			If the elements of `combined` are not tuples.
-
-		ScalarError
-			If the elements of the tuples in `combined` are not int.
 
 		Warnings
 		--------
@@ -656,15 +401,6 @@ class EnergyComplex(RateData):
 
 		UserWarning
 			If attempting to use a model that is not a ``rp.Daem`` instance.
-		
-		Notes
-		-----
-		This method calculates peaks according to changes in curvature in the
-		`f` array resulting from the inverse model. Each bounded section 
-		with a negative second derivative (i.e. concave down) and `f` value 
-		above `thres` is considered a unique peak. If `nPeaks` is not 'auto', 
-		these peaks are sorted according to decreasing peak heights and the 
-		first `nPeaks` peaks are saved.
 
 		See Also
 		--------
@@ -700,56 +436,14 @@ class EnergyComplex(RateData):
 		ec = super(EnergyComplex, cls).inverse_model(
 			model, 
 			timedata,
-			nPeaks = nPeaks,
-			omega = omega,
-			peak_shape = peak_shape,
-			thres = thres)
-
-		#assert combined type
-		if isinstance(combined, list):
-			if not all([isinstance(n, tuple) for n in combined]):
-				raise ArrayError('Elements of `combined` must be tuples')
-
-			elif not all([isinstance(i, int) for tup in combined for i in tup]):
-				raise ScalarError('Elements of tuples in `combined` must be int')
-
-		elif combined is not None:
-			raise ArrayError('combined must be a list of tuples or None')
-
-		#combine peaks if necessary
-		if combined is not None:
-			
-			#sum rows and put in list
-			pks = ec.peaks
-			del_pks = []
-			
-			for tup in combined:
-				#subtract 1 to get into python indexing
-				c = list([x - 1 for x in tup])
-
-				#sum over combined columns and replace first col with sum
-				pks[:, c[0]] = np.sum(pks[:,c], axis = 1)
-
-				#store column indices to delete
-				del_pks.append(c[1:])
-
-			#flatten del_pks
-			del_pks = [item for sl in del_pks for item in sl]
-
-			ec.peaks = np.delete(pks, del_pks, axis = 1)
-
-			#store combined as protected attribute
-			ec._cmbd = del_pks
+			omega = omega)
 
 		return ec
 
 	#define a method to input estimated rate data
 	def input_estimated(
 			self, 
-			peaks, 
 			omega = 0, 
-			peak_info = None, 
-			peak_shape = 'Gaussian', 
 			resid_rmse = 0, 
 			rgh_rmse = 0):
 		'''
@@ -758,31 +452,9 @@ class EnergyComplex(RateData):
 
 		Parameters
 		----------
-		peaks : np.ndarray
-			2d array of the pdf of individual peaks at each rate/Ea point.
-
-		peak_info : None or pd.DataFrame
-			Dataframe containing the inverse-modeled peak isotope summary info: 
-
-				mu (kJ/mol), \n
-				sigma (kJ/mol), \n
-				height (unitless), \n
-				relative area
-
-			Defaults to `None`.
-
 		omega : scalar
 			Tikhonov regularization weighting factor used to generate
 			estimated data. Defaults to 0.
-
-		peak_shape : str
-			Peak shape to use for deconvolved peaks. Acceptable strings are:
-				
-				'gamma',
-				'Gaussian',
-				'Lorentzian'
-
-			Defaults to 'Gaussian'.
 
 		resid_rmse : float
 			Residual RMSE for the inputted estimated data. Defaults to 0.
@@ -792,22 +464,14 @@ class EnergyComplex(RateData):
 		'''
 
 		super(EnergyComplex, self).input_estimated(
-			peaks,
 			omega = omega,
-			peak_info = peak_info,
-			peak_shape = peak_shape,
 			resid_rmse = resid_rmse,
 			rgh_rmse = rgh_rmse)
-
-		#input EnergyComplex peak info
-		if peak_info is not None:
-			self.peak_info = _energycomplex_peak_info(self)
 
 	#define plotting method
 	def plot(self, ax = None):
 		'''
-		Plots the true and model-estimated Ea pdf (including individual 
-		peaks) against Ea.
+		Plots the pdf of E, p0E, against E.
 
 		Keyword Arguments
 		-----------------
@@ -819,32 +483,20 @@ class EnergyComplex(RateData):
 		-------
 		ax : matplotlib.axis
 			Updated axis instance with plotted data.
-
-		Notes
-		-----
-		Number of peaks declared in the legend is **before** being combined!
 		'''
 
 		#create axis label tuple
-		labs = (r'Ea (kJ/mol)', r'f(Ea) pdf (unitless)')
+		labs = (r'E (kJ/mol)', r'$p_{0}(E)$ pdf (unitless)')
 
-		#check if real data exist
-		if hasattr(self, 'f'):
-			#extract real data
-			rd = (self.Ea, self.f)
+		#check if data exist
+		if hasattr(self, 'p'):
+			#extract data
+			rd = (self.E, self.p)
 		else:
 			rd = None
 
-		#check if modeled data exist
-		if hasattr(self, 'peaks'):
-			#extract modeled data dict
-			md = (self.Ea, self.phi, self.peaks)
-		else:
-			md = None
-
 		ax = super(EnergyComplex, self).plot(
 			ax = ax, 
-			md = md,
 			labs = labs, 
 			rd = rd)
 

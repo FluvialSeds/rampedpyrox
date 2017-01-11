@@ -1,3 +1,5 @@
+#TODO: Add method to calculate `tg_info`
+
 '''
 This module contains the TimeData superclass and all corresponding subclasses.
 '''
@@ -19,7 +21,6 @@ from numpy.linalg import norm
 #import exceptions
 from ..core.exceptions import(
 	ArrayError,
-	RunModelError,
 	StringError,
 	)
 
@@ -34,12 +35,8 @@ from ..core.plotting_helper import(
 	_rem_dup_leg,
 	)
 
-from ..core.summary_helper import(
-	_timedata_cmpt_info
-	)
-
 from ..model.model_helper import(
-	_calc_cmpt
+	_calc_ghat
 	)
 
 from .timedata_helper import(
@@ -53,7 +50,7 @@ class TimeData(object):
 	directly.
 	'''
 
-	def __init__(self, t, T, g = None, g_std = 0, T_std = 0):
+	def __init__(self, t, T, g = None, g_std = None, T_std = None):
 		'''
 		Initialize the superclass.
 
@@ -70,11 +67,11 @@ class TimeData(object):
 			with length `nt`. Defaults to `None`.
 
 		g_std : None or array-like
-			Standard deviation of `g`, with length `nt`. Defaults to zero.
+			Standard deviation of `g`, with length `nt`. Defaults to `None`.
 
 		T_std : scalar or array-like
 			The temperature standard deviation, with length `nt`, in Kelvin. 
-			Defaults to zero.
+			Defaults to `None`.
 		'''
 
 		#store time-temperature attributes
@@ -82,7 +79,11 @@ class TimeData(object):
 		self.nt = nt
 		self.t = assert_len(t, nt) #s
 		self.T = assert_len(T, nt) #K
-		self.T_std = assert_len(T_std, nt) #K
+
+		if T_std is not None:
+
+			#only store T_std if it exists (does not for RPO!)
+			self.T_std = assert_len(T_std, nt) #K
 
 		#store time-temperature derivatives
 		self.dTdt = derivatize(self.T, self.t) #K/s
@@ -96,7 +97,11 @@ class TimeData(object):
 					'g array must remain between 0 and 1 (fractional)')
 
 			self.g = assert_len(g, nt) #fraction
-			self.g_std = assert_len(g_std, nt) #fraction
+
+			if g_std is not None:
+
+				#only store g_std if it exists (does not for RPO!)
+				self.g_std = assert_len(g_std, nt) #fraction
 
 			#store g derivatives
 			self.dgdt = derivatize(g, self.t)
@@ -139,59 +144,40 @@ class TimeData(object):
 				' Check that the model does not correspond to a different'
 				' rp.TimeData instance' %(td_type, mod_type), UserWarning)
 
-		#extract components
-		cmpt = _calc_cmpt(model, ratedata)
+
+		#calculate forward-modelled g estimate, ghat
+		ghat = _calc_ghat(model, ratedata)
 
 		#populate with modeled data
-		self.input_estimated(cmpt)
+		self.input_estimated(ghat)
 
 	#define method for inputting the results from a model fit
-	def input_estimated(self, cmpt):
+	def input_estimated(self, ghat):
 		'''
 		Method to input modeled estimate data into ``rp.TimeData`` instance 
-		and to calculate corresponding statistics.
+		and to calculate corresponding derivatives and statistics.
 
 		Parameters
 		----------
-		cmpt : array-like
-			Array of fraction of each component remaining at each timestep.
-			Gets converted to 2d rparray. Shape [`nt` x `nCmpt`].
+		ghat : array-like
+			Array of estimated fraction of total carbon remaining at each 
+			timestep. Length `nt`.
 		'''
 
 		#ensure type and size
 		nt = self.nt
-		cmpt = assert_len(cmpt, nt)
-
-		#force to be 2d (for derivatives and sums, below)
-		nCmpt = int(cmpt.size/nt)
-		cmpt = cmpt.reshape(nt, nCmpt)
-
-		#store attributes
-		self.dof = nt - 3*nCmpt + 1
-		self.nCmpt = nCmpt
-		self.cmpt = cmpt
-
-		#generate gamma array
-		gam = np.sum(cmpt, axis=1)
+		ghat = assert_len(ghat, nt)
 
 		#calculate derived attributes and store
-		self.dgamdt = derivatize(gam, self.t)
-		self.dgamdT = derivatize(gam, self.T)
-		self.dcmptdt = derivatize(cmpt, self.t)
-		self.dcmptdT = derivatize(cmpt, self.T)
-		self.gam = gam
+		self.dghatdt = derivatize(ghat, self.t)
+		self.dghatdT = derivatize(ghat, self.T)
+		self.ghat = ghat
 
-		#store statistics if the model has true data, g
+		#store RMSE if the model has true data, g
 		if hasattr(self, 'g'):
 
-			rcs = norm((self.g - gam)/self.g_std)/self.dof
-			rmse = norm(self.g - gam)/nt**0.5
-
-			self.red_chi_sq = rcs
+			rmse = norm(self.g - ghat)/nt**0.5
 			self.rmse = rmse
-
-		#store component info
-		self.cmpt_info = _timedata_cmpt_info(self)
 
 	#define plotting method
 	def plot(self, ax = None, labs = None, md = None, rd = None):
@@ -209,7 +195,7 @@ class TimeData(object):
 
 		md : tuple or None
 			Tuple of modeled data, in the form 
-			(x_data, sum_y_data, cmpt_y_data). Defaults to `None`.
+			(x_data, sum_y_data). Defaults to `None`.
 
 		rd : tuple
 			Tuple of real data, in the form (x_data, y_data). Defaults to
@@ -253,17 +239,6 @@ class TimeData(object):
 				color='r',
 				label='Modeled data')
 
-			#plot individual components as shaded regions
-			for cpt in md[2].T:
-
-				ax.fill_between(
-					md[0], 
-					0, 
-					cpt,
-					color='k',
-					alpha=0.2,
-					label='Components (n = %.0f)' %self.nCmpt)
-
 		#remove duplicate legend entries
 		han_list, lab_list = _rem_dup_leg(ax)
 		
@@ -272,6 +247,9 @@ class TimeData(object):
 			lab_list, 
 			loc='best',
 			frameon=False)
+
+		#make tight layout
+		plt.tight_layout()
 
 		return ax
 
@@ -293,13 +271,6 @@ class RpoThermogram(TimeData):
 		Array of the true fraction of carbon remaining at each timepoint,
 		with length `nt`. Defaults to `None`.
 
-	g_std : scalar or array-like
-		Standard deviation of `g`, with length `nt`. Defaults to zeros.
-
-	T_std : scalar or array-like
-		The temperature standard deviation, with length `nt`, in Kelvin. 
-		Defaults to zeros.
-
 	Warnings
 	--------
 	UserWarning
@@ -308,20 +279,19 @@ class RpoThermogram(TimeData):
 
 	Notes
 	-----
-	**Important:** The inverse model used herein is highly sensitive 
-	to boundary effects. To avoid unnecessarily large regularizations 
-	ensure that inputted data return completely to baseline ppmCO2 by 
-	the end of the experiment.
+	**Important:** The inverse model used herein is highly sensitive to
+	boundary effects. To avoid unnecessarily large regularizations ensure that
+	inputted data return completely to baseline ppmCO2 by the end of the 
+	experiment. (can use the `bl_subtract` flag to enforce that this is true.)
 
 	See Also
 	--------
 	Daem
 		``rp.Model`` subclass used to generate the Laplace transform for RPO
-		data and translate between time- and Ea-space.
+		data and translate between time- and E-space.
 
 	EnergyComplex
-		``rp.RateData`` subclass for storing, deconvolving, and analyzing RPO
-		rate data.
+		``rp.RateData`` subclass for storing and analyzing RPO rate data.
 
 	Examples
 	--------
@@ -353,18 +323,16 @@ class RpoThermogram(TimeData):
 		tg = rp.RpoThermogram.from_csv(
 			file,
 			bl_subtract = True,
-			nt = 250,
-			ppm_CO2_err = 5,
-			T_err = 3)
+			nt = 250)
 
-	Manually adding some model-estimated component data as `cmpt`::
+	Manually adding some model-estimated `g` data as `ghat`::
 
-		#assuming cmpt has been generating using a Daem model
-		tg.input_estimated(cmpt, 'Daem')
+		#assuming ghat has been generating using a Daem model
+		tg.input_estimated(ghat)
 
-	Or, instead, you can input model-estimated component data directly from
-	a given ``rp.Daem`` and ``rp.EnergyComplex`` instance (*i.e.* run the
-	forward model)::
+	Or, instead, you can input model-estimated g data directly from a given
+	``rp.Daem`` and ``rp.EnergyComplex`` instance (*i.e.* run the forward 
+	model)::
 
 		tg.forward_model(daem, ec)
 
@@ -387,32 +355,19 @@ class RpoThermogram(TimeData):
 			xaxis = 'temp', 
 			yaxis = 'rate')
 
-	Printing a summary of the analysis::
+	Printing a summary of the thermogram::
 
-		print(tg.cmpt_info)
+		print(tg.tg_info)
 
 	**Attributes**
 
-	cmpt : numpy.ndarray
-		Array of the estimated fraction of carbon remaining in each component 
-		at each timepoint. Shape [`nt` x `nCmpt`].
 
-	dcmptdt : numpy.ndarray
-		Array of the derivative of the estimated fraction of carbon remaining
-		in each component with respect to time at each timepoint, in 
-		fraction/second. Shape [`nt` x `nCmpt`].
-
-	dcmptdT : numpy.ndarray
-		Array of the derivative of the estimated fraction of carbon remaining
-		in each component with respect to temperature at each timepoint, in 
-		fraction/Kelvin. Shape [`nt` x `nCmpt`].
-
-	dgamdt : numpy.ndarray
+	dghatdt : numpy.ndarray
 		Array of the derivative of the estimated fraction of carbon remaining
 		with respect to time at each timepoint, in fraction/second. Length 
 		`nt`.
 
-	dgamdT : numpy.ndarray
+	dghatdT : numpy.ndarray
 		Array of the derivative of the estimated fraction of carbon remaining
 		with respect to temperature at each timepoint, in fraction/Kelvin.
 		Length `nt`.
@@ -426,9 +381,6 @@ class RpoThermogram(TimeData):
 		respect to temperature at each timepoint, in fraction/Kelvin.
 		Length `nt`.
 
-	dof : int
-		Degrees of freedom of model fit, defined as ``nt - 3*nCmpt + 1``.
-
 	dTdt : numpy.ndarray
 		Array of the derivative of temperature with respect to time (*i.e.*
 		the instantaneous ramp rate) at each timepoint, in Kelvin/second.
@@ -438,36 +390,15 @@ class RpoThermogram(TimeData):
 		Array of the true fraction of carbon remaining at each timepoint.
 		Length `nt`.
 
-	g_std : numpy.ndarray
-		Array of the standard deviation of `g`. Length `nt`.
-
-	gam : numpy.ndarray
+	ghat : numpy.ndarray
 		Array of the estimated fraction of carbon remaining at each timepoint.
 		Length `nt`.
-
-	nCmpt : int
-		Number of components in estimated thermogram, *i.e.* the number of Ea
-		peaks **after being combined**.
 
 	nt : int
 		Number of timepoints.
 
-	cmpt_info : pd.DataFrame
-		Dataframe containing the forward-modeled component summary info: 
-
-			t_max (s), \n
-			T_max (K), \n
-			max_rate (frac/s), \n
-			max_rate (frac/K), \n
-			relative area
-		
-		Combined peaks are treated as a single component.
-
-	red_chi_sq : float
-		The reduced chi square metric for the model fit.
-
 	rmse : float
-		The RMSE between true and estimated thermogram.
+		The RMSE between true and estimated thermogram (g and ghat).
 
 	t : numpy.ndarray
 		Array of timepoints, in seconds. Length `nt`.
@@ -475,24 +406,29 @@ class RpoThermogram(TimeData):
 	T : numpy.ndarray
 		Array of temperature, in Kelvin. Length `nt`.
 
-	T_std : numpy.ndarray
-		Array of the standard deviation of `T`. Length `nt`.
+	tg_info : pd.DataFrame
+		DataFrame containing the g and ghat summary info: 
+
+			t_max (s), \n
+			T_max (K), \n
+			max_rate (frac/s), \n
+			max_rate (frac/K), \n
 	'''
 
-	def __init__(self, t, T, g = None, g_std = 0, T_std = 0):
+	def __init__(self, t, T, g = None, g_std = None, T_std = None):
 
 		#warn if T is scalar
 		if isinstance(T, (int, float)):
 			warnings.warn(
 				'Attempting to use isothermal data for RPO run! T is a scalar'
-				'value of: %r. Consider using an isothermal model type'
-				'instead.' % T, UserWarning)
+				' value of: %r. Consider using an isothermal model type'
+				' instead.' % T, UserWarning)
 
 		elif len(set(T)) == 1:
 			warnings.warn(
 				'Attempting to use isothermal data for RPO run! T is a scalar'
-				'value of: %r. Consider using an isothermal model type'
-				'instead.' % T[0], UserWarning)
+				' value of: %r. Consider using an isothermal model type'
+				' instead.' % T[0], UserWarning)
 
 		super(RpoThermogram, self).__init__(
 			t, 
@@ -507,9 +443,7 @@ class RpoThermogram(TimeData):
 			cls, 
 			file, 
 			bl_subtract = True, 
-			nt = 250, 
-			ppm_CO2_err = 5, 
-			T_err = 3):
+			nt = 250):
 		'''
 		Class method to directly import RPO data from a .csv file and create
 		an ``rp.RpoThermogram`` class instance.
@@ -528,14 +462,6 @@ class RpoThermogram(TimeData):
 
 		nt : int
 			The number of time points to use. Defaults to 250.
-
-		ppm_CO2_err : int or float
-			The CO2 concentration standard deviation, in ppm. Used to 
-			calculate `g_std`. Defaults to 5.
-
-		T_err : int or float
-			The uncertainty in the RPO instrument temperature, in Kelvin.
-			Used to calculate `T_std` array. Defaults to 3.
 
 		Notes
 		-----
@@ -573,13 +499,12 @@ class RpoThermogram(TimeData):
 		'''
 
 		#extract data from file
-		g, g_std, t, T = _rpo_extract_tg(
+		g, t, T = _rpo_extract_tg(
 			file, 
 			nt, 
-			ppm_CO2_err, 
 			bl_subtract = bl_subtract)
 
-		return cls(t, T, g = g, g_std = g_std, T_std = T_err)
+		return cls(t, T, g = g, g_std = None, T_std = None)
 
 	#define method for inputting forward-modeled data
 	def forward_model(self, model, ratedata):
@@ -607,7 +532,7 @@ class RpoThermogram(TimeData):
 		Raises
 		------
 		ArrayError
-			If `nEa` is not the same in the ``rp.Model`` instance and the 
+			If `nE` is not the same in the ``rp.Model`` instance and the 
 			``rp.RateData`` instance.
 
 		ArrayError
@@ -644,11 +569,11 @@ class RpoThermogram(TimeData):
 				' instead' % rd_type, UserWarning)
 
 		#raise exception if not the right shape
-		if model.nEa != ratedata.nEa:
+		if model.nE != ratedata.nE:
 			raise ArrayError(
-				'Cannot combine model with nEa = %r and RateData with'
-				' nEa = %r. Check that RateData was not created using'
-				' a different model' % (model.nEa, ratedata.nEa),
+				'Cannot combine model with nE = %r and RateData with'
+				' nE = %r. Check that RateData was not created using'
+				' a different model' % (model.nE, ratedata.nE),
 				UserWarning)
 
 		#raise exception if not the right shape
@@ -659,27 +584,22 @@ class RpoThermogram(TimeData):
 				' different time data' % (model.nt, self.nt),
 				UserWarning)
 
-		#raise exception if ratedata does not have fitted data attributes
-		if not hasattr(ratedata, 'peaks'):
-			raise RunModelError(
-				'ratedata instance must have attribute "peaks". Run the'
-				' inverse model before running the forward model!')
-
+		#call the superclass method
 		super(RpoThermogram, self).forward_model(model, ratedata)
 
 		return
 
 	#define method for inputting model-estimate data
-	def input_estimated(self, cmpt):
+	def input_estimated(self, ghat):
 		'''
 		Inputs estimated thermogram into the ``rp.RpoThermogram`` instance and 
 		calculates statistics.
 		
 		Parameters
 		----------
-		cmpt : array-like
-			Array of the estimated fraction of carbon remaining in each 
-			component at each timepoint. Shape [`nt` x `nCmpt`].
+		ghat : array-like
+			Array of estimated fraction of total carbon remaining at each 
+			timestep. Length `nt`.
 
 		See Also
 		--------
@@ -688,13 +608,13 @@ class RpoThermogram(TimeData):
 			and ratedata.	
 		'''
 
-		super(RpoThermogram, self).input_estimated(cmpt)
+		#call the superclass method
+		super(RpoThermogram, self).input_estimated(ghat)
 
 	#define plotting method
 	def plot(self, ax = None, xaxis = 'time', yaxis = 'rate'):
 		'''
-		Plots the true and model-estimated thermograms (including individual 
-		components) against time or temp.
+		Plots the true and model-estimated thermograms against time or temp.
 
 		Parameters
 		----------
@@ -751,13 +671,12 @@ class RpoThermogram(TimeData):
 			rd = None
 
 		#check if modeled data exist
-		if hasattr(self, 'cmpt'):
+		if hasattr(self, 'ghat'):
 			#extract modeled data dict
 			rpo_md = _plot_dicts('rpo_md', self)
 			md = (
 				rpo_md[xaxis][yaxis][0], 
-				rpo_md[xaxis][yaxis][1], 
-				rpo_md[xaxis][yaxis][2])
+				rpo_md[xaxis][yaxis][1])
 		else:
 			md = None
 

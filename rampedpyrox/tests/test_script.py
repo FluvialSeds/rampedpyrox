@@ -10,107 +10,51 @@ def gen_str(name):
 	p = os.path.join(os.path.dirname(__file__), name)
 	return p
 
-data = gen_str('test_rpo_thermogram.csv')
-sum_data = gen_str('test_rpo_isotopes.csv')
+#paths to data files
+data = gen_str('test_data/TS3.csv') #REPLACE THIS WITH A PATH TO YOUR DATA
+sum_data = gen_str('test_data/TS3_sum.csv') #REPLACE THIS WITH A PATH TO YOUR DATA
 
+#calculate thermogram
 tg = rp.RpoThermogram.from_csv(
 	data,
 	bl_subtract = True,
-	nt=250,
-	ppm_CO2_err=5,
-	T_err=3)
+	nt=250)
 
+#calculate DAEM
 daem = rp.Daem.from_timedata(
 	tg,
-	# log10k0 = lambda x: 0.02*x + 5,
-	log10k0=10,
-	Ea_max=400,
-	Ea_min=50,
-	nEa=400)
+	log10k0=10, #value advocated in JDH thesis Ch 3
+	E_max=400, #can change if too high
+	E_min=50, #can change if too low
+	nE=400)
 
+#calculate energy complex
 ec = rp.EnergyComplex.inverse_model(
 	daem, 
 	tg,
-	combined=None,
-	nPeaks='auto',
-	omega=3,
-	peak_shape='Gaussian',
-	thres=0.02)
+	omega='auto') #can replace with best-fit value if known
 
+#forward model estimated thermogram back onto tg
 tg.forward_model(daem, ec)
 
+#calculate isotope results
 ri = rp.RpoIsotopes.from_csv(
 	sum_data,
 	blk_corr = True,
-	mass_err = 0.01)
+	bulk_d13C_true = [-24.8, 0.1]) #REPLACE THIS WITH VALUE FOR EACH SAMPLE!!
 
-ri.fit(
-	daem, 
-	ec, 
-	tg,
-	DEa=None,
-	nIter=10)
+#correct d13C for kinetic fractionation (if d13C data exist)
+ri.d13C_correct(daem,ec)
 
-# #fit different DEa values
-# ri2 = rp.RpoIsotopes.from_csv(
-# 	sum_data,
-# 	blk_corr = True,
-# 	mass_err = 0.01)
+#calculate E contained in each fraction
+ri.calc_E_frac(daem,ec)
 
-# ri2.fit(
-# 	daem, 
-# 	ec, 
-# 	tg,
-# 	DEa=0.001,
-# 	nIter=10)
+#print summary and save to .csv
+sum_df = ri.summary(file = 'inversion_summary.csv')
 
-# ri3 = rp.RpoIsotopes.from_csv(
-# 	sum_data,
-# 	blk_corr = True,
-# 	mass_err = 0.01)
 
-# ri3.fit(
-# 	daem, 
-# 	ec, 
-# 	tg,
-# 	DEa=0.01,
-# 	nIter=10)
 
-# ri4 = rp.RpoIsotopes.from_csv(
-# 	sum_data,
-# 	blk_corr = True,
-# 	mass_err = 0.01)
 
-# ri4.fit(
-# 	daem, 
-# 	ec, 
-# 	tg,
-# 	DEa=0.1,
-# 	nIter=10)
 
-# #make plot
 
-# fig,ax = plt.subplots(1,1,figsize=(9.5,6))
 
-# ax.plot(tg.t, ri.d13C_product,
-# 	linewidth = 2,
-# 	color = 'k',
-# 	label = r'$\Delta Ea$ = 0 J/mol')
-
-# ax.plot(tg.t, ri2.d13C_product,
-# 	linewidth = 2,
-# 	color = 'r',
-# 	label = r'$\Delta Ea$ = 1 J/mol')
-
-# ax.plot(tg.t, ri3.d13C_product,
-# 	linewidth = 2,
-# 	color = 'b',
-# 	label = r'$\Delta Ea$ = 10 J/mol')
-
-# ax.plot(tg.t, ri4.d13C_product,
-# 	linewidth = 2,
-# 	color = 'g',
-# 	label = r'$\Delta Ea$ = 100 J/mol')
-
-# ax.legend(loc='best',frameon=False)
-# ax.set_ylim([-35, -25])
