@@ -16,6 +16,7 @@ class ArrayError(rpException):
 	'''
 	pass
 
+
 class FileError(rpException):
 	'''
 	If a file does not contain the correct data.
@@ -23,23 +24,9 @@ class FileError(rpException):
 	pass
 
 
-class FitError(rpException):
-	'''
-	If something is wrong with the model fit
-	'''
-	pass
-
-
 class LengthError(rpException):
 	'''
 	Length of array is not what it should be.
-	'''
-	pass
-
-
-class RunModelError(rpException):
-	'''
-	If an instance does not have the attributes from a model run.
 	'''
 	pass
 

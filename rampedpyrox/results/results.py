@@ -21,7 +21,6 @@ from collections import Sequence
 from ..core.exceptions import(
 	ArrayError,
 	LengthError,
-	RunModelError,
 	)
 
 #import helper functions
@@ -58,10 +57,6 @@ class Results(object):
 	# directly from a .csv file
 	@classmethod
 	def from_csv(cls, file):
-		raise NotImplementedError
-
-	#define method for fitting result data from a TimeData instance
-	def fit(self, timedata):
 		raise NotImplementedError
 
 
@@ -109,14 +104,16 @@ class RpoIsotopes(Results):
 	Notes
 	-----
 	When inputting `t_frac`, a time of 0 (i.e. `t0`, the initial time) is
-	defined as the first timepoint in the ``RpoThermogram`` instance. If time 
-	passed between the thermogram `t0` and the beginning of fraction 1 trapping
-	(as is almost always the case), `t_frac` must be adjusted accordingly.
+	defined as the first timepoint in the ``RpoThermogram`` instance. If time
+	passed between the thermogram `t0` and the beginning of fraction 1 
+	trapping (as is almost always the case), `t_frac` must be adjusted 
+	accordingly. This is done automatically when importing from .csv (see
+	``RpoIsotopes.from_csv``) documenatation for info.
 
 	See Also
 	--------
 	Daem
-		``Model`` subclass used to generate the Laplace transform for RPO
+		``Model`` subclass used to generate the transform for RPO
 		data and translate between time- and E-space.
 
 	EnergyComplex
@@ -163,8 +160,9 @@ class RpoIsotopes(Results):
 
 	This automatically corrected inputted isotopes for the inputted instrument
 	blank carbon contribution using the `blk_corr` flag and assumed a 1\% 
-	uncertainty in mass measurements. **NOTE:** See ``from_csv`` documentation
-	for instructions on getting the .csv file in the right format.
+	uncertainty in mass measurements. **NOTE:** See ``RpoIsotopes.from_csv`` 
+	documentation for instructions on getting the .csv file in the right
+	format.
 
 	Correcting the d13C results for a given E distribution for kinetic isotope
 	fractionation effects::

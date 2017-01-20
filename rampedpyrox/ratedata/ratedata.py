@@ -32,10 +32,13 @@ from ..core.plotting_helper import(
 	_rem_dup_leg,
 	)
 
+from ..core.summary_helper import(
+	_calc_rate_info,
+	)
+
 from ..model.model_helper import(
 	_calc_p,
 	)
-
 
 class RateData(object):
 	'''
@@ -96,7 +99,7 @@ class RateData(object):
 		'''
 
 		#extract model rate/E and store as k variable (necessary since models
-		#	have different nomenclature)
+		# have different nomenclature)
 		if hasattr(model, 'k'):
 			k = model.k
 		
@@ -104,7 +107,7 @@ class RateData(object):
 			k = model.E
 
 		#calculate best-fit omega if necessary
-		if omega == 'auto':
+		if omega in ['auto', 'Auto']:
 			omega = model.calc_L_curve(timedata, plot = False)
 		
 		elif isinstance(omega, (int, float)):
@@ -115,7 +118,7 @@ class RateData(object):
 				'omega must be int, float, or "auto"')
 
 		#generate regularized pdf, p
-		p, resid_rmse, rgh_rmse = _calc_p(model, timedata, omega)
+		p, resid, rgh = _calc_p(model, timedata, omega)
 
 		#create class instance
 		rd = cls(k, p = p)
@@ -123,8 +126,8 @@ class RateData(object):
 		#input estimated data
 		rd.input_estimated(
 			omega = omega,
-			resid_rmse = resid_rmse,
-			rgh_rmse = rgh_rmse)
+			resid = resid,
+			rgh = rgh)
 
 		return rd
 
@@ -132,8 +135,8 @@ class RateData(object):
 	def input_estimated(
 			self,
 			omega = None, 
-			resid_rmse = None, 
-			rgh_rmse = None):
+			resid = None, 
+			rgh = None):
 		'''
 		Inputs estimated data into an ``rp.RateData`` instance.
 
@@ -143,11 +146,11 @@ class RateData(object):
 			Best-fit smoothing weighting factor for Tikhonov regularization.
 			Calculated using L-curve approach.
 
-		resid_rmse : float
+		resid : float
 			Residual RMSE from inverse model.
 
-		rgh_rmse : float
-			Roughness RMSE from inverse model.
+		rgh : float
+			Roughness from inverse model.
 
 		Raises
 		------
@@ -165,8 +168,8 @@ class RateData(object):
 			k = self.E
 
 		#store attributes
-		self.resid_rmse = resid_rmse
-		self.rgh_rmse = rgh_rmse
+		self.resid = resid
+		self.rgh = rgh
 
 		#input omega if it exists for bookkeeping
 		if omega is not None:
@@ -215,11 +218,12 @@ class RateData(object):
 			ax.plot(
 				rd[0], 
 				rd[1],
-				linewidth=2,
-				color='k',
-				label=r'Regularized p ($\omega$ = %.2f)' %self.omega)
+				linewidth = 2,
+				color = 'k',
+				label = r'Regularized p ($\omega$ = %.2f)' %self.omega)
 
 			#set limits
+			ax.set_xlim([0, 1.1*np.max(rd[0])])
 			ax.set_ylim([0, 1.1*np.max(rd[1])])
 
 		#remove duplicate legend entries
@@ -228,8 +232,8 @@ class RateData(object):
 		ax.legend(
 			han_list,
 			lab_list, 
-			loc='best',
-			frameon=False)
+			loc = 'best',
+			frameon = False)
 
 		#make tight layout
 		plt.tight_layout()
@@ -315,18 +319,26 @@ class EnergyComplex(RateData):
 	nE : int
 		Number of E points.
 
+	ec_info : pd.Series
+		Series containing the observed EnergyComplex summary info: 
+
+			E_max (kJ/mol), \n
+			E_mean (kJ/mol), \n
+			E_std (kJ/mol), \n
+			p0(E)_max (unitless)
+
 	omega : float
 		Tikhonov regularization weighting factor.
 
 	p : np.ndarray
 		Array of the pdf of the E distribution, p0E. Length `nEa`.
 
-	resid_rmse : float
+	resid : float
 		The RMSE between the measured thermogram data and the estimated 
 		thermogram using the p (ghat). Used for determining the best-fit omega
 		value.
 
-	rgh_rmse :
+	rgh :
 		The roughness RMSE. Used for determining best-fit omega value.
 
 	References
@@ -361,9 +373,10 @@ class EnergyComplex(RateData):
 		self.E = E
 		self.nE = nE
 
-		#check if p exists and store
+		#check if p exists and store p, statistics
 		if p is not None:
 			self.p = assert_len(p, nE)
+			self.ec_info = _calc_rate_info(E, p, kstr = 'E')
 
 	#define classmethod to generate instance by inverse modeling timedata with
 	# a model
@@ -407,12 +420,6 @@ class EnergyComplex(RateData):
 		RpoThermogram.forward_model
 			``rp.TimeData`` method for forward-modeling an ``rp.RateData`` 
 			instance using a particular model.
-
-		References
-		----------
-		[1] B. de Caprariis et al. (2012) Double-Gaussian distributed activation
-  			energy model for coal devolatilization. *Energy & Fuels*, **26**,
- 			 6153-6159.
 		'''
 
 		#warn if model is not Daem
@@ -444,8 +451,8 @@ class EnergyComplex(RateData):
 	def input_estimated(
 			self, 
 			omega = 0, 
-			resid_rmse = 0, 
-			rgh_rmse = 0):
+			resid = 0, 
+			rgh = 0):
 		'''
 		Inputs estimated rate data into the ``rp.EnergyComplex`` instance and
 		calculates statistics.
@@ -456,17 +463,17 @@ class EnergyComplex(RateData):
 			Tikhonov regularization weighting factor used to generate
 			estimated data. Defaults to 0.
 
-		resid_rmse : float
+		resid : float
 			Residual RMSE for the inputted estimated data. Defaults to 0.
 
-		rgh_rmse : float
+		rgh : float
 			Roughness RMSE for the inputted estimated data. Defaults to 0.
 		'''
 
 		super(EnergyComplex, self).input_estimated(
 			omega = omega,
-			resid_rmse = resid_rmse,
-			rgh_rmse = rgh_rmse)
+			resid = resid,
+			rgh = rgh)
 
 	#define plotting method
 	def plot(self, ax = None):
@@ -486,7 +493,7 @@ class EnergyComplex(RateData):
 		'''
 
 		#create axis label tuple
-		labs = (r'E (kJ/mol)', r'$p_{0}(E)$ pdf (unitless)')
+		labs = (r'E (kJ/mol)', r'$p_{0}(E)$ (unitless)')
 
 		#check if data exist
 		if hasattr(self, 'p'):

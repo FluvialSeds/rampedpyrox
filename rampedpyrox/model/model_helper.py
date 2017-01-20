@@ -67,10 +67,10 @@ def _calc_p(model, timedata, omega):
 		Array of the pdf of the discretized distribution of rates (or E, for 
 		DAEM).
 
-	resid_rmse : float
+	resid : float
 		Residual RMSE between true and modeled time data.
 
-	rgh_rmse : float
+	rgh : float
 		Roughness RMSE from Tikhonov Regularization.
 
 	References
@@ -89,7 +89,7 @@ def _calc_p(model, timedata, omega):
 		**6**, 1-35.
 	'''
 
-	#extract nt and nk (or nEa for daem)
+	#extract nt and nk (or nE for daem)
 	nt, nk = np.shape(model.A)
 
 	#calculate the regularization matrix
@@ -100,7 +100,7 @@ def _calc_p(model, timedata, omega):
 		(model.A, R*omega))
 
 	g_reg = np.concatenate(
-		(timedata.g, np.zeros(nk+1)))
+		(timedata.g, np.zeros(nk + 1)))
 
 	#calculate inverse results and estimated g
 	p, _ = nnls(A_reg, g_reg)
@@ -108,10 +108,10 @@ def _calc_p(model, timedata, omega):
 	rgh = np.inner(R, p)
 
 	#calculate errors
-	resid_rmse = norm(timedata.g - ghat)/nt**0.5
-	rgh_rmse = norm(rgh)/nk**0.5
+	resid = norm(timedata.g - ghat)/nt**0.5
+	rgh = norm(rgh)/nk**0.5
 
-	return p, resid_rmse, rgh_rmse
+	return p, resid, rgh
 
 #define a function to calculate the Tikhonov regularization matrix
 def _calc_R(n):

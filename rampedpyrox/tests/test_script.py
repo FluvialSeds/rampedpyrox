@@ -11,8 +11,8 @@ def gen_str(name):
 	return p
 
 #paths to data files
-data = gen_str('test_data/TS3.csv') #REPLACE THIS WITH A PATH TO YOUR DATA
-sum_data = gen_str('test_data/TS3_sum.csv') #REPLACE THIS WITH A PATH TO YOUR DATA
+data = gen_str('test_data/TS1.csv') #REPLACE THIS WITH A PATH TO YOUR DATA
+sum_data = gen_str('test_data/TS1_sum.csv') #REPLACE THIS WITH A PATH TO YOUR DATA
 
 #calculate thermogram
 tg = rp.RpoThermogram.from_csv(
@@ -32,7 +32,7 @@ daem = rp.Daem.from_timedata(
 ec = rp.EnergyComplex.inverse_model(
 	daem, 
 	tg,
-	omega='auto') #can replace with best-fit value if known
+	omega=.05) #can replace with best-fit value if known
 
 #forward model estimated thermogram back onto tg
 tg.forward_model(daem, ec)

@@ -8,7 +8,7 @@ from __future__ import(
 	)
 
 __docformat__ = 'restructuredtext en'
-__all__ = ['_calc_RPO_info', '_rpo_isotopes_frac_info']
+__all__ = ['_calc_rate_info', '_calc_RPO_info', '_rpo_isotopes_frac_info']
 
 import numpy as np
 import pandas as pd
@@ -19,7 +19,61 @@ from ..core.core_functions import(
 	extract_moments
 	)
 
-#define function to calculate timedata component info and store
+#define function to calculate ratedata info and store
+def _calc_rate_info(k, p, kstr = 'E'):
+	'''
+	Calculates the ``rp.RateData`` instance summary statistics and stores in
+	a Series.
+
+	Parameters
+	----------
+	k : np.ndarray
+		Array of rates (or E), length `nk`.
+
+	p : np.ndarray
+		Array of pdf of rates (or E), length `nk`.
+
+	kstr : string
+		String of nomenclature for k (i.e. 'k' or 'E')
+
+	Returns
+	-------
+	rate_summary : pd.Series
+		Series of resulting RateData summary info.
+	'''
+
+	#set pandas display options
+	pd.set_option('precision', 2)
+
+	if kstr == 'E':
+		unit = ' (kJ/mol)'
+
+	else:
+		unit = ' (s-1)'
+
+	#define series index
+	ind = [kstr + '_max' + unit,
+			kstr + '_mean' + unit,
+			kstr + '_std' + unit,
+			'p0(' + kstr + ')_max']
+
+	#find max
+	i = np.where(p == np.max(p))[0][0]
+
+	#calculate statistics
+	kmax = k[i]
+	pmax = p[i]
+	kav, kstd = extract_moments(k, p)
+
+	#combine into list
+	vals = [kmax, kav, kstd, pmax]
+
+	#make series
+	rate_summary = pd.Series(vals, index = ind)
+
+	return rate_summary
+
+#define function to calculate timedata info and store
 def _calc_RPO_info(t, T, g):
 	'''
 	Calculates the ``rp.TimeData`` instance thermogram summary statistics and

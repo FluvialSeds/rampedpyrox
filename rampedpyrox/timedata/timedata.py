@@ -424,8 +424,8 @@ class RpoThermogram(TimeData):
 	T : numpy.ndarray
 		Array of temperature, in Kelvin. Length `nt`.
 
-	tg_info : pd.DataFrame
-		DataFrame containing the observed thermogram summary info: 
+	tg_info : pd.Series
+		Series containing the observed thermogram summary info: 
 
 			t_max (s), \n
 			t_mean (s), \n
@@ -436,8 +436,8 @@ class RpoThermogram(TimeData):
 			max_rate (frac/s), \n
 			max_rate (frac/K), \n
 
-	tghat_info : pd.DataFrame
-		DataFrame containing the modelled thermogram summary info: 
+	tghat_info : pd.Series
+		Series containing the modelled thermogram summary info: 
 
 			t_max (s), \n
 			t_mean (s), \n

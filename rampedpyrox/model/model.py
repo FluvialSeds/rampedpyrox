@@ -83,7 +83,7 @@ class Model(object):
 			ax = None, 
 			nOm = 150, 
 			om_max = 1e2, 
-			om_min = 1e-2, 
+			om_min = 1e-3, 
 			plot = False):
 		'''
 		Function to calculate the L-curve for a given model and timedata
@@ -107,7 +107,7 @@ class Model(object):
 			Maximum omega value to search. Defaults to 1e2.
 
 		om_min : float or int
-			Minimum omega value to search. Defaults to 1e-2.
+			Minimum omega value to search. Defaults to 1e-3.
 
 		plot : Boolean
 			Tells the method to plot the resulting L curve or not. Defaults to
@@ -145,9 +145,9 @@ class Model(object):
 			modeling and computation). *Society for Industrial and Applied*
 			*Mathematics*.
 
-		[3] P.C. Hansen (1994) Regularization tools: A Matlab package for analysis and
-			solution of discrete ill-posed problems. *Numerical Algorithms*, **6**,
-			1-35.
+		[3] P.C. Hansen (1994) Regularization tools: A Matlab package for 
+			analysis and solution of discrete ill-posed problems. *Numerical**
+			**Algorithms*, **6**, 1-35.
 		'''
 
 		#check that nOm, om_max, and om_min are in the right form
@@ -184,49 +184,16 @@ class Model(object):
 		res_vec = np.around(res_vec, decimals = 6)
 		rgh_vec = np.around(rgh_vec, decimals = 6)
 
-		# #calculate derivatives and curvature
-		# dydx = derivatize(rgh_vec, res_vec)
-		# dy2d2x = derivatize(dydx, res_vec)
+		#calculate derivatives and curvature
+		dydx = derivatize(rgh_vec, res_vec)
+		dy2d2x = derivatize(dydx, res_vec)
 
-		# #function for curvature
-		# k = np.abs(dy2d2x)/(1+dydx**2)**1.5
+		#function for curvature
+		k = dy2d2x/(1+dydx**2)**1.5
 
-		# #find first occurrance of argmax k, ignoring first and last points
-		# i = np.argmax(k[1:-1])
-		# i + 1+1 #account for the fact that we dropped the first point
-		# om_best = om_vec[i]
-
-		# FROM FORNEY AND ROTHMAN 2012
-		
-		#calculate derivatives
-		dres = np.diff(res_vec)
-		dres1 = dres[:-1]
-		dres2 = dres[1:]
-
-		drgh = np.diff(rgh_vec)
-		drgh1 = drgh[:-1]
-		drgh2 = drgh[1:]
-
-		dom = np.diff(om_vec)
-		dom1 = dom[:-1]
-		dom2 = dom[1:]    
-
-		#calculate derivative at om_n, the omega value at the center of the 1st
-		#and 2nd derivatives
-		om_n = om_vec[1:-1]/2 + (om_vec[:-2]+om_vec[2:])/4
-
-		#first derivative at om_n
-		drgh_n=(drgh1/dom1+drgh2/dom2)/2
-		dres_n=(dres1/dom1+dres2/dom2)/2
-
-		#second derivative at om_n
-		ddrgh_n=(drgh2/dom2-drgh1/dom1)/(dom1/2+dom2/2)
-		ddres_n=(dres2/dom2-dres1/dom1)/(dom1/2+dom2/2)
-
-		#calculate curvature and find maximum
-		curv = (dres_n*ddrgh_n - ddres_n*drgh_n)/(dres_n**2 + drgh_n**2)**1.5
-
-		i = np.argmax(curv)
+		#find first occurrance of argmax k, ignoring first and last points
+		i = np.argmax(k[1:-1])
+		i += 1 #account for the fact that we dropped the first point
 		om_best = om_vec[i]
 
 		#plot if necessary
@@ -254,13 +221,16 @@ class Model(object):
 				label=r'best-fit $\omega$')
 
 			#set axis labels and text
-			ax.set_xlabel(
-				r'residual error, $\log_{10} \left( \frac{\|\| \mathbf{A}\cdot \mathbf{p} - \mathbf{g} \|\|}{\sqrt{n_{j}}} \right)$'
-				)
+
+			xlab = r'residual error, $\log_{10} \left( \frac{\|\|' \
+				r'\mathbf{A}\cdot \mathbf{p} - \mathbf{g} \|\|}{\sqrt{n_{j}}}' \
+				r'\right)$'
+			ax.set_xlabel(xlab)
 			
-			ax.set_ylabel(
-				r'roughness, $\log_{10} \left( \frac{\|\| \mathbf{R} \cdot\mathbf{p} \|\|}{\sqrt{n_{l}}} \right)$'
-				)
+			ylab = r'roughness, $\log_{10} \left( \frac{\|\| \mathbf{R}' \
+				r'\cdot\mathbf{p} \|\|}{\sqrt{n_{l}}} \right)$'
+
+			ax.set_ylabel(ylab)
 
 			label1 = r'best-fit $\omega$ = %.3f' %(om_best)
 			
@@ -390,7 +360,7 @@ class Daem(Model):
 			tg,
 			ax = None, 
 			plot = True,
-			om_min = 1e-2,
+			om_min = 1e-3,
 			om_max = 1e2,
 			nOm = 150)
 
@@ -622,3 +592,4 @@ class Daem(Model):
 if __name__ == '__main__':
 
 	import rampedpyrox as rp
+
