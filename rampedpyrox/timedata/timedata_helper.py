@@ -37,8 +37,8 @@ def _rpo_extract_tg(file, nt, bl_subtract = True):
 
 	bl_subtract : Boolean
 		Tells the program whether or not to linearly subtract the baseline
-		such that ppm CO2 returns to 0 at the end of the run. Treats baseline
-		as linearly increasing from the average of the first 100 points in
+		such that ppm CO2 returns to 0 at the beginning and end of the run. 
+		Treats baseline as linear from the average of the first 100 points in
 		CO2 to the average of the last 100 points in CO2. Defaults to`True`.
 
 	Returns
@@ -67,7 +67,7 @@ def _rpo_extract_tg(file, nt, bl_subtract = True):
 	Notes
 	-----
 	Noisy data, especially at the beginning of the run, could lead to `g`
-	values slightly outside of the (0, 1) range (*i.e.* noisy ppmCO2 less than
+	values slightly outside of the (0, 1) range (*i.e.* noisy ppm CO2 less than
 	zero could lead to slightly negative `g`). This method removes this
 	possibility by enforcing that all values of `g` are within (0, 1).
 
@@ -104,7 +104,7 @@ def _rpo_extract_tg(file, nt, bl_subtract = True):
 		bl0 = np.average(CO2[:100])
 		blf = np.average(CO2[-100:])
 
-		#subtract linearly increasing baseline
+		#subtract linear baseline
 		npt = len(CO2)
 		bl = bl0 + (blf - bl0)*np.arange(0, npt)/npt
 

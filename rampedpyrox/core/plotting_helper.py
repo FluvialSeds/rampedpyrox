@@ -37,18 +37,7 @@ def _plot_dicts(case, td):
 		The resulting dictionary containing plotting info.
 	'''
 
-	if case == 'rpo_md':
-		#create a nested dict to keep track of cases of modeled data
-		pl_dict = {'time': 
-						{'fraction' : (td.t, td.ghat),
-						'rate' : (td.t, -td.dghatdt)
-						},
-					'temp': 
-						{'fraction' : (td.T, td.ghat),
-						'rate' : (td.T, -td.dghatdT)}
-						}
-
-	elif case == 'rpo_labs':
+	if case == 'rpo_labs':
 		#create a nested dict to keep track of axis labels
 		pl_dict = {'time': 
 						{'fraction' : ('time (s)', 'g (unitless)'),
@@ -57,6 +46,17 @@ def _plot_dicts(case, td):
 					'temp' : 
 						{'fraction' : ('temp (K)', 'g (unitless)'),
 						'rate' : ('temp (K)', r'fraction/temp $(K^{-1})$')}
+						}
+	
+	elif case == 'rpo_md':
+		#create a nested dict to keep track of cases of modeled data
+		pl_dict = {'time': 
+						{'fraction' : (td.t, td.ghat),
+						'rate' : (td.t, -td.dghatdt)
+						},
+					'temp': 
+						{'fraction' : (td.T, td.ghat),
+						'rate' : (td.T, -td.dghatdT)}
 						}
 
 	elif case == 'rpo_rd':

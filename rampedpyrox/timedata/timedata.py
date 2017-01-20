@@ -1,5 +1,3 @@
-#TODO: Add method to calculate `tg_info`
-
 '''
 This module contains the TimeData superclass and all corresponding subclasses.
 '''
@@ -35,8 +33,12 @@ from ..core.plotting_helper import(
 	_rem_dup_leg,
 	)
 
+from ..core.summary_helper import(
+	_calc_RPO_info,
+	)
+
 from ..model.model_helper import(
-	_calc_ghat
+	_calc_ghat,
 	)
 
 from .timedata_helper import(
@@ -70,7 +72,7 @@ class TimeData(object):
 			Standard deviation of `g`, with length `nt`. Defaults to `None`.
 
 		T_std : scalar or array-like
-			The temperature standard deviation, with length `nt`, in Kelvin. 
+			The standard deviation of `T`, with length `nt`, in Kelvin. 
 			Defaults to `None`.
 		'''
 
@@ -82,7 +84,7 @@ class TimeData(object):
 
 		if T_std is not None:
 
-			#only store T_std if it exists (does not for RPO!)
+			#only store T_std if it exists (NONE for RPO, keep for future)
 			self.T_std = assert_len(T_std, nt) #K
 
 		#store time-temperature derivatives
@@ -100,7 +102,7 @@ class TimeData(object):
 
 			if g_std is not None:
 
-				#only store g_std if it exists (does not for RPO!)
+				#only store g_std if it exists (NONE for RPO, keep for future)
 				self.g_std = assert_len(g_std, nt) #fraction
 
 			#store g derivatives
@@ -148,13 +150,13 @@ class TimeData(object):
 		#calculate forward-modelled g estimate, ghat
 		ghat = _calc_ghat(model, ratedata)
 
-		#populate with modeled data
+		#populate with modelled data
 		self.input_estimated(ghat)
 
 	#define method for inputting the results from a model fit
 	def input_estimated(self, ghat):
 		'''
-		Method to input modeled estimate data into ``rp.TimeData`` instance 
+		Method to input modelled estimate data into ``rp.TimeData`` instance 
 		and to calculate corresponding derivatives and statistics.
 
 		Parameters
@@ -176,8 +178,8 @@ class TimeData(object):
 		#store RMSE if the model has true data, g
 		if hasattr(self, 'g'):
 
-			rmse = norm(self.g - ghat)/nt**0.5
-			self.rmse = rmse
+			resid = norm(self.g - ghat)/nt**0.5
+			self.resid = resid
 
 	#define plotting method
 	def plot(self, ax = None, labs = None, md = None, rd = None):
@@ -194,12 +196,12 @@ class TimeData(object):
 			Defaults to `None`.
 
 		md : tuple or None
-			Tuple of modeled data, in the form 
-			(x_data, sum_y_data). Defaults to `None`.
+			Tuple of modelled data, in the form  (x_data, y_data). Defaults
+			to `None`.
 
 		rd : tuple
-			Tuple of real data, in the form (x_data, y_data). Defaults to
-			`None`.
+			Tuple of real (observed) data, in the form (x_data, y_data). 
+			Defaults to `None`.
 
 		Returns
 		-------
@@ -221,11 +223,12 @@ class TimeData(object):
 			ax.plot(
 				rd[0], 
 				rd[1],
-				linewidth=2,
-				color='k',
-				label='Real Data')
+				linewidth = 2,
+				color = 'k',
+				label = 'Observed Data')
 
 			#set limits
+			ax.set_xlim([0, 1.1*np.max(rd[0])])
 			ax.set_ylim([0, 1.1*np.max(rd[1])])
 			
 		#add model-estimated data if it exists
@@ -235,9 +238,13 @@ class TimeData(object):
 			ax.plot(
 				md[0], 
 				md[1],
-				linewidth=2,
-				color='r',
-				label='Modeled data')
+				linewidth = 2,
+				color = 'r',
+				label = 'Model-estimated data')
+
+			#(re)set limits
+			ax.set_xlim([0, 1.1*np.max(md[0])])
+			ax.set_ylim([0, 1.1*np.max(md[1])])
 
 		#remove duplicate legend entries
 		han_list, lab_list = _rem_dup_leg(ax)
@@ -245,8 +252,8 @@ class TimeData(object):
 		ax.legend(
 			han_list,
 			lab_list, 
-			loc='best',
-			frameon=False)
+			loc = 'best',
+			frameon = False)
 
 		#make tight layout
 		plt.tight_layout()
@@ -256,8 +263,9 @@ class TimeData(object):
 
 class RpoThermogram(TimeData):
 	__doc__='''
-	Class for inputting and storing Ramped PyrOx true and modeled thermograms,
-	and for calculating goodness of fit statistics.
+	Class for inputting and storing Ramped PyrOx true (observed) and estimated
+	(forward-modelled) thermograms, calculating goodness of fit statistics,
+	and reporting summary tables.
 
 	Parameters
 	----------
@@ -275,23 +283,27 @@ class RpoThermogram(TimeData):
 	--------
 	UserWarning
 		If attempting to use isothermal data to create an ``rp.RpoThermogram``
-		instance. Consider using alternate ``rp.TimeData`` subclass.
+		instance. Consider using an alternate ``rp.TimeData`` subclass (to be
+		added in future versions).
 
 	Notes
 	-----
 	**Important:** The inverse model used herein is highly sensitive to
 	boundary effects. To avoid unnecessarily large regularizations ensure that
-	inputted data return completely to baseline ppmCO2 by the end of the 
-	experiment. (can use the `bl_subtract` flag to enforce that this is true.)
+	inputted data are completely at baseline (ppm CO2 = 0) at the beginning
+	and the end of the experiment (can use the `bl_subtract` flag to enforce
+	that this is true.)
 
 	See Also
 	--------
 	Daem
-		``rp.Model`` subclass used to generate the Laplace transform for RPO
-		data and translate between time- and E-space.
+		``rp.Model`` subclass used to generate the distributed activation
+		energy model (DAEM)transform matrix for RPO data and translate between
+		time- and E-space.
 
 	EnergyComplex
-		``rp.RateData`` subclass for storing and analyzing RPO rate data.
+		``rp.RateData`` subclass for storing and analyzing RPO energy (rate)
+		data.
 
 	Examples
 	--------
@@ -323,20 +335,24 @@ class RpoThermogram(TimeData):
 		tg = rp.RpoThermogram.from_csv(
 			file,
 			bl_subtract = True,
-			nt = 250)
+			nt = 250) #number of down-sampled time points
 
-	Manually adding some model-estimated `g` data as `ghat`::
+	Manually adding some model-estimated fraction remaining data as `ghat`::
 
-		#assuming ghat has been generating using a Daem model
+		#assuming ghat has been generating using a ``rp.Daem`` model
 		tg.input_estimated(ghat)
 
 	Or, instead, you can input model-estimated g data directly from a given
 	``rp.Daem`` and ``rp.EnergyComplex`` instance (*i.e.* run the forward 
 	model)::
 
+		#assuming ``rp.Daem`` named daem and ``rp.EnergyComplex`` named ec
 		tg.forward_model(daem, ec)
 
-	Plotting the resulting true and estimated thermograms::
+	Plotting the resulting observed and modelled thermograms (note scatter
+	when plotted against temp due to short fluctuations in measured ramp rate.
+	For a "smooth" plot, always plot against time, as this is the master
+	variable.)::
 
 		#import additional modules
 		import matplotlib.pyplot as plt
@@ -355,9 +371,10 @@ class RpoThermogram(TimeData):
 			xaxis = 'temp', 
 			yaxis = 'rate')
 
-	Printing a summary of the thermogram::
+	Printing a summary of the observed and modelled thermograms::
 
 		print(tg.tg_info)
+		print(tg.tghat_info)
 
 	**Attributes**
 
@@ -397,8 +414,9 @@ class RpoThermogram(TimeData):
 	nt : int
 		Number of timepoints.
 
-	rmse : float
-		The RMSE between true and estimated thermogram (g and ghat).
+	resid : float
+		The residual root mean square error (RMSE) between observed and
+		modelled thermograms, g and ghat.
 
 	t : numpy.ndarray
 		Array of timepoints, in seconds. Length `nt`.
@@ -407,35 +425,50 @@ class RpoThermogram(TimeData):
 		Array of temperature, in Kelvin. Length `nt`.
 
 	tg_info : pd.DataFrame
-		DataFrame containing the g and ghat summary info: 
+		DataFrame containing the observed thermogram summary info: 
 
 			t_max (s), \n
+			t_mean (s), \n
+			t_std (s), \n
 			T_max (K), \n
+			T_mean (K), \n
+			T_std (K), \n
+			max_rate (frac/s), \n
+			max_rate (frac/K), \n
+
+	tghat_info : pd.DataFrame
+		DataFrame containing the modelled thermogram summary info: 
+
+			t_max (s), \n
+			t_mean (s), \n
+			t_std (s), \n
+			T_max (K), \n
+			T_mean (K), \n
+			T_std (K), \n
 			max_rate (frac/s), \n
 			max_rate (frac/K), \n
 	'''
 
-	def __init__(self, t, T, g = None, g_std = None, T_std = None):
+	def __init__(self, t, T, g = None):
 
 		#warn if T is scalar
-		if isinstance(T, (int, float)):
+		if isinstance(T, (int, float)) or len(set(T)) == 1:
 			warnings.warn(
 				'Attempting to use isothermal data for RPO run! T is a scalar'
 				' value of: %r. Consider using an isothermal model type'
 				' instead.' % T, UserWarning)
 
-		elif len(set(T)) == 1:
-			warnings.warn(
-				'Attempting to use isothermal data for RPO run! T is a scalar'
-				' value of: %r. Consider using an isothermal model type'
-				' instead.' % T[0], UserWarning)
-
 		super(RpoThermogram, self).__init__(
 			t, 
 			T, 
 			g = g, 
-			g_std = g_std, 
-			T_std = T_std)
+			g_std = None, #force to be None for RPO
+			T_std = None) #force to be None for RPO
+
+		#if g exists, add RPO-specific summary file
+		if g is not None:
+
+			self.tg_info = _calc_RPO_info(t, T, g)
 
 	#define class method for creating instance directly from .csv file
 	@classmethod
@@ -456,9 +489,9 @@ class RpoThermogram(TimeData):
 
 		bl_subtract : Boolean
 			Tells the program whether or not to linearly subtract the baseline
-			such that ppmCO2 returns to 0 at the end of the run. Defaults to
-			`True`. **To minimize boundary effects, this should typically be**
-			**set to 'True' regardless of previous data treatment.**
+			such that ppmCO2 returns to 0 at the beginning and end of the run. 
+			Defaults to `True`. **To minimize boundary effects, this should 
+			typically be set to `True` regardless of previous data treatment.**
 
 		nt : int
 			The number of time points to use. Defaults to 250.
@@ -504,9 +537,9 @@ class RpoThermogram(TimeData):
 			nt, 
 			bl_subtract = bl_subtract)
 
-		return cls(t, T, g = g, g_std = None, T_std = None)
+		return cls(t, T, g = g)
 
-	#define method for inputting forward-modeled data
+	#define method for inputting forward-modelled data
 	def forward_model(self, model, ratedata):
 		'''
 		Forward-models rate data for a given model and populates the
@@ -611,6 +644,10 @@ class RpoThermogram(TimeData):
 		#call the superclass method
 		super(RpoThermogram, self).input_estimated(ghat)
 
+		#add RPO-specific modelled tg summary file
+		self.tghat_info = _calc_RPO_info(self.t, self.T, ghat)
+
+
 	#define plotting method
 	def plot(self, ax = None, xaxis = 'time', yaxis = 'rate'):
 		'''
@@ -670,9 +707,9 @@ class RpoThermogram(TimeData):
 		else:
 			rd = None
 
-		#check if modeled data exist
+		#check if modelled data exist
 		if hasattr(self, 'ghat'):
-			#extract modeled data dict
+			#extract modelled data dict
 			rpo_md = _plot_dicts('rpo_md', self)
 			md = (
 				rpo_md[xaxis][yaxis][0], 
