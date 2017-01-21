@@ -8,7 +8,7 @@ from __future__ import(
 	)
 
 __docformat__ = 'restructuredtext en'
-__all__ = ['_calc_cutoff','_rpo_blk_corr', '_rpo_calc_E_frac', 
+__all__ = ['_calc_cutoff', '_calc_E_frac','_rpo_blk_corr', '_rpo_calc_E_frac',
 	'_rpo_extract_iso', '_rpo_kie_corr', '_rpo_mass_bal_corr']
 
 import numpy as np
@@ -33,7 +33,8 @@ from ..core.exceptions import(
 
 #import helper functions
 from ..core.core_functions import(
-	assert_len
+	assert_len,
+	extract_moments,
 	)
 
 #define a function to calculate cutoff indices for each RPO fraction
@@ -84,6 +85,79 @@ def _calc_cutoff(result, model):
 		ind_max[i] = ind[-1]
 
 	return ind_min, ind_max
+
+#define function to calculate the E values of each RPO fraction
+def _calc_E_frac(result, model, ratedata):
+	'''
+	Method for determining the distribution of E values contained within
+	each RPO fraction. Used for calculating `E_frac` and `E_frac_std` in
+	order to compare with measured isotope values.
+
+	Parameters
+	----------
+	result : rp.RpoIsotopes
+		``rp.RpoIsotopes`` instance containing the `t_frac` array to be used
+		for calculating E in each fraction.
+
+	model : rp.Model
+		``rp.Model`` instance containing the A matrix to use for 
+		inversion.
+
+	ratedata : rp.RateData
+		``rp.Ratedata`` instance containing the reactive continuum data.
+
+	Returns
+	-------
+	E_frac : np.ndarray
+		Array of mean E value contained in each RPO fraction, length `nFrac`.
+
+	E_frac_std : np.ndarray
+		Array of the standard deviation of E contained in each RPO fraction,
+		length `nFrac`.
+
+	p_frac : np.ndarray
+		2d array of the distribution of E contained in each RPO fraction,
+		shape [`nFrac` x `nE`].
+	'''
+
+	#calculate cutoff indices
+	ind_min, ind_max = _calc_cutoff(result, model)
+
+	#extract necessary data
+	A = model.A
+	E = ratedata.E
+	nE = ratedata.nE
+	nF = result.nF
+	p = ratedata.p
+
+	#make an empty matrix to store results
+	p_frac = np.zeros([nF, nE])
+	E_frac = np.zeros(nF)
+	E_frac_std = np.zeros(nF)
+
+	#loop through each time window and calculate p0E_diff distribution
+	for i in range(nF):
+
+		#extract indices
+		imin = ind_min[i]
+		imax = ind_max[i]
+
+		#p(E,t) at time 0
+		pt0 = p*A[imin,:]
+
+		#p(E,t) at time final
+		ptf = p*A[imax,:]
+
+		#difference -- i.e. p(E) evolved over Dt
+		Dpt = pt0 - ptf
+
+		#store in matrix
+		p_frac[i, :] = Dpt
+
+		#calculate the mean and stdev
+		E_frac[i], E_frac_std[i] = extract_moments(E, Ept)
+
+	return E_frac, E_frac_std, p_frac
 
 #define a function to blank-correct fraction isotopes
 def _rpo_blk_corr(
@@ -227,89 +301,6 @@ def _rpo_blk_corr(
 			Fm_std_corr, 
 			m_corr, 
 			m_std_corr)
-
-#define function to calculate the E values of each RPO fraction
-def _rpo_calc_E_frac(
-	result,
-	model,
-	ratedata):
-	'''
-	Calculates the distribution of E values contained within each RPO fraction
-	as determined by p0(E) and each fraction start/stop time.
-
-	Parameters
-	----------
-	result : rp.Results
-		Result instance containing the start/stop times to be used to calculate
-		E_frac
-
-	model : rp.Model
-		``rp.Model`` instance containing the A matrix to use for inversion.
-
-	ratedata : rp.RateData
-		``rp.Ratedata`` instance containing the reactive continuum data.
-
-	Returns
-	-------
-	E_frac : np.ndarray
-		Array of mean E value contained in each RPO fraction, length `nFrac`.
-
-	E_frac_std : np.ndarray
-		Array of the standard deviation of E contained in each RPO fraction,
-		length `nFrac`.
-
-	p_frac : np.ndarray
-		2d array of the distribution of E contained in each RPO fraction,
-		shape [`nFrac` x `nE`].
-	'''
-
-	#calculate cutoff indices
-	ind_min, ind_max = _calc_cutoff(result, model)
-
-	#extract necessary data
-	A = model.A
-	E = ratedata.E
-	nE = ratedata.nE
-	nF = result.nFrac
-	p = ratedata.p
-
-	#make an empty matrix to store results
-	p_frac = np.zeros([nF, nE])
-	E_frac = np.zeros(nF)
-	E_frac_std = np.zeros(nF)
-
-	#loop through each time window and calculate p0E_diff distribution
-	for i in range(nF):
-
-		#extract indices
-		imin = ind_min[i]
-		imax = ind_max[i]
-
-		#p(E,t) at time 0
-		pt0 = p*A[imin,:]
-
-		#p(E,t) at time final
-		ptf = p*A[imax,:]
-
-		#difference -- i.e. p(E) evolved of Dt
-		Dpt = pt0 - ptf
-
-		#scale difference so that integral is 1
-		scalar = 1/np.sum(Dpt*np.gradient(E))
-
-		#store in matrix
-		p_frac[i, :] = Dpt
-
-		#calculate the mean and stdev
-		mu = np.sum(E*Dpt*scalar*np.gradient(E))
-		var = np.sum((E - mu)**2 * Dpt*scalar*np.gradient(E))
-
-		#store results
-		E_frac[i] = mu
-		E_frac_std[i] = var**0.5
-
-	return E_frac, E_frac_std, p_frac
-
 
 #define function to extract Rpo isotope data from .csv file
 def _rpo_extract_iso(file, mass_err):

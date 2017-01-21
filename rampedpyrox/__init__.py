@@ -32,9 +32,7 @@ from .core.exceptions import(
 	rpException,
 	ArrayError,
 	FileError,
-	FitError,
 	LengthError,
-	RunModelError,
 	ScalarError,
 	StringError,
 	)
@@ -64,4 +62,5 @@ from .core.core_functions import(
 	assert_len,
 	calc_L_curve,
 	derivatize,
+	extract_moments
 	)

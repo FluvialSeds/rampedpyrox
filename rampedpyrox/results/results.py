@@ -1,4 +1,7 @@
 # TODO: Update examples
+# TODO: Update summary
+# TODO: Add plotting method
+
 
 '''
 This module contains the Results superclass and all corresponding subclasses.
@@ -29,15 +32,20 @@ from ..core.core_functions import(
 	)
 
 from ..core.summary_helper import(
-	_rpo_isotopes_frac_info
+	_calc_ri_info
 	)
 
+# from .results_helper import(
+# 	_calc_E_frac,
+# 	_rpo_blk_corr,
+# 	_rpo_calc_E_frac,
+# 	_rpo_extract_iso,
+# 	_rpo_kie_corr,
+# 	_rpo_mass_bal_corr,
+# 	)
+
 from .results_helper import(
-	_rpo_blk_corr,
-	_rpo_calc_E_frac,
-	_rpo_extract_iso,
-	_rpo_kie_corr,
-	_rpo_mass_bal_corr,
+	_calc_E_frac,
 	)
 
 
@@ -96,10 +104,22 @@ class RpoIsotopes(Results):
 		2d array of the initial and final times of each fraction, in seconds.
 		Shape [`nFrac` x 2]. Defaults to `None`.
 
+	Warnings
+	--------
+	UserWarning
+		If using an an isothermal model type for an RPO run.
+
+	UserWarning
+		If using a non-energy complex ratedata type for an RPO run.
+
 	Raises
 	------
 	ArrayError
-		If `t_frac` is not array-like or `None`.
+		If `t_frac` is not array-like.
+
+	ArrayError
+		If `nE` is not the same in the ``rp.Model`` instance and the 
+		``rp.RateData`` instance.
 
 	Notes
 	-----
@@ -133,7 +153,7 @@ class RpoIsotopes(Results):
 		import numpy as np
 
 		#generate arbitrary data for 3 fractions
-		t_frac = [[1000, 200], [200, 300], [300, 1000]]
+		t_frac = [[100, 200], [200, 300], [300, 1000]]
 		t_frac = np.array(t_frac)
 
 		Fm_frac = [1.0, 0.5, 0.0]
@@ -244,64 +264,110 @@ class RpoIsotopes(Results):
 	'''
 
 	def __init__(
-			self, 
-			d13C_frac = None, 
-			d13C_frac_std = 0, 
-			E_frac = None,
-			E_frac_std = 0,
-			Fm_frac = None,
-			Fm_frac_std = 0, 
-			m_frac = None, 
-			m_frac_std = 0, 
-			t_frac = None):
+			self,
+			model,
+			ratedata,
+			t_frac,
+			d13C_raw = None, 
+			d13C_raw_std = None, 
+			Fm_raw = None,
+			Fm_raw_std = None,
+			m_raw = None,
+			m_raw_std = None):
 
 		#assert all lenghts are the same and of the same length as t_frac, and
 		# store as attributes
-		if t_frac is not None:
-			if isinstance(t_frac, str):
-				raise ArrayError(
-					't_frac cannot be a string')
+		if isinstance(t_frac, str):
+			raise ArrayError(
+				't_frac cannot be a string')
 
-			elif isinstance(t_frac, Sequence) or hasattr(t_frac, '__array__'):
-				
-				n = len(t_frac)
-				self.t_frac = t_frac
-				self.nFrac = n
+		elif isinstance(t_frac, Sequence) or hasattr(t_frac, '__array__'):
+			
+			n = len(t_frac)
+			self.t_frac = t_frac
+			self.nFrac = n
 
+		else:
+			raise ArrayError(
+				't_frac must be array-like')
+
+		#store existing data
+		if m_raw is not None:
+			self.m_raw = assert_len(m_raw, n)
+
+			#store stdev if it exists, zeros if not
+			if m_raw_std is not None:
+				self.m_raw_std = assert_len(m_raw_std, n)
 			else:
-				raise ArrayError(
-					't_frac must be array-like or None')
+				self.m_raw_std = assert_len(0, n)
 
-			#store existing data
-			if m_frac is not None:
-				self.m_frac = assert_len(m_frac, n)
-				self.m_frac_std = assert_len(m_frac_std, n)
+		if d13C_raw is not None:
+			self.d13C_raw = assert_len(d13C_raw, n)
 
-			if d13C_frac is not None:
-				self.d13C_frac = assert_len(d13C_frac, n)
-				self.d13C_frac_std = assert_len(d13C_frac_std, n)
+			#store stdev if it exists, zeros if not
+			if d13C_raw_std is not None:
+				self.d13C_raw_std = assert_len(d13C_raw_std, n)
+			else:
+				self.d13C_raw_std = assert_len(0, n)
 
-			if E_frac is not None:
-				self.E_frac = assert_len(E_frac, n)
-				self.E_frac_std = assert_len(E_frac_std, n)
+		if Fm_raw is not None:
+			self.Fm_raw = assert_len(Fm_raw, n)
 
-			if Fm_frac is not None:
-				self.Fm_frac = assert_len(Fm_frac, n)
-				self.Fm_frac_std = assert_len(Fm_frac_std, n)
+			#store stdev if it exists, zeros if not
+			if Fm_raw_std is not None:
+				self.Fm_raw_std = assert_len(Fm_raw_std, n)
+			else:
+				self.Fm_raw_std = assert_len(0, n)
 
-			#store in frac_info attribute
-			self.frac_info = _rpo_isotopes_frac_info(self)
+		#warn if model is not Daem
+		mod_type = type(model).__name__
 
-		#store self._corrected for blank correction bookkeeping
-		self._corrected = False
-		self._kie_corrected = False
+		if mod_type not in ['Daem']:
+			warnings.warn(
+				'Attempting to calculate E distributions using a model' 
+				' instance of type %r. Consider using rp.Daem instance'
+				' instead' % mod_type, UserWarning)
+
+		#warn if ratedata is not EnergyComplex
+		rd_type = type(ratedata).__name__
+
+		if rd_type not in ['EnergyComplex']:
+			warnings.warn(
+				'Attempting to calculate E distributions using a ratedata'
+				' instance of type %r. Consider using rp.EnergyComplex'
+				' instance instead' % rd_type, UserWarning)
+
+		#raise exception if not the right shape
+		if model.nE != ratedata.nE:
+			raise ArrayError(
+				'Cannot combine model with nE = %r and RateData with'
+				' nE = %r. Check that RateData was not created using a'
+				' different model' % (model.nE, ratedata.nE))
+
+		#calculate E distributions for each fraction
+		E_frac, E_frac_std, p_frac = _calc_E_frac(self, model, ratedata)
+		
+		#store results
+		self.E_frac = E_frac
+		self.E_frac_std = E_frac_std
+		self._p_frac = p_frac
+
+		#store raw info summary table
+		self.ri_raw_info = _calc_ri_info(self, flag = 'raw')
+
+		#store bookkeeping corrected flags
+		self._blk_corr = False
+		self._mb_corr = False
+		self._kie_corr = False
 
 	#define classmethod for creating instance and populating measured values
 	# directly from a .csv file
 	@classmethod
 	def from_csv(
 			cls, 
-			file, 
+			file,
+			model,
+			ratedata,
 			blk_corr = False,
 			blk_d13C = (-29.0, 0.1),
 			blk_flux = (0.375, 0.0583),
@@ -381,6 +447,19 @@ class RpoIsotopes(Results):
 			NOSAMS. *Radiocarbon*
 		'''
 
+
+
+		#blank-correct m, d13C, Fm if necessary
+
+		#mass-balance correct d13C if necessary
+
+		#fractionation-correct d13C if necessary
+
+
+
+
+
+
 		#extract data from file
 		d13C, d13C_std, Fm, Fm_std, m, m_std, t = _rpo_extract_iso(
 			file,
@@ -426,62 +505,7 @@ class RpoIsotopes(Results):
 
 		return ri
 
-	def calc_E_frac(
-		self, 
-		model, 
-		ratedata):
-		'''
-		Method for determining the distribution of E values contained within
-		each RPO fraction. Used for calculating `E_frac` and `E_frac_std` in
-		order to compare with measured isotope values.
 
-		Parameters
-		----------
-		model : rp.Model
-			``rp.Model`` instance containing the A matrix to use for 
-			inversion.
-
-		ratedata : rp.RateData
-			``rp.Ratedata`` instance containing the reactive continuum data.
-
-		Warnings
-		--------
-		UserWarning
-			If attempting to use ratedata that is not a ``rp.EnergyComplex``
-			instance.
-
-		UserWarning
-			If attempting to use a model that is not a ``rp.Daem`` instance.
-		'''
-
-		#warn if model is not Daem
-		mod_type = type(model).__name__
-
-		if mod_type not in ['Daem']:
-			warnings.warn(
-				'Attempting to calculate isotopes using a model instance of'
-				' type %r. Consider using rp.Daem instance instead'
-				% rd_type, UserWarning)
-
-		#warn if ratedata is not EnergyComplex
-		rd_type = type(ratedata).__name__
-
-		if rd_type not in ['EnergyComplex']:
-			warnings.warn(
-				'Attempting to calculate isotopes using a ratedata instance of'
-				' type %r. Consider using rp.EnergyComplex instance instead'
-				% rd_type, UserWarning)
-
-		#calculate resulting E_frac and E_frac_std
-		E_frac, E_frac_std, p_frac = _rpo_calc_E_frac(self, model, ratedata)
-
-		#store results in self
-		self.E_frac = E_frac
-		self.E_frac_std = E_frac_std
-
-		#create protected 2d array for storing p distribution contained
-		# in each fraction (for plotting purposes)
-		self._p_frac = p_frac
 
 	def d13C_correct(
 		self,

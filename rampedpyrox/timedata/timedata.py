@@ -606,16 +606,14 @@ class RpoThermogram(TimeData):
 			raise ArrayError(
 				'Cannot combine model with nE = %r and RateData with'
 				' nE = %r. Check that RateData was not created using'
-				' a different model' % (model.nE, ratedata.nE),
-				UserWarning)
+				' a different model' % (model.nE, ratedata.nE))
 
 		#raise exception if not the right shape
 		if model.nt != self.nt:
 			raise ArrayError(
 				'Cannot combine model with nt = %r and TimeData with'
 				' nt = %r. Check that the mode was not created using'
-				' different time data' % (model.nt, self.nt),
-				UserWarning)
+				' different time data' % (model.nt, self.nt))
 
 		#call the superclass method
 		super(RpoThermogram, self).forward_model(model, ratedata)
