@@ -46,6 +46,8 @@ from ..core.summary_helper import(
 
 from .results_helper import(
 	_calc_E_frac,
+	_rpo_extract_iso,
+	_rpo_mass_bal_corr
 	)
 
 
@@ -373,6 +375,7 @@ class RpoIsotopes(Results):
 			blk_flux = (0.375, 0.0583),
 			blk_Fm =  (0.555, 0.042),
 			bulk_d13C_true = None,
+			DE = 0.0018,
 			mass_err = 0.01):
 		'''
 		Class method to directly import RPO fraction data from a .csv file and
@@ -380,9 +383,15 @@ class RpoIsotopes(Results):
 		
 		Parameters
 		----------
-		file : str or pd.DataFrame
-			File containing isotope data, either as a path string or a
-			dataframe.
+		model : rp.Model
+			``rp.Model`` instance containing the A matrix to use for 
+			inversion.
+
+		ratedata : rp.RateData
+			``rp.Ratedata`` instance containing the reactive continuum data.
+			file : str or pd.DataFrame
+				File containing isotope data, either as a path string or a
+				dataframe.
 
 		blk_corr : Boolean
 			Tells the method whether or not to blank-correct isotope data. If
@@ -413,6 +422,11 @@ class RpoIsotopes(Results):
 			used to mass-balance-correct d13C values as described in Hemingway
 			et al., Radiocarbon **2017**. If not `none`, must be inputted in
 			the form [mean, stdev.]
+
+		DE : scalar
+			Value for the difference in E between 12C- and 13C-containing
+			atoms, in kJ. Defaults to 0.0018 (the best-fit value calculated
+			in Hemingway et al., **2017**).
 
 		mass_err : float
 			Relative uncertainty in mass measurements, typically as a sum of
@@ -447,40 +461,47 @@ class RpoIsotopes(Results):
 			NOSAMS. *Radiocarbon*
 		'''
 
-
-
-		#blank-correct m, d13C, Fm if necessary
-
-		#mass-balance correct d13C if necessary
-
-		#fractionation-correct d13C if necessary
-
-
-
-
-
-
 		#extract data from file
-		d13C, d13C_std, Fm, Fm_std, m, m_std, t = _rpo_extract_iso(
+		d13C, d13C_std, Fm, Fm_std, m, m_std, t_frac = _rpo_extract_iso(
 			file,
 			mass_err)
 
-		#blank correct if necessary
+		#create RpoIsotopes instance and store raw data
+		ri = cls(
+			model,
+			ratedata,
+			t_frac,
+			d13C_raw = d13C,
+			d13C_raw_std = d13C_std,
+			Fm_raw = Fm,
+			Fm_raw_std = Fm_std,
+			m_raw = m,
+			m_raw_std = m_std)
+
+		#blank correct m, d13C, Fm if necessary
 		if blk_corr is True:
 
-			d13C, d13C_std, Fm, Fm_std, m, m_std = _rpo_blk_corr(
-				d13C, 
-				d13C_std, 
-				Fm, 
-				Fm_std, 
-				m, 
-				m_std, 
-				t,
-				blk_d13C = blk_d13C,
-				blk_flux = blk_flux,
-				blk_Fm = blk_Fm)
+			(d13C_corr, 
+				d13C_corr_std, 
+				Fm_corr, 
+				Fm_corr_std, 
+				m_corr, 
+				m_corr_std) = _rpo_blk_corr(
+					d13C,
+					d13C_std,
+					Fm,
+					Fm_std,
+					m,
+					m_std,
+					t,
+					blk_d13C = blk_d13C,
+					blk_flux = blk_flux,
+					blk_Fm = blk_Fm)
 
-		#additionally mass-balance correct d13C if necessary
+			#set bookkeeping flag
+			self._blk_corr = True
+
+		#mass-balance correct d13C if necessary
 		if bulk_d13C_true is not None:
 
 			d13C, d13C_std = _rpo_mass_bal_corr(
@@ -490,18 +511,11 @@ class RpoIsotopes(Results):
 				m_std,
 				bulk_d13C_true)
 
-		ri = cls(
-			d13C_frac = d13C, 
-			d13C_frac_std = d13C_std,
-			Fm_frac = Fm,
-			Fm_frac_std = Fm_std, 
-			m_frac = m, 
-			m_frac_std = m_std, 
-			t_frac = t)
+			#set bookkeeping flag
+			self._mb_corr = True
 
-		#store 'corrected' if necessary (for bookkeeping)
-		if blk_corr:
-			ri._corrected = True
+		#kinetic fractionation correct if necessary
+		if 
 
 		return ri
 

@@ -408,7 +408,7 @@ def _rpo_extract_iso(file, mass_err):
 
 	else:
 		m = None
-		m_std = 0
+		m_std = None
 
 	if 'd13C' in file.columns:
 		d13C = file.d13C[2:].values
@@ -416,7 +416,7 @@ def _rpo_extract_iso(file, mass_err):
 
 	else:
 		d13C = None
-		m_std = 0
+		m_std = None
 
 	if 'Fm' in file.columns:
 		Fm = file.Fm[2:].values
@@ -424,14 +424,14 @@ def _rpo_extract_iso(file, mass_err):
 
 	else:
 		Fm = None
-		Fm_std = 0
+		Fm_std = None
 
-	return (d13C, 
-			d13C_std, 
-			Fm, 
-			Fm_std, 
-			m, 
-			m_std, 
+	return (d13C,
+			d13C_std,
+			Fm,
+			Fm_std,
+			m,
+			m_std,
 			t)
 
 #define function to correct d13C for kinetic fractionation
