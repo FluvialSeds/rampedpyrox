@@ -8,7 +8,7 @@ from __future__ import(
 	)
 
 __docformat__ = 'restructuredtext en'
-__all__ = ['_calc_cutoff', '_calc_E_frac','_rpo_blk_corr', '_rpo_calc_E_frac',
+__all__ = ['_calc_cutoff', '_calc_E_frac','_rpo_blk_corr',
 	'_rpo_extract_iso', '_rpo_kie_corr', '_rpo_mass_bal_corr']
 
 import numpy as np

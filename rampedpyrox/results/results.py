@@ -35,19 +35,12 @@ from ..core.summary_helper import(
 	_calc_ri_info
 	)
 
-# from .results_helper import(
-# 	_calc_E_frac,
-# 	_rpo_blk_corr,
-# 	_rpo_calc_E_frac,
-# 	_rpo_extract_iso,
-# 	_rpo_kie_corr,
-# 	_rpo_mass_bal_corr,
-# 	)
-
 from .results_helper import(
 	_calc_E_frac,
+	_rpo_blk_corr,
 	_rpo_extract_iso,
-	_rpo_mass_bal_corr
+	_rpo_mass_bal_corr,
+	_rpo_kie_corr,
 	)
 
 
@@ -275,7 +268,10 @@ class RpoIsotopes(Results):
 			Fm_raw = None,
 			Fm_raw_std = None,
 			m_raw = None,
-			m_raw_std = None):
+			m_raw_std = None,
+			blk_corr = False,
+			mb_corr = False,
+			kie_corr = False):
 
 		#assert all lenghts are the same and of the same length as t_frac, and
 		# store as attributes
@@ -358,9 +354,9 @@ class RpoIsotopes(Results):
 		self.ri_raw_info = _calc_ri_info(self, flag = 'raw')
 
 		#store bookkeeping corrected flags
-		self._blk_corr = False
-		self._mb_corr = False
-		self._kie_corr = False
+		self._blk_corr = blk_corr
+		self._mb_corr = mb_corr
+		self._kie_corr = kie_corr
 
 	#define classmethod for creating instance and populating measured values
 	# directly from a .csv file
@@ -476,30 +472,113 @@ class RpoIsotopes(Results):
 			Fm_raw = Fm,
 			Fm_raw_std = Fm_std,
 			m_raw = m,
-			m_raw_std = m_std)
+			m_raw_std = m_std,
+			blk_corr = False,
+			mb_corr = False,
+			kie_corr = False)
 
 		#blank correct m, d13C, Fm if necessary
 		if blk_corr is True:
 
-			(d13C_corr, 
-				d13C_corr_std, 
-				Fm_corr, 
-				Fm_corr_std, 
-				m_corr, 
-				m_corr_std) = _rpo_blk_corr(
-					d13C,
-					d13C_std,
-					Fm,
-					Fm_std,
-					m,
-					m_std,
-					t,
-					blk_d13C = blk_d13C,
-					blk_flux = blk_flux,
-					blk_Fm = blk_Fm)
+			#call blank- and mass-balance correction method
+			ri.blank_correct(
+				blk_d13C = blk_d13C,
+				blk_flux = blk_flux,
+				blk_Fm =  blk_Fm,
+				bulk_d13C_true = bulk_d13C_true)
 
-			#set bookkeeping flag
-			self._blk_corr = True
+		#kinetic fractionation correct if necessary
+		if DE is not None:
+
+			#call kie correction method
+			ri.kie_correct(
+				model,
+				ratedata,
+				DE = DE)
+
+		return ri
+
+	def blank_correct(
+		self,
+		blk_d13C = (-29.0, 0.1),
+		blk_flux = (0.375, 0.0583),
+		blk_Fm =  (0.555, 0.042),
+		bulk_d13C_true = None):
+		'''
+		Method to blank- and mass-balance correct raw isotope values.
+
+		Parameters
+		----------
+
+		Raises
+		--------
+		UserWarning
+			If already corrected for blank contribution
+		
+		UserWarning
+			If already corrected for 13C mass balance
+
+		References
+		----------
+		[1] J.D. Hemingway et al. (2017) Assessing the blank carbon
+			contribution, isotope mass balance, and kinetic isotope 
+			fractionation of the ramped pyrolysis/oxidation instrument at 
+			NOSAMS. *Radiocarbon*
+		'''
+
+		#raise warnings
+		if self._blk_corr == True:
+			warnings.warn(
+				'd13C, Fm, and/or m has already been blank-corrected!'
+				' Proceeding anyway', UserWarning)
+
+		if self._mb_corr == True:
+			warnings.warn(
+				'd13C has already been mass-balance corrected!'
+				' Proceeding anyway', UserWarning)
+
+		#extract d13C from self to be corrected
+		if hasattr(self, d13C_corr):
+			d13C = self.d13C_corr
+			d13C_std = self.d13C_corr_std
+		
+		else:
+			d13C = self.d13C_raw
+			d13C_std = self.d13C_raw_std
+
+		#extract Fm from self to be corrected
+		if hasattr(self, Fm_corr):
+			Fm = self.Fm_corr
+			Fm_std = self.Fm_corr_std
+		
+		else:
+			Fm = self.Fm_raw
+			Fm_std = self.Fm_raw_std
+
+		#extract m from self to be corrected
+		if hasattr(self, m_corr):
+			m = self.m_corr
+			m_std = self.m_corr_std
+		
+		else:
+			m = self.m_raw
+			m_std = self.m_raw_std
+
+		#blank-correct values
+		d13C, d13C_std, Fm, Fm_std, m, m_std = _rpo_blk_corr(
+			d13C,
+			d13C_std,
+			Fm,
+			Fm_std,
+			m,
+			m_std,
+			t,
+			blk_d13C = blk_d13C,
+			blk_flux = blk_flux,
+			blk_Fm = blk_Fm)
+
+		#set bookkeeping flag
+		self._blk_corr = True
 
 		#mass-balance correct d13C if necessary
 		if bulk_d13C_true is not None:
@@ -514,14 +593,38 @@ class RpoIsotopes(Results):
 			#set bookkeeping flag
 			self._mb_corr = True
 
-		#kinetic fractionation correct if necessary
-		if 
+		#store corrected values if they exist
+		if m is not None:
+			self.m_corr = assert_len(m, n)
 
-		return ri
+			#store stdev if it exists, zeros if not
+			if m_std is not None:
+				self.m_corr_std = assert_len(m_std, n)
+			else:
+				self.m_corr_std = assert_len(0, n)
 
+		if d13C is not None:
+			self.d13C_corr = assert_len(d13C, n)
 
+			#store stdev if it exists, zeros if not
+			if d13C_corr_std is not None:
+				self.d13C_corr_std = assert_len(d13C_std, n)
+			else:
+				self.d13C_corr_std = assert_len(0, n)
 
-	def d13C_correct(
+		if Fm is not None:
+			self.Fm_corr = assert_len(Fm_corr, n)
+
+			#store stdev if it exists, zeros if not
+			if Fm_std is not None:
+				self.Fm_corr_std = assert_len(Fm_std, n)
+			else:
+				self.Fm_corr_std = assert_len(0, n)
+
+		#generate summary table
+		self.ri_corr_info = _calc_ri_info(self, flag = 'corr')
+
+	def kie_correct(
 		self,
 		model,
 		ratedata,
@@ -558,59 +661,51 @@ class RpoIsotopes(Results):
 		'''
 
 		#raise warnings
-		if self._kie_corrected == True:
+		if self._kie_corr == True:
 			warnings.warn(
 				'd13C has already been corrected for kinetic fractionation!'
 				' Proceeding anyway', UserWarning)
 
-		#calculate resulting E_frac and E_frac_std
-		d13C_corr, d13C_corr_std = _rpo_kie_corr(self, model, ratedata, DE)
+		#extract d13C from self to be corrected
+		if hasattr(self, d13C_corr):
+			d13C = self.d13C_corr
+			d13C_std = self.d13C_corr_std
+		
+		else:
+			d13C = self.d13C_raw
+			d13C_std = self.d13C_raw_std
 
-		#store results in self
-		self.d13C_corr = d13C_corr
-		self.d13C_corr_std = d13C_corr_std
+		#kie-correct values
+		d13C, d13C_std = _rpo_kie_corr(
+			self,
+			d13C,
+			d13C_std,
+			model,
+			ratedata,
+			DE = DE)
 
-		#flag as corrected for bookkeeping
-		self._kie_corrected = True
+		#set bookkeeping flag
+		self._kie_corr = True
 
-	def summary(self, file = None):
-		'''
-		Generates a summary of all isotope and E data.
+		#store results
+		if d13C is not None:
+			self.d13C_corr = assert_len(d13C, n)
 
-		Parameters
-		----------
-		file : None or string
-			If not `None`, summary saves the summary dataframe to a .csv file
-			with the name inputted.
+			#store stdev if it exists, zeros if not
+			if d13C_corr_std is not None:
+				self.d13C_corr_std = assert_len(d13C_std, n)
+			else:
+				self.d13C_corr_std = assert_len(0, n)
 
-		Returns
-		-------
-		sum_df : pd.DataFrame
-			Dataframe containing all information:
-				
-				time (init. and final), \n
-				mass (mean and std.), \n
-				d13C (mean and std.), \n
-				d13C corrected (mean and std.), \n
-				Fm (mean and std.), \n
-				E (mean and std.) \n
-		'''
+		#store summary
+		self.ri_corr_info = _calc_ri_info(self, flag = 'corr')
 
-		#create sum_df dataframe
-		sum_df = _rpo_isotopes_frac_info(self)
+	def plot(ax1, ax2, iso = 'Fm', plot_corr = True):
 
-		#add E data to sum_df
-		sum_df['E mean (kJ)'] = self.E_frac
-		sum_df['E std (kJ)'] = self.E_frac_std
 
-		#add corrected d13C data to sum_df
-		sum_df['d13C KIE corr. mean'] = self.d13C_corr
-		sum_df['d13C KIE corr. std'] = self.d13C_corr_std
 
-		if file:
-			sum_df.to_csv(file)
 
-		return sum_df
+
 
 if __name__ == '__main__':
 
