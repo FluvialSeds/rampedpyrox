@@ -100,7 +100,7 @@ def _plot_dicts_iso(case, ri):
 		#create a nested dict to keep track of isotope result axis labels
 		pl_dict = {'E': 
 						{'p0E' : (r'E (kJ $mol^{-1}$)', 
-							r'$p_{0}(E)$ (unitless)'),
+							r'p(E) (unitless)'),
 						'Fm' : (r'E (kJ $mol^{-1}$)', r'Fm'),
 						'd13C' : (r'E (kJ $mol^{-1}$)', 
 							r'$\delta^{13}C$ (‰ VPDB)')}

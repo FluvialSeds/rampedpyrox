@@ -127,7 +127,7 @@ def _calc_E_frac(result, model, ratedata):
 	A = model.A
 	E = ratedata.E
 	nE = ratedata.nE
-	nF = result.nF
+	nF = result.nFrac
 	p = ratedata.p
 
 	#make an empty matrix to store results
@@ -155,7 +155,7 @@ def _calc_E_frac(result, model, ratedata):
 		p_frac[i, :] = Dpt
 
 		#calculate the mean and stdev
-		E_frac[i], E_frac_std[i] = extract_moments(E, Ept)
+		E_frac[i], E_frac_std[i] = extract_moments(E, Dpt)
 
 	return E_frac, E_frac_std, p_frac
 
@@ -437,9 +437,12 @@ def _rpo_extract_iso(file, mass_err):
 #define function to correct d13C for kinetic fractionation
 def _rpo_kie_corr(
 	result,
+	d13C,
+	d13C_std,
 	model,
 	ratedata,
-	DE):
+	DE = 0.0018):
+
 	'''
 	Corrects d13C values for each RPO fraction for kinetic isotope effects.
 
@@ -448,6 +451,12 @@ def _rpo_kie_corr(
 	result : rp.Results
 		Result instance containing the start/stop times to be used to calculate
 		E_frac
+
+	d13C : np.ndarray
+		Array of d13C values to correct.
+
+	d13C_std : np.ndarray
+		Array of the standard deviation of d13C values to correct.
 
 	model : rp.Model
 		``rp.Model`` instance containing the A matrix to use for inversion.
@@ -485,7 +494,7 @@ def _rpo_kie_corr(
 	ind_min, ind_max = _calc_cutoff(result, model)
 
 	#loop through and correct each measurement
-	for mi, ma, d13i in zip(ind_min, ind_max, result.d13C_frac):
+	for mi, ma, d13i in zip(ind_min, ind_max, d13C):
 		
 		#weighted-average kie for each slice
 		kie_i = np.average(r[mi:ma], weights = -np.gradient(tg12)[mi:ma])
@@ -503,7 +512,7 @@ def _rpo_kie_corr(
 		d13C_corr.append(d13C_i_corr)
 
 	#since uncertainty is unknown, d13C_std is unchanged
-	d13C_corr_std = result.d13C_frac_std
+	d13C_corr_std = d13C_std
 
 	return d13C_corr, d13C_corr_std
 

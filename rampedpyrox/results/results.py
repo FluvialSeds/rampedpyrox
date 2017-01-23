@@ -10,6 +10,7 @@ from __future__ import(
 __docformat__ = 'restructuredtext en'
 __all__ = ['RpoIsotopes']
 
+import matplotlib.pyplot as plt
 import numpy as np
 import warnings
 
@@ -29,6 +30,7 @@ from ..core.core_functions import(
 
 from ..core.plotting_helper import(
 	_plot_dicts_iso,
+	_rem_dup_leg,
 	)
 
 from ..core.summary_helper import(
@@ -110,15 +112,15 @@ class Results(object):
 				ax.fill_between(
 					md[0],
 					np.zeros(len(md[0])),
-					row,
+					frac,
 					facecolor = [0.3,0.3,0.3],
 					edgecolor = 'k',
 					alpha = 0.3,
 					label = r'$p(t_{0},E) - p(t_{f},E)$')
 
 			#set limits
-			ax.set_xlim([0, 1.1*np.max(md[0])])
-			ax.set_ylim([0, 1.1*np.max(md[1])])
+			ax.set_xlim([0.9*np.min(md[0]), 1.1*np.max(md[0])])
+			ax.set_ylim([0.9*np.min(md[1]), 1.1*np.max(md[1])])
 
 			#add real data (i.e. total rate data) if it exists
 			if rd is not None:
@@ -130,8 +132,8 @@ class Results(object):
 					label = r'$p_{0}(E)$')
 
 				#(re)set limits
-				ax.set_xlim([0, 1.1*np.max(rd[0])])
-				ax.set_ylim([0, 1.1*np.max(rd[1])])
+				ax.set_xlim([0.9*np.min(rd[0]), 1.1*np.max(rd[0])])
+				ax.set_ylim([0.9*np.min(rd[1]), 1.1*np.max(rd[1])])
 
 		else:
 
@@ -153,8 +155,8 @@ class Results(object):
 				label = 'Isotope scatter plot')
 
 			#set limits
-			ax.set_xlim([0, 1.1*np.max(rd[0])])
-			ax.set_ylim([0, 1.1*np.max(rd[1])])
+			ax.set_xlim([0.9*np.min(rd[0]), 1.1*np.max(rd[0])])
+			ax.set_ylim([0.9*np.min(rd[1]), 1.1*np.max(rd[1])])
 
 		#remove duplicate legend entries
 		han_list, lab_list = _rem_dup_leg(ax)
@@ -525,8 +527,8 @@ class RpoIsotopes(Results):
 
 		#store protected energetic attributes
 		self._p_frac = p_frac
-		self._p = model.p
-		self._E = model.E
+		self._p = ratedata.p
+		self._E = ratedata.E
 
 		#store raw info summary table
 		self.ri_raw_info = _calc_ri_info(self, flag = 'raw')
@@ -738,8 +740,11 @@ class RpoIsotopes(Results):
 				'd13C has already been mass-balance corrected!'
 				' Proceeding anyway', UserWarning)
 
+		#define constants
+		n = self.nFrac
+
 		#extract d13C from self to be corrected
-		if hasattr(self, d13C_corr):
+		if hasattr(self, 'd13C_corr'):
 			d13C = self.d13C_corr
 			d13C_std = self.d13C_corr_std
 		
@@ -748,7 +753,7 @@ class RpoIsotopes(Results):
 			d13C_std = self.d13C_raw_std
 
 		#extract Fm from self to be corrected
-		if hasattr(self, Fm_corr):
+		if hasattr(self, 'Fm_corr'):
 			Fm = self.Fm_corr
 			Fm_std = self.Fm_corr_std
 		
@@ -757,7 +762,7 @@ class RpoIsotopes(Results):
 			Fm_std = self.Fm_raw_std
 
 		#extract m from self to be corrected
-		if hasattr(self, m_corr):
+		if hasattr(self, 'm_corr'):
 			m = self.m_corr
 			m_std = self.m_corr_std
 		
@@ -773,7 +778,7 @@ class RpoIsotopes(Results):
 			Fm_std,
 			m,
 			m_std,
-			t,
+			self.t_frac,
 			blk_d13C = blk_d13C,
 			blk_flux = blk_flux,
 			blk_Fm = blk_Fm)
@@ -808,13 +813,13 @@ class RpoIsotopes(Results):
 			self.d13C_corr = assert_len(d13C, n)
 
 			#store stdev if it exists, zeros if not
-			if d13C_corr_std is not None:
+			if d13C_std is not None:
 				self.d13C_corr_std = assert_len(d13C_std, n)
 			else:
 				self.d13C_corr_std = assert_len(0, n)
 
 		if Fm is not None:
-			self.Fm_corr = assert_len(Fm_corr, n)
+			self.Fm_corr = assert_len(Fm, n)
 
 			#store stdev if it exists, zeros if not
 			if Fm_std is not None:
@@ -867,8 +872,11 @@ class RpoIsotopes(Results):
 				'd13C has already been corrected for kinetic fractionation!'
 				' Proceeding anyway', UserWarning)
 
+		#set constants
+		n = self.nFrac
+
 		#extract d13C from self to be corrected
-		if hasattr(self, d13C_corr):
+		if hasattr(self, 'd13C_corr'):
 			d13C = self.d13C_corr
 			d13C_std = self.d13C_corr_std
 		
@@ -892,7 +900,7 @@ class RpoIsotopes(Results):
 		self.d13C_corr = assert_len(d13C, n)
 
 		#store stdev if it exists, zeros if not
-		if d13C_corr_std is not None:
+		if d13C_std is not None:
 			self.d13C_corr_std = assert_len(d13C_std, n)
 		else:
 			self.d13C_corr_std = assert_len(0, n)
@@ -943,11 +951,12 @@ class RpoIsotopes(Results):
 				%plt_var)
 
 		#check that corrected data exist if called
-		att = plt_var + '_corr'
-		
-		if plt_corr is true and not hasattr(self, att):
-			raise ArrayError(
-				'plt_corr is set to True but corrected values do not exist!')
+		if plt_var in ['Fm','d13C']:
+			att = plt_var + '_corr'
+			
+			if plt_corr is True and not hasattr(self, att):
+				raise ArrayError(
+					'plt_corr is set to True but corrected values do not exist!')
 
 		#extract axis label ditionary
 		rpo_labs = _plot_dicts_iso('rpo_iso_labs', self)
@@ -980,7 +989,7 @@ class RpoIsotopes(Results):
 			md = (self._E, self._p_frac)
 
 		#call superclass method
-		ax = super(Results, self).plot(
+		ax = super(RpoIsotopes, self).plot(
 			ax = ax, 
 			labs = labs,
 			md = md,

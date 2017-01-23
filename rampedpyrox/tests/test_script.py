@@ -37,24 +37,14 @@ ec = rp.EnergyComplex.inverse_model(
 #forward model estimated thermogram back onto tg
 tg.forward_model(daem, ec)
 
-# #calculate isotope results
-# ri = rp.RpoIsotopes.from_csv(
-# 	sum_data,
-# 	blk_corr = True,
-# 	bulk_d13C_true = [-24.8, 0.1]) #REPLACE THIS WITH VALUE FOR EACH SAMPLE!!
+#calculate isotope results
+ri = rp.RpoIsotopes.from_csv(
+	sum_data,
+	daem,
+	ec,
+	blk_corr = True,
+	bulk_d13C_true = [-24.8, 0.1]) #REPLACE THIS WITH VALUE FOR EACH SAMPLE!!
 
-# #correct d13C for kinetic fractionation (if d13C data exist)
-# ri.d13C_correct(daem,ec)
-
-# #calculate E contained in each fraction
-# ri.calc_E_frac(daem,ec)
-
-# #print summary and save to .csv
-# sum_df = ri.summary(file = 'inversion_summary.csv')
-
-# fig, ax = plt.subplots(1,1,figsize=(6,6))
-# ax = ec.plot(ax = ax)
-# fig.savefig('E_plot.pdf',transparent=True,bbox_inches=None,pad_inches=0)
 
 
 

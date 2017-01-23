@@ -188,8 +188,8 @@ def _calc_ri_info(ri, flag = 'raw'):
 
 	if hasattr(ri, d13C):
 		
-		info.append(getattr(d13C, m))
-		info.append(getattr(d13C, m_std))
+		info.append(getattr(ri, d13C))
+		info.append(getattr(ri, d13C_std))
 		
 		names.append('d13C (VPDB)')
 		names.append('d13C std. (VPDB)')
