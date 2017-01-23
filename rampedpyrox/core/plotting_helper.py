@@ -106,17 +106,22 @@ def _plot_dicts_iso(case, ri):
 							r'$\delta^{13}C$ (‰ VPDB)')}
 						}
 
-	elif case == 'iso_scatter':
+	elif case == 'iso_corr':
+		#create a nested dict to keep track of cases of scatter
+		pl_dict = {'E': 
+						{'Fm_corr' : (ri.E_frac, ri.Fm_corr, 
+							ri.E_frac_std, ri.Fm_corr_std),
+						'd13C_corr' : (ri.E_frac, ri.d13C_corr, 
+							ri.E_frac_std, ri.d13C_corr_std)}
+						}
+
+	elif case == 'iso_raw':
 		#create a nested dict to keep track of cases of scatter
 		pl_dict = {'E': 
 						{'Fm_raw' : (ri.E_frac, ri.Fm_raw, 
 							ri.E_frac_std, ri.Fm_raw_std),
-						'Fm_corr' : (ri.E_frac, ri.Fm_corr, 
-							ri.E_frac_std, ri.Fm_corr_std),
 						'd13C_raw' : (ri.E_frac, ri.d13C_raw, 
-							ri.E_frac_std, ri.d13C_raw_std),
-						'd13C_corr' : (ri.E_frac, ri.d13C_corr, 
-							ri.E_frac_std, ri.d13C_corr_std)}
+							ri.E_frac_std, ri.d13C_raw_std)}
 						}
 
 	return pl_dict

@@ -145,14 +145,13 @@ class Results(object):
 				yerr = rd[3],
 				marker = 'o',
 				ecolor = 'k',
-				markersize = 8,
+				markersize = 12,
 				mec = 'k',
 				mfc = 'w',
 				elinewidth = 1,
 				markeredgewidth = 1,
 				capsize = 0,
-				ls = 'none',
-				label = 'Isotope scatter plot')
+				ls = 'none')
 
 			#set limits
 			ax.set_xlim([0.9*np.min(rd[0]), 1.1*np.max(rd[0])])
@@ -969,17 +968,27 @@ class RpoIsotopes(Results):
 
 			if plt_corr:
 				att = plt_var + '_corr'
+
+				#extract the right dict
+				iso_rd = _plot_dicts_iso('iso_corr', self)
+				rd = (
+					iso_rd['E'][att][0],
+					iso_rd['E'][att][1],
+					iso_rd['E'][att][2],
+					iso_rd['E'][att][3])
+
 			else:
 				att = plt_var + '_raw'
 
-			#extract the right dict
-			iso_rd = _plot_dicts_iso('iso_scatter', self)
-			rd = (
-				iso_rd['E'][att][0],
-				iso_rd['E'][att][1],
-				iso_rd['E'][att][2],
-				iso_rd['E'][att][3])
+				#extract the right dict
+				iso_rd = _plot_dicts_iso('iso_raw', self)
+				rd = (
+					iso_rd['E'][att][0],
+					iso_rd['E'][att][1],
+					iso_rd['E'][att][2],
+					iso_rd['E'][att][3])
 
+			#no modeled data exist
 			md = None
 
 		else:

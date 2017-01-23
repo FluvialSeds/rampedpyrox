@@ -11,8 +11,8 @@ def gen_str(name):
 	return p
 
 #paths to data files
-data = gen_str('test_data/TS1.csv') #REPLACE THIS WITH A PATH TO YOUR DATA
-sum_data = gen_str('test_data/TS1_sum.csv') #REPLACE THIS WITH A PATH TO YOUR DATA
+data = gen_str('test_data/TS3.csv') #REPLACE THIS WITH A PATH TO YOUR DATA
+sum_data = gen_str('test_data/TS3_sum.csv') #REPLACE THIS WITH A PATH TO YOUR DATA
 
 #calculate thermogram
 tg = rp.RpoThermogram.from_csv(
@@ -32,7 +32,7 @@ daem = rp.Daem.from_timedata(
 ec = rp.EnergyComplex.inverse_model(
 	daem, 
 	tg,
-	omega=.05) #can replace with best-fit value if known
+	omega='auto') #can replace with best-fit value if known
 
 #forward model estimated thermogram back onto tg
 tg.forward_model(daem, ec)
@@ -42,13 +42,16 @@ ri = rp.RpoIsotopes.from_csv(
 	sum_data,
 	daem,
 	ec,
-	blk_corr = False,
-	# bulk_d13C_true = [-24.8, 0.1])
-	bulk_d13C_true = None,
-	DE = None)
+	blk_corr = True,
+	bulk_d13C_true = [-24.8, 0.1])
+	# bulk_d13C_true = None,
+	# DE = None)
+
+#plot results
+fig, ax = plt.subplots(1,3)
+ax[0] = ri.plot(ax = ax[0], plt_var = 'p0E')
+ax[1] = ri.plot(ax = ax[1], plt_var = 'Fm', plt_corr = True)
+ax[2] = ri.plot(ax = ax[2], plt_var = 'd13C', plt_corr = True)
 
 
-
-
-
-
+plt.show()
