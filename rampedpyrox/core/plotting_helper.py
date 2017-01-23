@@ -72,6 +72,55 @@ def _plot_dicts(case, td):
 
 	return pl_dict
 
+#define function to pull plotting dicts
+def _plot_dicts_iso(case, ri):
+	'''
+	Function to access different plotting dicts.
+
+	Parameters
+	----------
+	case : str
+		The case that defines the dict to pull.
+		Acceptable strings:
+
+			'rpo_rd', \n
+			'rpo_labs', \n
+			'rpo_md'
+
+	ri : Results or subclass
+		``rp.Results`` instance containing the data to plot.
+
+	Returns
+	-------
+	pl_dict : dict
+		The resulting dictionary containing plotting info.
+	'''
+
+	if case == 'rpo_iso_labs':
+		#create a nested dict to keep track of isotope result axis labels
+		pl_dict = {'E': 
+						{'p0E' : (r'E (kJ $mol^{-1}$)', 
+							r'$p_{0}(E)$ (unitless)'),
+						'Fm' : (r'E (kJ $mol^{-1}$)', r'Fm'),
+						'd13C' : (r'E (kJ $mol^{-1}$)', 
+							r'$\delta^{13}C$ (‰ VPDB)')}
+						}
+
+	elif case == 'iso_scatter':
+		#create a nested dict to keep track of cases of scatter
+		pl_dict = {'E': 
+						{'Fm_raw' : (ri.E_frac, ri.Fm_raw, 
+							ri.E_frac_std, ri.Fm_raw_std),
+						'Fm_corr' : (ri.E_frac, ri.Fm_corr, 
+							ri.E_frac_std, ri.Fm_corr_std),
+						'd13C_raw' : (ri.E_frac, ri.d13C_raw, 
+							ri.E_frac_std, ri.d13C_raw_std),
+						'd13C_corr' : (ri.E_frac, ri.d13C_corr, 
+							ri.E_frac_std, ri.d13C_corr_std)}
+						}
+
+	return pl_dict
+
 #define function to remove duplicate legend entries
 def _rem_dup_leg(ax):
 	'''

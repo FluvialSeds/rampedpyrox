@@ -1,7 +1,5 @@
 # TODO: Update examples
 # TODO: Update summary
-# TODO: Add plotting method
-
 
 '''
 This module contains the Results superclass and all corresponding subclasses.
@@ -24,6 +22,7 @@ from collections import Sequence
 from ..core.exceptions import(
 	ArrayError,
 	LengthError,
+	StringError,
 	)
 
 #import helper functions
@@ -31,8 +30,12 @@ from ..core.core_functions import(
 	assert_len,
 	)
 
+from ..core.plotting_helper import(
+	_plot_dicts_iso,
+	)
+
 from ..core.summary_helper import(
-	_calc_ri_info
+	_calc_ri_info,
 	)
 
 from .results_helper import(
@@ -61,6 +64,115 @@ class Results(object):
 	@classmethod
 	def from_csv(cls, file):
 		raise NotImplementedError
+
+	#define plotting method
+	def plot(self, ax = None, labs = None, md = None, rd = None):
+		'''
+		Method for plotting ``rp.TimeData`` instance data.
+
+		Parameters
+		----------
+		axis : matplotlib.axis or None
+			Axis handle to plot on. Defaults to `None`.
+
+		labs : tuple
+			Tuple of axis labels, in the form (x_label, y_label).
+			Defaults to `None`.
+
+		md : tuple or None
+			Tuple of modelled (i.e. rate distributions for each fraction)
+			data, in the form  (x_data, y_data). Defaults to `None`.
+			Only exists for plots of fraction-specific rate data.
+
+		rd : tuple
+			Tuple of real (observed) data, in the form (x_data, y_data). 
+			Defaults to `None`. If this is a scatter plot of isotope results,
+			then tuple is in the form (x_data, y_data, x_std, y_std).
+
+		Returns
+		-------
+		ax : matplotlib.axis
+			Updated axis handle containing data.
+		'''
+
+		#create axis if necessary and label
+		if ax is None:
+			_, ax = plt.subplots(1, 1)
+
+		#label axes if labels exist
+		if labs is not None:
+			ax.set_xlabel(labs[0])
+			ax.set_ylabel(labs[1])
+
+		#add fraction-specific rate data if it exists
+		if md is not None:
+
+			#loop through each fraction and plot
+			for frac in md[1]:
+
+				ax.fill_between(
+					md[0],
+					np.zeros(len(md[0])),
+					row,
+					facecolor=[0.3,0.3,0.3],
+					edgecolor='k',
+					alpha=0.3,
+					label = r'$p(t_{0},E) - p(t_{f},E)$')
+
+			#set limits
+			ax.set_xlim([0, 1.1*np.max(md[0])])
+			ax.set_ylim([0, 1.1*np.max(md[1])])
+
+			#add real data (i.e. total rate data) if it exists
+			if rd is not None:
+				ax.plot(
+					rd[0], 
+					rd[1],
+					linewidth = 2,
+					color = 'k',
+					label = r'$p_{0}(E)$')
+
+				#(re)set limits
+				ax.set_xlim([0, 1.1*np.max(rd[0])])
+				ax.set_ylim([0, 1.1*np.max(rd[1])])
+
+		else:
+
+			#plot the isotope vs. rate scatter plots
+			ax.errorbar(
+				rd[0], 
+				rd[1], 
+				xerr = rd[2], 
+				yerr = rd[3],
+				marker = 'o',
+				ecolor = 'k',
+				markersize = 8,
+				mec = 'k',
+				mfc = 'w',
+				elinewidth = 1,
+				markeredgewidth = 1,
+				capsize = 0,
+				ls = 'none',
+				label = 'Isotope scatter plot')
+
+			#set limits
+			ax.set_xlim([0, 1.1*np.max(rd[0])])
+			ax.set_ylim([0, 1.1*np.max(rd[1])])
+
+		#remove duplicate legend entries
+		han_list, lab_list = _rem_dup_leg(ax)
+		
+		ax.legend(
+			han_list,
+			lab_list, 
+			loc = 'best',
+			frameon = False)
+
+		#make tight layout
+		plt.tight_layout()
+
+		return ax
+
 
 
 class RpoIsotopes(Results):
@@ -348,7 +460,11 @@ class RpoIsotopes(Results):
 		#store results
 		self.E_frac = E_frac
 		self.E_frac_std = E_frac_std
+
+		#store protected energetic attributes
 		self._p_frac = p_frac
+		self._p = model.p
+		self._E = model.E
 
 		#store raw info summary table
 		self.ri_raw_info = _calc_ri_info(self, flag = 'raw')
@@ -700,13 +816,109 @@ class RpoIsotopes(Results):
 		#store summary
 		self.ri_corr_info = _calc_ri_info(self, flag = 'corr')
 
-	def plot(ax1, ax2, iso = 'Fm', plot_corr = True):
+	def plot(ax, plt_var = 'p0E', plt_corr = True):
+		'''
+		Method for plotting results, either p0(E) distributions contained
+		within each RPO fraction or isotopes vs. mean E for each RPO fraction.
+
+		Parameters
+		----------
 
 
+		Returns
+		-------
+		'''
 
 
+	#define plotting method
+	def plot(self, ax = None, plt_var = 'p0E', plt_corr = True):
+		'''
+		Method for plotting results, either p0(E) distributions contained
+		within each RPO fraction or isotopes vs. mean E for each RPO fraction.
 
+		Parameters
+		----------
+		ax : None or matplotlib.axis
+			Axis to plot on. If `None`, automatically creates a
+			``matplotlip.axis`` instance to return. Defaults to `None`.
+
+		plt_var : str
+			Tells the method which variable to plot, available options are:
+			'p0E' (for fraction-specific p0(E) distributions), 'Fm', and d13C
+			(isotope vs. fraction E scatter plots).
+
+		plt_corr : str
+			If `plt_var` is 'Fm' or 'd13C', `plt_corr` tells the method
+			whether to plot raw or corrected values (if corrected values
+			exist).
+
+		Returns
+		-------
+		ax : matplotlib.axis
+			Updated axis instance with plotted data.
+
+		Raises
+		------
+		StringError
+			If `plt_var` is not 'p0E', 'Fm', or 'd13C'.
+
+		ArrayError
+			if `plt_corr` is `True` but no corrected data exist.
+		'''
+
+		#check that plt_var is an appropriate string
+		if plt_var not in ['p0E','Fm','d13C']:
+			raise StringError(
+				'plt_var does not accept %r. Must be "p0E", "Fm", or "d13C"'
+				%plt_var)
+
+		#check that corrected data exist if called
+		att = plt_var + '_corr'
+		
+		if plt_corr is true and not hasattr(self, att):
+			raise ArrayError(
+				'plt_corr is set to True but corrected values do not exist!')
+
+		#extract axis label ditionary
+		rpo_labs = _plot_dicts_iso('rpo_iso_labs', self)
+		labs = (
+			rpo_labs['E'][plt_var][0],
+			rpo_labs['E'][plt_var][1])
+
+		#determine attributes being plotted and generate dict
+		if plt_var in ['Fm','d13C']:
+
+			if plt_corr:
+				att = plt_var + '_corr'
+			else:
+				att = plt_var + '_raw'
+
+			#extract the right dict
+			iso_rd = _plot_dicts_iso('iso_scatter', self)
+			rd = (
+				iso_rd['E'][att][0],
+				iso_rd['E'][att][1],
+				iso_rd['E'][att][2],
+				iso_rd['E'][att][3])
+
+			md = None
+
+		else:
+
+			#generate rd and md for p0(E) plots
+			rd = (self._E, self._p)
+			md = (self._E, self._p_frac)
+
+		#call superclass method
+		ax = super(Results, self).plot(
+			ax = ax, 
+			labs = labs,
+			md = md,
+			rd = rd)
+
+		return ax
 
 if __name__ == '__main__':
 
 	import rampedpyrox as rp
+
