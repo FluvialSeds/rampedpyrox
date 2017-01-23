@@ -11,8 +11,8 @@ def gen_str(name):
 	return p
 
 #paths to data files
-data = gen_str('test_data/TS3.csv') #REPLACE THIS WITH A PATH TO YOUR DATA
-sum_data = gen_str('test_data/TS3_sum.csv') #REPLACE THIS WITH A PATH TO YOUR DATA
+data = gen_str('test_data/thermogram.csv')
+sum_data = gen_str('test_data/isotopes.csv')
 
 #calculate thermogram
 tg = rp.RpoThermogram.from_csv(
@@ -43,9 +43,7 @@ ri = rp.RpoIsotopes.from_csv(
 	daem,
 	ec,
 	blk_corr = True,
-	bulk_d13C_true = [-24.8, 0.1])
-	# bulk_d13C_true = None,
-	# DE = None)
+	bulk_d13C_true = None)
 
 #plot results
 fig, ax = plt.subplots(1,3)

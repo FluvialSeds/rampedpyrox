@@ -153,9 +153,14 @@ class Results(object):
 				capsize = 0,
 				ls = 'none')
 
-			#set limits
+			#set x limits
 			ax.set_xlim([0.9*np.min(rd[0]), 1.1*np.max(rd[0])])
-			ax.set_ylim([0.9*np.min(rd[1]), 1.1*np.max(rd[1])])
+
+			#determine y spread and set limits
+			ymin = np.min(rd[1]) - 0.1*(np.max(rd[1]) - np.min(rd[1]))
+			ymax = np.max(rd[1]) + 0.1*(np.max(rd[1]) - np.min(rd[1]))
+
+			ax.set_ylim([ymin, ymax])
 
 		#remove duplicate legend entries
 		han_list, lab_list = _rem_dup_leg(ax)
