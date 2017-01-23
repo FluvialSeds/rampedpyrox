@@ -42,8 +42,10 @@ ri = rp.RpoIsotopes.from_csv(
 	sum_data,
 	daem,
 	ec,
-	blk_corr = True,
-	bulk_d13C_true = [-24.8, 0.1]) #REPLACE THIS WITH VALUE FOR EACH SAMPLE!!
+	blk_corr = False,
+	# bulk_d13C_true = [-24.8, 0.1])
+	bulk_d13C_true = None,
+	DE = None)
 
 
 

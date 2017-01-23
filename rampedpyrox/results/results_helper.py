@@ -588,7 +588,7 @@ def _rpo_mass_bal_corr(
 
 	#calculate mass-balance-corrected values
 	d13C_corr = d13C + (bulk_d13C_true[0] - d13C_wgh)
-	d13C_corr_std = (d13C_std**2 + bulk_d13C_true[1] + d13C_wgh_std**2)**0.5
+	d13C_corr_std = (d13C_std**2 + bulk_d13C_true[1]**2 + d13C_wgh_std**2)**0.5
 
 	return d13C_corr, d13C_corr_std
 
