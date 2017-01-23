@@ -1,6 +1,3 @@
-# TODO: Update examples
-# TODO: Update summary
-
 '''
 This module contains the Results superclass and all corresponding subclasses.
 '''
@@ -42,8 +39,8 @@ from .results_helper import(
 	_calc_E_frac,
 	_rpo_blk_corr,
 	_rpo_extract_iso,
-	_rpo_mass_bal_corr,
 	_rpo_kie_corr,
+	_rpo_mass_bal_corr,
 	)
 
 
@@ -114,9 +111,9 @@ class Results(object):
 					md[0],
 					np.zeros(len(md[0])),
 					row,
-					facecolor=[0.3,0.3,0.3],
-					edgecolor='k',
-					alpha=0.3,
+					facecolor = [0.3,0.3,0.3],
+					edgecolor = 'k',
+					alpha = 0.3,
 					label = r'$p(t_{0},E) - p(t_{f},E)$')
 
 			#set limits
@@ -174,38 +171,60 @@ class Results(object):
 		return ax
 
 
-
 class RpoIsotopes(Results):
 	__doc__='''
 	Class for inputting Ramped PyrOx isotopes, calculating p0(E) contained in
-	each RPO fraction, correcting d13C values for kinetic fractionation, and
-	storing resulting data and statistics.
+	each RPO fraction, correcting isotope values for blank contribution, mass
+	balance, and kinetic fractionation (d13C only), and storing resulting data
+	and statistics.
 
 	Parameters
 	----------
-	d13C_frac : None or array-like
-		Array of the d13C values (VPDB) of each measured fraction, 
-		length `nFrac`. Defaults to `None`.
+	blk_corr : boolean
+		Boolean to determine if inputted isotope data have been blank
+		corrected, defaults to `False`.
 
-	d13C_frac_std : None or array-like
-		The standard deviation of `d13C_frac` with length `nFrac`. Defaults to
-		zeros or `None` if `d13C_frac` is `None`.
+	d13C_raw : None or array-like
+		Array of the raw d13C values (VPDB) of each measured fraction, length
+		`nFrac`. Defaults to `None`.
 
-	Fm_frac : None or array-like
-		Array of the  Fm values of each measured fraction, length `nFrac`.
+	d13C_raw_std : None or array-like
+		The standard deviation of `d13C_raw` with length `nFrac`. Defaults to
+		zeros or `None` if `d13C_raw` is `None`.
+
+	Fm_raw : None or array-like
+		Array of the  raw Fm values of each measured fraction, length `nFrac`.
 		Defaults to `None`.
 
-	Fm_frac_std : None or array-like
-		The standard deviation of `Fm_frac` with length `nFrac`. Defaults to
-		zeros or `None` if `Fm_frac` is `None`.
+	Fm_raw_std : None or array-like
+		The standard deviation of `Fm_raw` with length `nFrac`. Defaults to
+		zeros or `None` if `Fm_raw` is `None`.
 
-	m_frac : None or array-like
-		Array of the masses (ugC) of each measured fraction, length `nFrac`.
-		Defaults to `None`.
+	kie_corr : boolean
+		Boolean to determine if inputted d13C data have been fractionation
+		corrected, defaults to `False`.
 
-	m_frac_std : None or array-like
-		The standard deviation of `d13C_frac` with length `nFrac`. Defaults to
-		zero or `None` if `m_frac` is `None`.
+	m_raw : None or array-like
+		Array of the raw masses (ugC) of each measured fraction, length
+		`nFrac`. Defaults to `None`.
+
+	m_raw_std : None or array-like
+		The standard deviation of `d13C_raw` with length `nFrac`. Defaults to
+		zero or `None` if `m_raw` is `None`.
+
+	mb_corr : boolean
+		Boolean to determine if inputted d13C data have been mass-balance
+		corrected, defaults to `False`.
+
+	model : rp.Daem
+		``rp.Daem`` instance associated with the inputted energy complex,
+		used for calculating the fractional E distributions and for KIE
+		d13C correction.
+
+	ratedata : rp.EnergyComplex
+		``rp.EnergyComplex`` instance containing p0(E) distribution for the
+		thermogram associated with inputted isotopes. Used for calculating
+		the fractional E distributions and for KIE d13C correction.
 
 	t_frac : None or array-like
 		2d array of the initial and final times of each fraction, in seconds.
@@ -253,7 +272,8 @@ class RpoIsotopes(Results):
 	Examples
 	--------
 	Generating a bare-bones isotope result instance containing only arbitrary
-	time and Fm data::
+	time and Fm data for a given energy complex instance, ec, and a given
+	model instance, Daem::
 
 		#import modules
 		import rampedpyrox as rp
@@ -263,12 +283,14 @@ class RpoIsotopes(Results):
 		t_frac = [[100, 200], [200, 300], [300, 1000]]
 		t_frac = np.array(t_frac)
 
-		Fm_frac = [1.0, 0.5, 0.0]
+		Fm_raw = [1.0, 0.5, 0.0]
 
 		#create instance
 		ri = rp.RpoIsotopes(
-			t_frac = t_frac,
-			Fm_frac = Fm_frac)
+			daem,
+			ec,
+			t_frac,
+			Fm_raw = Fm_raw)
 
 	Generating a isotope result instance using an RPO output .csv file and the
 	``RpoIsotopes.from_csv`` class method::
@@ -282,55 +304,71 @@ class RpoIsotopes(Results):
 		#create instance
 		ri = rp.RpoThermogram.from_csv(
 			file,
+			model,
+			ratedata,
 			blk_corr = True,
-			mass_err = 0.01)
+			mass_err = 0.01,
+			DE = 0.0018)
 
-	This automatically corrected inputted isotopes for the inputted instrument
-	blank carbon contribution using the `blk_corr` flag and assumed a 1\% 
-	uncertainty in mass measurements. **NOTE:** See ``RpoIsotopes.from_csv`` 
-	documentation for instructions on getting the .csv file in the right
-	format.
+	This will automatically correct inputted isotopes for the inputted
+	instrument blank carbon contribution using the `blk_corr` flag and will
+	assumed a 1\% uncertainty in mass measurements. Additionally, this will
+	fractionation-correct d13C data (if they exist) using a KIE DE of
+	1.8 J/mol. **NOTE:** See ``RpoIsotopes.from_csv`` documentation for
+	instructions on getting the .csv file in the right format.
 
-	Correcting the d13C results for a given E distribution for kinetic isotope
-	fractionation effects::
+	Plotting resulting p0(E) contained in each RPO fraction::
 
-		#assuming there exists some Daem, EnergyComplex, and 
-		# RpoThermogram instances already created
+		#import additional modules
+		import matplotlib.pyplot as plt
 
-		ri.d13C_correct(
-			daem, 
-			ec, 
-			tg, 
-			DEa = 0.0018)
+		#create figure
+		fig, ax = plt.subplots(1,3)
 
-	Printing a summary of the analysis::
+		#plot p0(E) distributions
+		ax[0] = ri.plot(
+			ax = ax[0], 
+			plt_var = 'p0E')
 
-		#fraction and component information
-		print(ri.frac_info)
 
-		#RMSE values
-		m = 'mass RMSE (ugC): %.2f' %ri.m_rmse
-		d13C = 'd13C RMSE (VPDB): %.2f' %ri.d13C_rmse
-		Fm = 'Fm RMSE: %.4f' %ri.Fm_rmse
+	Plotting resulting isotope vs. E scatter plots::
+		#plot d13C data
+		ax[1] = ri.plot(
+			ax = ax[1], 
+			plt_var = 'd13C',
+			plt_corr = True) #plotting corrected values
 
-		print(m+'\\n'+d13C+'\\n'+Fm)
+		#plot Fm data
+		ax[2] = ri.plot(
+			ax = ax[2], 
+			plt_var = 'Fm',
+			plt_corr = True) #plotting corrected values
+
+	Printing a summary of the raw and corrected isotope values::
+
+		#raw fraction information
+		print(ri.ri_raw_info)
+
+		#corrected fraction information
+		print(ri.ri_corr_info)
 
 	**Attributes**
 
-	d13C_frac : np.ndarray
-		Array of the d13C values (VPDB) of each measured fraction, 
-		length `nFrac`.
-
-	d13C_frac_std : np.ndarray
-		The standard deviation of `d13C_frac` with length `nFrac`.
-
 	d13C_corr : np.ndarray
 		Array of the d13C values (VPDB) of each measured fraction, corrected
-		for kinetic isotope fractionation. Length `nFrac`.
+		for any of: blank, mass-balance, KIE. Length `nFrac`.
 
 	d13C_corr_std : np.ndarray
 		The standard deviation of the d13C values (VPDB) of each measured 
-		fraction, corrected for kinetic isotope fractionation. Length `nFrac`.
+		fraction, corrected for any of: blank, mass-balance, KIE. Length 
+		`nFrac`.
+
+	d13C_raw : np.ndarray
+		Array of the raw d13C values (VPDB) of each measured fraction, 
+		length `nFrac`.
+
+	d13C_raw_std : np.ndarray
+		The standard deviation of `d13C_raw` with length `nFrac`.
 
 	E_frac : np.ndarray
 		Array of the mean E value (kJ) contained in each measured fraction as
@@ -340,30 +378,54 @@ class RpoIsotopes(Results):
 		The standard deviation of E (kJ) contained in each measured fraction
 		as calculated by the inverse model, length `nFrac`.
 
-	Fm_frac : np.ndarray
-		Array of the Fm values of each measured fraction, length `nFrac`.
+	Fm_corr : np.ndarray
+		Array of the blank-corrected Fm values of each measured fraction, 
+		length `nFrac`.
 
-	Fm_frac_std : np.ndarray
-		The standard deviation of `Fm_frac` with length `nFrac`.
+	Fm_corr_std : np.ndarray
+		The standard deviation of `Fm_corr` with length `nFrac`.
 
-	frac_info : pd.DataFrame
-		Dataframe containing the inputted fraction isotope summary info: 
+	Fm_raw : np.ndarray
+		Array of the raw Fm values of each measured fraction, length `nFrac`.
 
-			time (init. and final), \n
-			mass (mean and std.), \n
-			d13C (mean and std.), \n
-			d13C corrected (mean and std.), \n
-			Fm (mean and std.), \n
-			E (mean and std.) \n
+	Fm_raw_std : np.ndarray
+		The standard deviation of `Fm_raw` with length `nFrac`.
 
-	m_frac : np.ndarray
-		Array of the masses (ugC) of each measured fraction, length `nFrac`.
+	m_corr : np.ndarray
+		Array of the blank-corrected masses (ugC) of each measured fraction,
+		length `nFrac`.
 
-	m_frac_std : np.ndarray
-		The standard deviation of `m_frac` with length `nFrac`.
+	m_corr_std : np.ndarray
+		The standard deviation of `m_corr` with length `nFrac`.
+
+	m_raw : np.ndarray
+		Array of the raw masses (ugC) of each measured fraction, length
+		`nFrac`.
+
+	m_raw_std : np.ndarray
+		The standard deviation of `m_raw` with length `nFrac`.
 
 	nFrac : int
 		The number of measured fractions.
+
+	ri_corr_info : pd.DataFrame
+		Dataframe containing the inputted summary info, using corrected
+		isotopes: 
+
+			time (init. and final), \n
+			E (mean and std.), \n
+			mass (mean and std.), \n
+			d13C (mean and std.), \n
+			Fm (mean and std.) \n
+
+	ri_raw_info : pd.DataFrame
+		Dataframe containing the inputted summary info, using raw isotopes: 
+
+			time (init. and final), \n
+			E (mean and std.), \n
+			mass (mean and std.), \n
+			d13C (mean and std.), \n
+			Fm (mean and std.) \n
 
 	t_frac : np.ndarray
 		2d array of the initial and final times of each fraction, in seconds.
@@ -495,16 +557,6 @@ class RpoIsotopes(Results):
 		
 		Parameters
 		----------
-		model : rp.Model
-			``rp.Model`` instance containing the A matrix to use for 
-			inversion.
-
-		ratedata : rp.RateData
-			``rp.Ratedata`` instance containing the reactive continuum data.
-			file : str or pd.DataFrame
-				File containing isotope data, either as a path string or a
-				dataframe.
-
 		blk_corr : Boolean
 			Tells the method whether or not to blank-correct isotope data. If
 			`True`, blank-corrects according to inputted blank composition 
@@ -540,11 +592,22 @@ class RpoIsotopes(Results):
 			atoms, in kJ. Defaults to 0.0018 (the best-fit value calculated
 			in Hemingway et al., **2017**).
 
+		file : str or pd.DataFrame
+			File containing RPO isotope data, either as a string pointing
+			to a .csv file or as a ``pd.DataFrame`` instance.
+
 		mass_err : float
 			Relative uncertainty in mass measurements, typically as a sum of
 			manometric uncertainty in pressure measurements and uncertainty in
 			vacuum line volumes. Defaults to 0.01 (i.e. 1\% relative 
 			uncertainty).
+
+		model : rp.Model
+			``rp.Model`` instance containing the A matrix to use for 
+			inversion.
+
+		ratedata : rp.RateData
+			``rp.Ratedata`` instance containing the reactive continuum data.
 		
 		Notes
 		-----
@@ -625,8 +688,30 @@ class RpoIsotopes(Results):
 
 		Parameters
 		----------
+		blk_d13C : tuple
+			Tuple of the blank d13C composition (VPDB), in the form 
+			(mean, stdev.) to be used of ``blk_corr = True``. Defaults to the
+			NOSAMS RPO blank as calculated by Hemingway et al., Radiocarbon
+			**2017**.
 
-		Raises
+		blk_flux : tuple
+			Tuple of the blank flux (ng/s), in the form (mean, stdev.) to
+			be used of ``blk_corr = True``. Defaults to the NOSAMS RPO blank 
+			as calculated by Hemingway et al., Radiocarbon **2017**.
+
+		blk_Fm : tuple
+			Tuple of the blank Fm value, in the form (mean, stdev.) to
+			be used of ``blk_corr = True``. Defaults to the NOSAMS RPO blank 
+			as calculated by Hemingway et al., Radiocarbon **2017**.
+
+		bulk_d13C_true : None or array
+			True measured d13C value (VPDB) for bulk material as measured
+			independently (e.g. on a EA-IRMS). If not `None`, this value is
+			used to mass-balance-correct d13C values as described in Hemingway
+			et al., Radiocarbon **2017**. If not `none`, must be inputted in
+			the form [mean, stdev.]
+
+		Warnings
 		--------
 		UserWarning
 			If already corrected for blank contribution
@@ -804,31 +889,16 @@ class RpoIsotopes(Results):
 		self._kie_corr = True
 
 		#store results
-		if d13C is not None:
-			self.d13C_corr = assert_len(d13C, n)
+		self.d13C_corr = assert_len(d13C, n)
 
-			#store stdev if it exists, zeros if not
-			if d13C_corr_std is not None:
-				self.d13C_corr_std = assert_len(d13C_std, n)
-			else:
-				self.d13C_corr_std = assert_len(0, n)
+		#store stdev if it exists, zeros if not
+		if d13C_corr_std is not None:
+			self.d13C_corr_std = assert_len(d13C_std, n)
+		else:
+			self.d13C_corr_std = assert_len(0, n)
 
 		#store summary
 		self.ri_corr_info = _calc_ri_info(self, flag = 'corr')
-
-	def plot(ax, plt_var = 'p0E', plt_corr = True):
-		'''
-		Method for plotting results, either p0(E) distributions contained
-		within each RPO fraction or isotopes vs. mean E for each RPO fraction.
-
-		Parameters
-		----------
-
-
-		Returns
-		-------
-		'''
-
 
 	#define plotting method
 	def plot(self, ax = None, plt_var = 'p0E', plt_corr = True):
