@@ -468,7 +468,7 @@ class RpoThermogram(TimeData):
 		#if g exists, add RPO-specific summary file
 		if g is not None:
 
-			self.tg_info = _calc_RPO_info(t, T, g)
+			self.tg_info = _calc_RPO_info(self.t, self.T, self.g)
 
 	#define class method for creating instance directly from .csv file
 	@classmethod
@@ -572,6 +572,9 @@ class RpoThermogram(TimeData):
 			If `nt` is not the same in the ``rp.Model`` instance and the
 			``rp.TimeData`` instance.
 
+		ArrayError
+			If the ``rp.RateData`` instance has no attribute `p`.
+
 		See Also
 		--------
 		input_estimated
@@ -600,6 +603,11 @@ class RpoThermogram(TimeData):
 				'Attempting to calculate thermogram using a ratedata instance'
 				' of type %r. Consider using rp.EnergyComplex instance'
 				' instead' % rd_type, UserWarning)
+
+		#raise exception if no p data exist
+		if not hasattr(ratedata, 'p'):
+			raise ArrayError(
+				'EnergyComplex has no p array!')
 
 		#raise exception if not the right shape
 		if model.nE != ratedata.nE:
