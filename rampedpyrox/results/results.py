@@ -941,11 +941,12 @@ class RpoIsotopes(Results):
 
 		Raises
 		------
+		ArrayError
+			if `plt_corr` is `True` but no corrected data exist.
+			
 		StringError
 			If `plt_var` is not 'p0E', 'Fm', or 'd13C'.
 
-		ArrayError
-			if `plt_corr` is `True` but no corrected data exist.
 		'''
 
 		#check that plt_var is an appropriate string

@@ -19,19 +19,14 @@ from nose.tools import(
 	)
 
 from rampedpyrox.model.model_helper import(
-	_calc_cmpt,
-	_calc_f,
+	_calc_ghat,
+	_calc_p,
 	_calc_R,
 	_rpo_calc_A)
 
 from rampedpyrox.core.exceptions import(
-	# rpException,
 	ArrayError,
-	# FileError,
-	# FitError,
 	LengthError,
-	# RunModelError,
-	# ScalarError,
 	StringError,
 	)
 
@@ -40,56 +35,55 @@ def gen_str(name):
 	p = os.path.join(os.path.dirname(__file__), name)
 	return p
 
-file_str = gen_str('test_rpo_thermogram.csv')
+file_str = gen_str('test_data/thermogram.csv')
 file = pd.DataFrame.from_csv(file_str)
 
 #create some timedata, model, and ratedata instances
 timedata = rp.RpoThermogram.from_csv(
 	file_str,
-	nt = 250)
+	nt = 250,
+	bl_subtract = True)
 
 model = rp.Daem.from_timedata(
 	timedata,
-	nEa = 300)
+	nE = 300)
 
 ratedata = rp.EnergyComplex.inverse_model(
 	model, 
 	timedata,
-	nPeaks = 3, 
 	omega = 3)
 
-#test the timedata helper functions
+#test the model helper functions
 class test_model_helper_functions:
 
-	def test_calc_cmpt(self):
-		x = _calc_cmpt(model, ratedata)
+	def test_calc_ghat(self):
+		ghat = _calc_ghat(model, ratedata)
 
 		#assert that the shape is right
-		assert_equal(x.shape[0], 250)
-		assert_equal(x.shape[1], 3)
+		assert_equal(ghat.shape[0], 250)
 
 		#check that the type is right
-		assert_is_instance(x, np.ndarray)
-		assert_equal(x.dtype, 'float')
+		assert_is_instance(ghat, np.ndarray)
+		assert_equal(ghat.dtype, 'float')
 
-	def test_calc_f(self):
-		f, resid_rmse, rgh_rmse = _calc_f(model, timedata, 3)
+	def test_calc_p(self):
+		p, resid, rgh = _calc_p(model, timedata, 3)
 
 		#assert that the length is right
-		assert_equal(f.shape[0], 300)
+		assert_equal(p.shape[0], 300)
 
 		#assert that the type is right
-		assert_is_instance(f, np.ndarray)
-		assert_equal(f.dtype, float)
-		assert_is_instance(resid_rmse, float)
-		assert_is_instance(rgh_rmse, float)
+		assert_is_instance(p, np.ndarray)
+		assert_equal(p.dtype, float)
+		assert_is_instance(resid, float)
+		assert_is_instance(rgh, float)
 
 		#assert that the integral of f is one
-		F = f*np.gradient(ratedata.Ea)
-		assert_almost_equal(np.sum(F), 1, places=3)
+		P = p*np.gradient(ratedata.E)
+		assert_almost_equal(np.sum(P), 1, places=3)
 
 		#assert that f is nonnegative
-		assert_almost_equal(np.min(f), 0, places=3)
+		assert_almost_equal(np.min(P), 0, places=3)
 
 	def test_calc_R(self):
 		#assert that R is the right shape and only contains -1, 0, 1
@@ -111,7 +105,7 @@ class test_model_helper_functions:
 	def test_rpo_calc_A(self):
 		#assert that A is the right shape and type
 		A = _rpo_calc_A(
-			ratedata.Ea, 
+			ratedata.E, 
 			10, 
 			timedata.t, 
 			timedata.T)
@@ -121,8 +115,8 @@ class test_model_helper_functions:
 		assert_is_instance(A, np.ndarray)
 		assert_equal(A.dtype, float)
 
-		#assert that the range is 0 - 1 (divide by dEa)
-		a = np.divide(A, np.gradient(ratedata.Ea))
+		#assert that the range is 0 - 1 (divide by dE)
+		a = np.divide(A, np.gradient(ratedata.E))
 		assert_equal(np.max(a), 1)
 		assert_equal(np.min(a), 0)
 
@@ -131,8 +125,8 @@ class test_model_helper_functions:
 		log10k0 = lambda ea: 0.02*ea + 5
 
 		A = _rpo_calc_A(
-			ratedata.Ea, 
-			10, 
+			ratedata.E, 
+			log10k0, 
 			timedata.t, 
 			timedata.T)
 
@@ -154,7 +148,7 @@ class test_model_creation:
 		assert_raises(
 			ArrayError, 
 			rp.Daem,
-			ratedata.Ea,
+			ratedata.E,
 			'10',
 			timedata.t,
 			timedata.T)
@@ -163,7 +157,7 @@ class test_model_creation:
 		assert_raises(
 			ArrayError, 
 			rp.Daem,
-			ratedata.Ea,
+			ratedata.E,
 			10,
 			'[1,2,3]',
 			timedata.T)
@@ -172,7 +166,7 @@ class test_model_creation:
 		assert_raises(
 			ArrayError, 
 			rp.Daem,
-			ratedata.Ea,
+			ratedata.E,
 			10,
 			timedata.t,
 			'[1,2,3]')
@@ -181,7 +175,7 @@ class test_model_creation:
 		assert_raises(
 			LengthError, 
 			rp.Daem,
-			ratedata.Ea,
+			ratedata.E,
 			10,
 			[1,2,3],
 			[1,2,3,4])
@@ -190,7 +184,7 @@ class test_model_creation:
 		assert_warns(
 			UserWarning,
 			rp.Daem,
-			ratedata.Ea,
+			ratedata.E,
 			10,
 			[1,2,3],
 			[1,1,1])

@@ -27,15 +27,6 @@ __version__ = '0.1.0'
 
 __docformat__ = 'restructuredtext en'
 
-#import exceptions
-from .core.exceptions import(
-	rpException,
-	ArrayError,
-	FileError,
-	LengthError,
-	ScalarError,
-	StringError,
-	)
 
 #import timedata classes
 from .timedata.timedata import(
@@ -62,5 +53,6 @@ from .core.core_functions import(
 	assert_len,
 	calc_L_curve,
 	derivatize,
-	extract_moments
+	extract_moments,
+	plot_tg_isotopes,
 	)

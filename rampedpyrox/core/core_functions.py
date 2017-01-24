@@ -10,6 +10,7 @@ from __future__ import(
 __docformat__ = 'restructuredtext en'
 __all__ = ['assert_len', 'calc_L_curve', 'derivatize', 'extract_moments']
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from collections import Sequence
@@ -262,4 +263,185 @@ def extract_moments(x, y):
 	sigma = sigsq**0.5
 
 	return mu, sigma
+
+#define function for plotting raw thermogram with isotopes
+def plot_tg_isotopes(timedata, result, ax = None, plt_corr = True):
+	'''
+	Function to plot raw timedata (e.g. RPO thermogram) and isotope values.
+
+	Parameters
+	----------
+	ax : None or matplotlib.axis
+		Axis to plot on. If `None`, automatically creates a
+		``matplotlip.axis`` instance to return. Defaults to `None`.
+	
+	plt_corr : str
+		If `plt_var` is 'Fm' or 'd13C', `plt_corr` tells the method
+		whether to plot raw or corrected values (if corrected values
+		exist).
+
+	result : rp.Results
+		``rp.Results`` instance containing the isotope results to plot.
+
+	timedata : rp.TimeData
+		``rp.TimeData`` instance containing the derivative timedata (e.g. rpo
+		 thermogram) to plot.
+
+	Returns
+	-------
+	ax : matplotlib.axis
+		Updated axis instance with plotted data.
+
+	Warnings
+	--------
+	UserWarning
+		If `timedata` does not contain derivative timedata, dgdt.
+	
+	UserWarning
+		If `result` does not contain any of the necessary isotope attributes.
+
+
+	ArrayError
+		if `plt_corr` is `True` but no corrected data exist.
+
+	ArrayError
+		If `result` does not contain any of: d13C, Fm.
+	'''
+
+	#extract the timedata dgdt
+	try:
+		dgdt = timedata.dgdt
+
+	except AttributeError:
+		#raise warning
+		warnings.warn(
+			'TimeData instance does not contain dgdt attribute! Proceeding'
+			' to plot isotopes only!')
+
+		#proceed with dgdt = None
+		dgdt = None
+
+	#extract t array also
+	t = timedata.t
+
+	#extract isotope data
+	if plt_corr is True:
+		flag = '_corr'
+	
+	else:
+		flag = '_raw'
+
+	#check that isotope attributes exist and extract if so
+	d13C = getattr(result, 'd13C' + flag, None)
+	d13C_std = getattr(result, 'd13C' + flag + '_std', None)
+
+	Fm = getattr(result, 'Fm' + flag, None)
+	Fm_std = getattr(result, 'Fm' + flag + '_std', None)
+
+	#raise warning if no isotope data exist
+	if d13C is None and Fm is None:
+		#raise warning
+		warnings.warn(
+			'Result instance does not contain d13C or Fm attributes!'
+			' Proceeding to thermogram only!')
+
+	#create axis if necessary
+	if ax is None:
+		_, ax = plt.subplots(1, 1)
+
+	#calculate time elapsed in each fraction and midpoints
+	DT = result.t_frac[:,1] - result.t_frac[:,0]
+	x = result.t_frac[:,0] + DT/2
+
+	#create string to add variables to for legend
+	lns = []
+
+	#plot d13C
+	if d13C is not None:
+		d13C_plot = ax.errorbar(
+			x,
+			d13C,
+			yerr = d13C_std,
+			marker = 'o',
+			ecolor = 'k',
+			markersize = 12,
+			mec = 'k',
+			mfc = 'w',
+			elinewidth = 1,
+			markeredgewidth = 1,
+			capsize = 0,
+			ls = 'none',
+			zorder = 3,
+			label = r'fraction $\delta^{13}C$')
+
+		#set label
+		ax.set_ylabel(r'$\delta^{13}C$ (‰ VPDB)')
+
+		#append legend
+		lns.append(d13C_plot)
+
+	#copy axis
+	ax2 = ax.twinx()
+
+	#plot Fm, if it exists
+	if Fm is not None:
+
+		Fm_plot = ax2.bar(
+			result.t_frac[:,0],
+			Fm,
+			width = DT,
+			color = 'none',
+			linewidth = 1.5,
+			zorder = 2,
+			label = 'fraction Fm')
+
+		#set label
+		ax2.set_ylabel('Fm')
+
+		#append legend
+		lns.append(Fm_plot)
+
+		#find max Fm value
+		mFm = np.max(Fm)
+	else:
+		mFm = 1.0
+
+	#add thermogram plot if it exists
+	if dgdt is not None:
+		
+		#scale thermogram to match Fm
+		mtg = np.max(-dgdt)
+		tg_scaled = -dgdt*mFm/mtg
+
+		#plot thermogram
+		tg_plot = ax2.fill_between(
+			t,
+			np.zeros(len(t)),
+			tg_scaled,
+			facecolor = [0.5, 0.5, 0.5],
+			edgecolor = 'k',
+			alpha = 0.3,
+			label = 'thermogram (normalized)',
+			zorder = 1)
+
+		#append legend
+		lns.append(tg_plot)
+
+	#set x label and limits
+	ax.set_xlabel('time (seconds)')
+	ax2.set_ylim([0, 1.1*mFm])
+
+	#get legend of everything in one
+	labs = [l.get_label() for l in lns]
+	
+	ax.legend(
+		lns,
+		labs, 
+		loc = 'best',
+		frameon = False)
+
+	#make tight layout
+	plt.tight_layout()
+
+	return ax, ax2
 
