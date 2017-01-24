@@ -16,7 +16,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 
 #import exceptions
-from ..core.exceptions import(
+from .exceptions import(
 	FileError,
 	)
 

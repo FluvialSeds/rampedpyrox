@@ -15,12 +15,12 @@ import numpy as np
 import warnings
 
 #import exceptions
-from ..core.exceptions import(
+from .exceptions import(
 	ScalarError,
 	)
 
 #import helper functions
-from ..core.core_functions import(
+from .core_functions import(
 	assert_len,
 	derivatize,
 	)

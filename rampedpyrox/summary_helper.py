@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 #import helper functions
-from ..core.core_functions import(
+from .core_functions import(
 	derivatize,
 	extract_moments
 	)

@@ -17,27 +17,27 @@ import warnings
 from numpy.linalg import norm
 
 #import exceptions
-from ..core.exceptions import(
+from .exceptions import(
 	ArrayError,
 	StringError,
 	)
 
 #import helper functions
-from ..core.core_functions import(
+from .core_functions import(
 	assert_len,
 	derivatize,
 	)
 
-from ..core.plotting_helper import(
+from .plotting_helper import(
 	_plot_dicts,
 	_rem_dup_leg,
 	)
 
-from ..core.summary_helper import(
+from .summary_helper import(
 	_calc_RPO_info,
 	)
 
-from ..model.model_helper import(
+from .model_helper import(
 	_calc_ghat,
 	)
 

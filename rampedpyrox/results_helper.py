@@ -21,10 +21,12 @@ from scipy.optimize import least_squares
 from scipy.optimize import nnls
 
 #import Daem
-from ..model.model import(Daem)
+from .model import(
+	Daem
+	)
 
 #import exceptions
-from ..core.exceptions import(
+from .exceptions import(
 	ArrayError,
 	FileError,
 	LengthError,
@@ -32,7 +34,7 @@ from ..core.exceptions import(
 	)
 
 #import helper functions
-from ..core.core_functions import(
+from .core_functions import(
 	assert_len,
 	extract_moments,
 	)

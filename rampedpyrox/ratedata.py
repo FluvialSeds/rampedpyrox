@@ -18,25 +18,25 @@ import warnings
 from numpy.linalg import norm
 
 #import exceptions
-from ..core.exceptions import(
+from .exceptions import(
 	ArrayError,
 	ScalarError,
 	)
 
 #import helper functions
-from ..core.core_functions import(
+from .core_functions import(
 	assert_len,
 	)
 
-from ..core.plotting_helper import(
+from .plotting_helper import(
 	_rem_dup_leg,
 	)
 
-from ..core.summary_helper import(
+from .summary_helper import(
 	_calc_rate_info,
 	)
 
-from ..model.model_helper import(
+from .model_helper import(
 	_calc_p,
 	)
 

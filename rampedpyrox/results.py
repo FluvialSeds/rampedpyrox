@@ -17,23 +17,23 @@ import warnings
 from collections import Sequence
 
 #import exceptions
-from ..core.exceptions import(
+from .exceptions import(
 	ArrayError,
 	LengthError,
 	StringError,
 	)
 
 #import helper functions
-from ..core.core_functions import(
+from .core_functions import(
 	assert_len,
 	)
 
-from ..core.plotting_helper import(
+from .plotting_helper import(
 	_plot_dicts_iso,
 	_rem_dup_leg,
 	)
 
-from ..core.summary_helper import(
+from .summary_helper import(
 	_calc_ri_info,
 	)
 

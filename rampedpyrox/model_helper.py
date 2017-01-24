@@ -16,7 +16,7 @@ from numpy.linalg import norm
 from scipy.optimize import nnls
 
 #import helper functions
-from ..core.core_functions import(
+from .core_functions import(
 	assert_len,
 	)
 

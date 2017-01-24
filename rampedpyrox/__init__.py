@@ -34,27 +34,27 @@ __docformat__ = 'restructuredtext en'
 
 
 #import timedata classes
-from .timedata.timedata import(
+from .timedata import(
 	RpoThermogram,
 	)
 
 #import model classes
-from .model.model import(
+from .model import(
 	Daem,
 	)
 
 #import ratedata classes
-from .ratedata.ratedata import(
+from .ratedata import(
 	EnergyComplex,
 	)
 
 #import results classes
-from .results.results import(
+from .results import(
 	RpoIsotopes,
 	)
 
 #import package-level functions
-from .core.core_functions import(
+from .core_functions import(
 	assert_len,
 	calc_L_curve,
 	derivatize,
