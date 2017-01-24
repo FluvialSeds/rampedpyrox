@@ -13,7 +13,7 @@ Package Information
   0.1.0
 
 :Release:
-  31 January 2017
+  24 January 2017
 
 :License:
   GNU GPL v3 (or greater)
