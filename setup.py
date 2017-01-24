@@ -6,7 +6,7 @@ def readme():
 
 setup(name='rampedpyrox',
 	version='0.1.0',
-	description='Ramped PyrOx decolvolution code',
+	description='Ramped PyrOx kinetic and isotope analysis',
 	long_description=readme(),
 	classifiers=[
 		'Development Status :: 3 - Alpha',

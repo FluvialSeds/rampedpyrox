@@ -15,7 +15,7 @@ documentation can be found at:
 
 	http://rampedpyrox.readthedocs.io
 
-Version 0.1.0 is current as of 23 January 2017.
+Version 0.1.0 is current as of 24 January 2017.
 
 To do for future versions:
 * Change exception structure to "try/except"
