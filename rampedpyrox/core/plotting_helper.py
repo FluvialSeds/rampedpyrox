@@ -103,7 +103,7 @@ def _plot_dicts_iso(case, ri):
 							r'p(E) (unitless)'),
 						'Fm' : (r'E (kJ $mol^{-1}$)', r'Fm'),
 						'd13C' : (r'E (kJ $mol^{-1}$)', 
-							r'$\delta^{13}C$ (‰ VPDB)')}
+							r'$\delta^{13}C$ (VPDB)')}
 						}
 
 	elif case == 'iso_corr':

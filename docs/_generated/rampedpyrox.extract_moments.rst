@@ -1,6 +1,6 @@
-rampedpyrox.RpoIsotopes.fit
+rampedpyrox.extract_moments
 ===========================
 
 .. currentmodule:: rampedpyrox
 
-.. automethod:: RpoIsotopes.fit
+.. autofunction:: extract_moments

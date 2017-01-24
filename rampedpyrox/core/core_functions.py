@@ -375,7 +375,7 @@ def plot_tg_isotopes(timedata, result, ax = None, plt_corr = True):
 			label = r'fraction $\delta^{13}C$')
 
 		#set label
-		ax.set_ylabel(r'$\delta^{13}C$ (‰ VPDB)')
+		ax.set_ylabel(r'$\delta^{13}C$ (VPDB)')
 
 		#append legend
 		lns.append(d13C_plot)

@@ -10,8 +10,10 @@ rampedpyrox.RpoIsotopes
    .. autosummary::
       :toctree: _results
       
-      ~RpoIsotopes.fit
+      ~RpoIsotopes.blank_correct
       ~RpoIsotopes.from_csv
+      ~RpoIsotopes.kie_correct
+      ~RpoIsotopes.plot
    
    
 

@@ -20,6 +20,8 @@ Ramped PyrOx methods
 	rampedpyrox.assert_len
 	rampedpyrox.calc_L_curve
 	rampedpyrox.derivatize
+	rampedpyrox.extract_moments
+	rampedpyrox.plot_tg_isotopes
 
 References
 ----------

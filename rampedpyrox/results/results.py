@@ -318,8 +318,8 @@ class RpoIsotopes(Results):
 
 	This will automatically correct inputted isotopes for the inputted
 	instrument blank carbon contribution using the `blk_corr` flag and will
-	assumed a 1\% uncertainty in mass measurements. Additionally, this will
-	fractionation-correct d13C data (if they exist) using a KIE DE of
+	assumed a 1 percent uncertainty in mass measurements. Additionally, this
+	will fractionation-correct d13C data (if they exist) using a KIE DE of
 	1.8 J/mol. **NOTE:** See ``RpoIsotopes.from_csv`` documentation for
 	instructions on getting the .csv file in the right format.
 
@@ -336,8 +336,8 @@ class RpoIsotopes(Results):
 			ax = ax[0], 
 			plt_var = 'p0E')
 
-
 	Plotting resulting isotope vs. E scatter plots::
+	
 		#plot d13C data
 		ax[1] = ri.plot(
 			ax = ax[1], 
