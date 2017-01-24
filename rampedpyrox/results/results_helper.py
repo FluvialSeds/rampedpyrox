@@ -81,7 +81,7 @@ def _calc_cutoff(result, model):
 		ind = np.where((t > row[0]) & (t <= row[1]))[0]
 
 		#store first and last indices
-		ind_min[i] = ind[0]
+		ind_min[i] = ind[0] - 1 #subtract one so theres no gap!
 		ind_max[i] = ind[-1]
 
 	return ind_min, ind_max
@@ -126,6 +126,7 @@ def _calc_E_frac(result, model, ratedata):
 	#extract necessary data
 	A = model.A
 	E = ratedata.E
+	dE = np.gradient(E)
 	nE = ratedata.nE
 	nF = result.nFrac
 	p = ratedata.p
@@ -143,10 +144,10 @@ def _calc_E_frac(result, model, ratedata):
 		imax = ind_max[i]
 
 		#p(E,t) at time 0
-		pt0 = p*A[imin,:]
+		pt0 = p*A[imin,:]/dE #divide by dE so total area == 1
 
 		#p(E,t) at time final
-		ptf = p*A[imax,:]
+		ptf = p*A[imax,:]/dE #divide by dE so total area == 1
 
 		#difference -- i.e. p(E) evolved over Dt
 		Dpt = pt0 - ptf

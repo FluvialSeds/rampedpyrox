@@ -13,22 +13,18 @@ from nose.tools import(
 	assert_equal,
 	assert_is_instance,
 	assert_raises,
+	assert_true,
 	# assert_warns,
 	)
 
 from rampedpyrox.results.results_helper import(
-	_d13C_to_R13, 
-	_kie_d13C, 
-	_kie_d13C_MC, 
-	_nnls_MC, 
-	_R13_CO2, 
-	_R13_diff, 
-	_R13_to_d13C, 
+	_calc_cutoff,
+	_calc_E_frac,
 	_rpo_blk_corr,
-	_rpo_cont_ctf,
-	_rpo_extract_iso
+	_rpo_extract_iso,
+	_rpo_kie_corr,
+	_rpo_mass_bal_corr,
 	)
-
 
 from rampedpyrox.core.exceptions import(
 	# rpException,
@@ -46,10 +42,10 @@ def gen_str(name):
 	p = os.path.join(os.path.dirname(__file__), name)
 	return p
 
-file_str = gen_str('test_rpo_thermogram.csv')
+file_str = gen_str('test_data/thermogram.csv')
 file = pd.DataFrame.from_csv(file_str)
 
-res_str = gen_str('test_rpo_isotopes.csv')
+res_str = gen_str('test_data/isotopes.csv')
 res = pd.DataFrame.from_csv(res_str)
 
 
@@ -60,23 +56,57 @@ timedata = rp.RpoThermogram.from_csv(
 
 model = rp.Daem.from_timedata(
 	timedata,
-	nEa = 300)
+	nE = 300)
 
 ratedata = rp.EnergyComplex.inverse_model(
 	model, 
 	timedata,
-	nPeaks = 4, 
 	omega = 3)
 
 timedata.forward_model(model, ratedata)
 
 result = rp.RpoIsotopes.from_csv(
 	res_str,
+	model,
+	ratedata,
 	blk_corr = False,
-	mass_err = 0.01)
+	mass_err = 0.01,
+	bulk_d13C_true = None)
 
 
 class test_results_helper_functions:
+
+	def test_calc_cutoff(self):
+		ind_min, ind_max = _calc_cutoff(result, model)
+
+		#assert lengths and types
+		assert_is_instance(ind_min, np.ndarray)
+		assert_is_instance(ind_max, np.ndarray)
+		assert_equal(len(ind_min), len(ind_max))
+		assert_equal(ind_max.dtype, 'int')
+		assert_equal(ind_min.dtype, 'int')
+
+		#assert ind_max is always greater than ind_min
+		assert_true(np.all(result.t_frac[1,:] > result.t_frac[0,:]))
+
+	def test_calc_E_frac(self):
+		E_frac, E_frac_std, p_frac = _calc_E_frac(
+			result, 
+			model, 
+			ratedata)
+
+		#test shapes and dtypes
+		assert_equal(len(E_frac), len(E_frac_std))
+		assert_equal(len(E_frac), np.shape(p_frac)[0])
+		assert_equal(len(ratedata.E), np.shape(p_frac)[1])
+		assert_equal(E_frac.dtype, 'float')
+		assert_equal(E_frac_std.dtype, 'float')
+		assert_equal(p_frac.dtype, 'float')
+
+
+
+
+
 
 	def test_R13_d13C(self):
 		#go from d13C to R13 and back
