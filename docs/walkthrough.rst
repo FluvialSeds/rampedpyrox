@@ -1,6 +1,6 @@
 Comprehensive Walkthrough
 =========================
-The following examples should form a comprehensive walkthough of downloading the package, getting thermogram data into the right form for importing, running the DAEM inverse model, peak-fitting the activation energy (Ea) probability density function, determining the isotope composition of each component, and performing Monte Carlo isotope uncertainty estimates.
+The following examples should form a comprehensive walkthough of downloading the package, getting thermogram data into the right form for importing, running the DAEM inverse model to generate an activation energy (E) probability density function [p\ :sub:`0`\ (E)], determining the E range contained in each RPO fraction, correcting isotope values for blank and kinetic fractionation, and generating all necessary plots and tables for data analysis.
 
 For detailed information on class attributes, methods, and parameters, consult the `Package Reference Documentation` or use the ``help()`` command from within Python.
 
@@ -29,36 +29,31 @@ Basic runthrough::
 	daem = rp.Daem.from_timedata(
 		tg,
 		log10k0 = 10, #assume a constant value of 10
-		Ea_max = 350,
-		Ea_min = 50,
-		nEa = 400)
+		E_max = 350,
+		E_min = 50,
+		nE = 400)
 
-	#run the inverse model to generate energy complex
+	#run the inverse model to generate an energy complex
 	ec = rp.EnergyComplex.inverse_model(
 		daem, 
 		tg,
-		combined = [(1,2), (6, 7)],
-		nPeaks = 'auto',
-		omega = 3,
-		peak_shape = 'Gaussian',
-		thres = 0.02)
+		omega = 'auto') #calculates best-fit omega
 
 	#forward-model back onto the thermogram
 	tg.forward_model(daem, ec)
 
-	#make the isotope results instance
+	#calculate isotope results
 	ri = rp.RpoIsotopes.from_csv(
 		iso_data,
+		daem,
+		ec,
 		blk_corr = True, #uses values for NOSAMS instrument
-		mass_err = 0.01)
+		bulk_d13C_true = [-24.9, 0.1], #true d13C value
+		mass_err = 0.01,
+		DE = 0.0018) #value from Hemingway et al., 2017
 
-	#fit the component isotope values and uncertainty
-	ri.fit(
-		daem, 
-		ec, 
-		tg,
-		DEa = 0.0018, #uses values for NOSAMS instrument
-		nIter = 10000)
+	#compare corrected isotopes and E values
+	print(ri.ri_corr_info)
 
 
 Downloading the package
@@ -74,8 +69,6 @@ You can check that your installed version is up to date with the latest release 
 
 	$ pip freeze
 
-**This option will become available once the peer-reviewed manuscripts accompanying this package have been published.**
-
 
 Downloading from source
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -89,7 +82,6 @@ And keep up-to-date with the latest version by doing::
 
 from within the rampedpyrox directory.
 
-**This github repo is currently private until the peer-reviewed manuscripts accompanything this package have been published.** Please `contact me directly <jhemingway@whoi.edu>`_ for access.
 
 Dependencies
 ~~~~~~~~~~~~
@@ -153,7 +145,7 @@ like this::
 
 Importing isotope data
 ~~~~~~~~~~~~~~~~~~~~~~
-If you are importing isotope data, this package requires that the file is in `.csv` format and that the first two rows correspond to the starting time of the experiment and the initial trapping time of fraction 1, respectively. Additionally, the file must contain a 'fraction' column and isotope/mass columns must have `ug_frac`, `d13C`, `d13C_std`, `Fm`, and `Fm_std` headers [2]_. For example:
+If you are importing isotope data, this package requires that the file is in `.csv` format and that the first two rows correspond to the starting time of the experiment and the initial trapping time of fraction 1, respectively. Additionally, the file must contain a 'fraction' column and isotope/mass columns must have `ug_frac`, `d13C`, `d13C_std`, `Fm`, and `Fm_std` headers. For example:
 
 +-------------+----------+---------+--------+----------+--------+----------+
 |  date_time  | fraction | ug_frac |  d13C  | d13C_std |   Fm   |  Fm_std  |
@@ -167,9 +159,7 @@ If you are importing isotope data, this package requires that the file is in `.c
 |11:58:23 AM  |     2    | 105.81  | -29.0  |   0.1    | 0.7945 |  0.0022  |
 +-------------+----------+---------+--------+----------+--------+----------+
 
-Here, the `ug_frac` column is composed of manometrically determined masses rather than those determined by the infrared gas analyzer (IRGA, *i.e.* photometric). As such, the mass RMSE value determined by the fitting procedure (see `Determining component isotope composition`_ below) is a metric of the discrepancy between photometric and manometric mass measurements in addition to that between the peak-fitted and true thermograms.
-
-**Important:** The `date_time` value for fraction '-1' must be the same as the `date_time` value for the first row in the `all_data` thermogram file **and** the value for fraction '0' must the initial time when trapping for fraction 1 began.
+Here, the `ug_frac` column is composed of manometrically determined masses rather than those determined by the infrared gas analyzer (IRGA, *i.e.* photometric). **Important:** The `date_time` value for fraction '-1' must be the same as the `date_time` value for the first row in the `all_data` thermogram file **and** the value for fraction '0' must the initial time when trapping for fraction 1 began.
 
 Once the file is in this format, generate a string pointing to it in python like this::
 
@@ -178,7 +168,7 @@ Once the file is in this format, generate a string pointing to it in python like
 
 Making a TimeData instance (the Thermogram)
 -------------------------------------------
-Once the `all_data` string been defined, you are ready to import the package and generate an ``rp.RpoThermogram`` instance containing the thermogram data. ``rp.RpoThermogram`` is a subclass of ``rp.TimeData`` -- broadly speaking, this handles any object that contains measured time-series data. It is important to keep in mind that your thermogram will be down-sampled to `nt` points in order to smooth out high-frequency noise and to keep Laplace transform matrices to a manageable size for inversion (see `Setting-up the model`_ below). Additionally, because the inversion model is sensitive to boundary conditions at the beginning and end of the run (see `Deconvolving rate data into peaks`_ below), there is an option when generating the thermogram instance to ensure that the baseline has been subtracted, as well as options for inputting measurement uncertainty (time data uncertainty is currently unused as of v.0.0.2)::
+Once the `all_data` string been defined, you are ready to import the package and generate an ``rp.RpoThermogram`` instance containing the thermogram data. ``rp.RpoThermogram`` is a subclass of ``rp.TimeData`` -- broadly speaking, this handles any object that contains measured time-series data. It is important to keep in mind that your thermogram will be down-sampled to `nt` points in order to smooth out high-frequency noise and to keep Laplace transform matrices to a manageable size for inversion (see `Setting-up the model`_ below). Additionally, because the inversion model is sensitive to boundary conditions at the beginning and end of the run, there is an option when generating the thermogram instance to ensure that the baseline has been subtracted. Note that temperature and ppm CO2 uncertainty is not inputted -- any noise is dealt with during regularization (see `Regularizing the inversion`_ below)::
 
 	#load modules
 	import rampedpyrox as rp
@@ -189,11 +179,9 @@ Once the `all_data` string been defined, you are ready to import the package and
 	tg = rp.RpoThermogram.from_csv(
 		data,
 		bl_subtract = True, #subtract baseline
-		nt = nt,
-		ppm_CO2_err = 5, #IRGA measurement uncertainty
-		T_err = 1) #thermocouple uncertainty
+		nt = nt)
 
-Plot the thermogram and the fraction of carbon remaining against temperature [3]_ or time::
+Plot the thermogram and the fraction of carbon remaining against temperature [2]_ or time::
 
 	#load modules
 	import matplotlib.pyplot as plt
@@ -235,36 +223,64 @@ Resulting plots look like this:
 
 |realdata|
 
+Additionally, thermogram summary info are stored in the `tg_info` attribute, which can be printed or saved to a .csv file::
+
+	#print in the terminal
+	print(tg.tg_info)
+
+	#save to csv
+	tg.tg_info.to_csv('file_name.csv')
+
+This will create a table similar to:
+
++-------------------+-------------+
+| t_max (s)         |  6.95e+03   |
++-------------------+-------------+
+| t_mean (s)        |  5.33e+03   |
++-------------------+-------------+
+| t_std (s)         |  1.93e+03   |
++-------------------+-------------+
+| T_max (K)         |  9.36e+02   |
++-------------------+-------------+
+| T_mean (K)        |  8.00e+02   |
++-------------------+-------------+
+| T_std (K)         |  1.61e+02   |
++-------------------+-------------+
+| max_rate (frac/s) |  2.43e-04   |
++-------------------+-------------+
+| max_rate (frac/K) |  2.87e-04   |
++-------------------+-------------+
+
 Setting-up the model
 --------------------
 
-The Laplace transform
+The inversion transform
 ~~~~~~~~~~~~~~~~~~~~~
-Once the ``rp.RpoThermogram`` instance has been created, you are ready to run the inversion model and generate a regularized and discretized probability density function (pdf) of the rate/activation energy distribution, `f` [4]_. For non-isothermal thermogram data, this is done using a first-order Distributed Activation Energy Model (DAEM) [5]_ by generating an ``rp.Daem`` instance containing the proper Laplace Transform matrix, `A`, to translate between time and activation energy space. This matrix contains all the assumptions that go into building the DAEM inverse model as well as all of the information pertaining to experimental conditions (*e.g.* ramp rate) [6]_. Importantly, the Laplace transform matrix does not contain any information about the sample itself -- it is simply the model "design" -- and a single ``rp.Daem`` instance can be used for multiple samples provided they were analyzed under identical experimental conditions.
+Once the ``rp.RpoThermogram`` instance has been created, you are ready to run the inversion model and generate a regularized and discretized probability density function (pdf) of the rate/activation energy distribution, `p`. For non-isothermal thermogram data, this is done using a first-order Distributed Activation Energy Model (DAEM) [3]_ by generating an ``rp.Daem`` instance containing the proper transform matrix, `A`, to translate between time and activation energy space [4]_. This matrix contains all the assumptions that go into building the DAEM inverse model as well as all of the information pertaining to experimental conditions (*e.g.* ramp rate) [5]_. Importantly, the transform matrix does not contain any information about the sample itself -- it is simply the model "design" -- and a single ``rp.Daem`` instance can be used for multiple samples provided they were analyzed under identical experimental conditions (however, this is not recommended, as subtle differences in experimental conditions such as ramp rate could exist).
 
-One critical user input for the DAEM is the Arrhenius pre-exponential factor, *k\ :sub:`0`* (inputted here in log\ :sub:`10`\  form). Because there is much discussion in the literature over the constancy and best choice of this parameter (the so-called 'kinetic compensation effect' or KCE [7]_), this package allows *log\ :sub:`10`\ k\ :sub:`0`* to be inputted as a constant, an array, or a function of Ea.
+One critical user input for the DAEM is the Arrhenius pre-exponential factor, *k\ :sub:`0`* (inputted here in log\ :sub:`10`\  form). Because there is much discussion in the literature over the constancy and best choice of this parameter (the so-called 'kinetic compensation effect' or KCE [6]_), this package allows *log\ :sub:`10`\ k\ :sub:`0`* to be inputted as a constant, an array, or a function of E.
 
-For convenience, you can create any model directly from either time data or rate data, rather than manually inputting time, temperature, and rate vectors. Here, I create a DAEM using the thermogram defined above and allow Ea to range from 50 to 400 kJ/mol::
+For convenience, you can create any model directly from either time data or rate data, rather than manually inputting time, temperature, and rate vectors. Here, I create a DAEM using the thermogram defined above and allow E to range from 50 to 400 kJ/mol::
 
 	#define log10k0, assume constant value of 10
-	log10k0 = 10
+	log10k0 = 10 #value advocated in Hemingway et al. (in prep)
 
-	#define Ea range (in kJ/mol)
+	#define E range (in kJ/mol)
 	Ea_min = 50
 	Ea_max = 400
-	nEa = 400 #number of points in the vector
+	nE = 400 #number of points in the vector
 
 	#create the DAEM instance
 	daem = rp.Daem.from_timedata(
 		tg,
 		log10k0 = log10k0,
-		Ea_max = Ea_max,
-		Ea_min = Ea_min,
-		nEa = nEa)
+		E_max = E_max,
+		E_min = E_min,
+		nE = nE)
 
 Regularizing the inversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-Once the model has been created, you must tell the package how much to 'smooth' the resulting f(Ea) distribution. This is done by choosing an `omega` value to be used as a smoothness weighting factor for Tikhonov regularization [8]_. Higher values of `omega` increase how much emphasis is placed on minimizing changes in the first derivative at the expense of a better fit to the measured data, which includes analytical uncertainty. Rractically speaking, regularization aims to "fit the data while ignoring the noise." This package can calculate a best-fit `omega` value using the L-curve method [6]_.
+Once the model has been created, you must tell the package how much to 'smooth' the resulting p\ :sub:`0`\ (E) distribution. This is done by choosing an `omega` value to be used as a smoothness weighting factor for Tikhonov regularization [7]_. Higher values of `omega` increase how much emphasis is placed on minimizing changes in the first derivative at the expense of a better fit to the measured data, which includes analytical uncertainty. Rractically speaking, regularization aims to "fit the data while ignoring the noise." This package can calculate a best-fit `omega` value using the L-curve method [5]_.
 
 Here, I calculate and plot L curve for the thermogram and model defined above::
 
@@ -272,115 +288,78 @@ Here, I calculate and plot L curve for the thermogram and model defined above::
 	fig,ax = plt.subplots(1, 1,
 		figsize = (5, 5))
 
-	om_best, ax = daem.calc_L_curve(tg, ax = ax)
+	om_best, ax = daem.calc_L_curve(
+		tg,
+		ax = ax,
+		plot = True)
 
 	plt.tight_layout()
 
 Resulting L-curve plot looks like this, here with a calculated best-fit omega
-value of 0.448:
+value of 0.484:
 
 |lcurve|
 
-**Important:** Best-fit `omega` values generated by the L-curve method typically under-regularize f(Ea) when used for Ramped PyrOx isotope deconvolution. That is, f(Ea) distributions will contain more peaks than can be resolved using the ~5-7 CO\ :sub:`2`\  fractions typically collected during a Ramped PyrOx run. This can be partially addressed by combining peaks when deconvolving the rate data using the ``comine`` flag (see `Deconvolving rate data into peaks`_ below) [9]_.  Alternatively, you can increase the `omega` value (a value of ~1-5 will result in ~5-6 Gaussian peaks for most samples).
-
-
 Making a RateData instance (the inversion results)
 --------------------------------------------------
-After creating the ``rp.Daem`` instance and deciding on a value for `omega`, you are ready to invert the thermogram and generate an Activation Energy Complex (EC). An EC is a subclass of the more general ``rp.RateData`` instance which, broadly speaking, contains all rate and/or activation energy information. That is, the EC contains an estimate of the underlying Ea distribution, f(Ea), that is intrinsic to a particular sample for a particular degradation experiment type (*e.g.* combustion, *uv* oxidation, enzymatic degradation, etc.). A fundamental facet of this model is the realization that each distribution is composed of a sum of individual peaks, each with unique mean Ea values, isotope composition, and molecular compositions.
+After creating the ``rp.Daem`` instance and deciding on a value for `omega`, you are ready to invert the thermogram and generate an Activation Energy Complex (EC). An EC is a subclass of the more general ``rp.RateData`` instance which, broadly speaking, contains all rate and/or activation energy information. That is, the EC contains an estimate of the underlying E distribution, p\ :sub:`0`\ (E), that is intrinsic to a particular sample for a particular degradation experiment type (*e.g.* combustion, *uv* oxidation, enzymatic degradation, etc.). A fundamental facet of this model is the realization that degradation of any given sample can be described by a distribution of reactivities as described by activation energy.
 
-Deconvolving rate data into peaks
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The next step is to deconvolve the inverse-modeled rate data distribution into individual peaks. It is important to realize that, until now, the model has made no assumptions about the shape of f(Ea) or the individual peaks that is comprises. The fact that the regularized f(Ea) resembles a sum of Gaussian peaks appears to be a fundamental property of complex organic carbon mixtures, as has been discussed before [10]_. 
+Here I create an energy complex with `omega` set to 'auto'::
 
-Generating the ``rp.EnergyComplex`` instance using the inverse model will automatically deconvolve f(Ea) into a sum of peaks. Here we can add user-inputted information for performing the deconvolution: 
-
-* the ``omega`` value used for regulariation (see `Regularizing the inversion`_ above).
-
-* the shape of the underlying peaks, ``peak_shape`` (only 'Gaussian' is supported as of v.0.0.2).
-
-* the number of peaks to retain by the model (``nPeaks``), either as an integer or 'auto'. Peaks are automatically detected according to the curvature of f(Ea) -- each unique concave-down region is assumed to contain a single peak. Peaks below the relative threshold cutoff, ``thres``, are ignored (*e.g.* for the below example, anything below 2% of the largest peak). A higher value of `omega` will lead to less detectable peaks.
-
-* which, if any, peaks to combine (``combined``). Sometimes the maximum number of peaks whose unique isotope composition can be determined is limited due to low isotope measurement resolution (see `Determining component isotope composition`_ below). Typically, this occurs when two or more peaks reside exclusively within a single isotope measurement region. (*e.g.* for the below example, the pairs 1 & 2 and 6 & 7 are combined) [9]_.
-
-Here I create two energy complexes, one with `omega` set to 'auto' and no peaks combined, and the other with `omega` set to 3 and two pairs of peaks combined, and perform the deconvolution by inverse modeling the above thermogram::
-
-	ec_auto = rp.EnergyComplex.inverse_model(
+	ec = rp.EnergyComplex.inverse_model(
 		daem, 
 		tg,
-		combined = None,
-		nPeaks = 'auto',
-		omega = 'auto',
-		peak_shape = 'Gaussian',
-		thres = 0.02)
+		omega = 'auto')
 
-	ec_3 = rp.EnergyComplex.inverse_model(
-		daem, 
-		tg,
-		combined = [(1,2), (6,7)],
-		nPeaks = 'auto',
-		omega = 3,
-		peak_shape = 'Gaussian',
-		thres = 0.02)
-
-Plot the resulting deconvolved energy complex::
+I then plot the resulting deconvolved energy complex::
 
 	#make a figure
-	fig,ax = plt.subplots(1, 2, 
-		figsize = (8,5),
-		sharey = True)
+	fig,ax = plt.subplots(1, 1, 
+		figsize = (5,5))
 
 	#plot results
-	ax[0] = ec_auto.plot(ax = ax[0])
-	ax[1] = ec_3.plot(ax = ax[1])
+	ax = ec.plot(ax = ax)
 
-	ax[0].set_title("omega = 'auto'")
-	ax[1].set_title("omega = 3")
-
-	ax[0].set_ylim([0, 0.022])
+	ax.set_ylim([0, 0.022])
 	plt.tight_layout()
 
-Resulting plots are shown side-by-side:
+Resulting p\ :sub: `0`\ (E) looks like this:
 
-|phis|
+|p0E|
 
-Note that the number of peaks reported in the legend is before the ``combined`` flag has been implemented. The first and last pairs of peaks are shown combined in the `omega = 3` plot but counted separately in the legend.
+EnergyComplex summary info are stored in the `ec_info` attribute, which can be printed or saved to a .csv file::
 
-A summary of the peaks can be printed with the ``peak_info`` attribute and saved to a `.csv` file::
+	#print in the terminal
+	print(ec.ec_info)
 
-	ec_3.peak_info
-	ec_3.peak_info.to_csv('EC_peak_info_file.csv')
+	#save to csv
+	ec.ec_info.to_csv('file_name.csv')
 
-This will print a table similar to:
+This will create a table similar to:
 
-+-------------------------------------------------------------+
-|Information for each deconvolved peak:                       |
-+=====+=============+================+==========+=============+
-|     | mu (kJ/mol) | sigma (kJ/mol) |  height  |  rel. area  |
-+-----+-------------+----------------+----------+-------------+
-|  1  |  134.36     |   7.75         | 3.87e-3  |  0.08       |
-+-----+-------------+----------------+----------+-------------+
-|  2  |  151.81     |   8.62         | 9.95e-3  |  0.21       |
-+-----+-------------+----------------+----------+-------------+
-|  3  |  175.25     |   9.46         | 6.99e-3  |  0.17       |
-+-----+-------------+----------------+----------+-------------+
-|  4  |  202.60     |   9.96         | 6.43e-3  |  0.16       |
-+-----+-------------+----------------+----------+-------------+
-|  5  |  228.73     |   8.29         | 1.54e-3  |  0.32       |
-+-----+-------------+----------------+----------+-------------+
-|  6  |  262.32     |   6.18         | 2.41e-3  |  0.04       |
-+-----+-------------+----------------+----------+-------------+
-|  7  |  282.85     |   7.89         | 1.32e-3  |  0.03       |
-+-----+-------------+----------------+----------+-------------+
++-------------------+----------+
+| E_max (kJ/mol)    |  230.45  |
++-------------------+----------+
+| E_mean (kJ/mol)   |  194.40  |
++-------------------+----------+
+| E_std (kJ/mol)    |  39.58   |
++-------------------+----------+
+| p0(E)_max         |  0.02    |
++-------------------+----------+
 
-Additionally, the deconvolution RMSE can be printed as a metric of the quality of the fit::
+Additionally, goodness of fit residual RMSE and roughness values can be viewed::
 
-	print(ec_3.rmse)
+	#residual rmse for the model fit
+	ec.resid
+
+	#regularization roughness norm
+	ec.rgh
 
 Forward modeling the estimated thermogram
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Once the ``rp.EnergyComplex`` instance has been created, you can forward-model the predicted thermogram and compare with measured data using the ``forward_model`` method of any ``rp.TimeData`` instance. Here, I'll forward model the results from the `omega = 3` energy complex::
+Once the ``rp.EnergyComplex`` instance has been created, you can forward-model the predicted thermogram and compare with measured data using the ``forward_model`` method of any ``rp.TimeData`` instance. For example::
 
-	tg.forward_model(daem, ec_3)
+	tg.forward_model(daem, ec)
 
 The thermogram is now updated with modeled data and can be plotted::
 	
@@ -421,54 +400,26 @@ Resulting plot looks like this:
 
 |modeleddata|
 
-Similar to ``rp.EnergyComplex``, you can print and save a summary of the components::
-
-	tg.cmpt_info
-	tg.cmpt_info.to_csv('tg_peak_info_file.csv')
-
-Which will print a table similar to:
-
-+---------------------------------------------------------------------------------+
-|Information for each deconvolved component:                                      |
-+=====+===========+===========+===================+===================+===========+
-|     | t max (s) | T max (K) | max rate (frac/s) | max rate (frac/K) | rel. area |
-+-----+-----------+-----------+-------------------+-------------------+-----------+
-|  1  | 3200.73   | 622.70    | 1.82e-4           | 2.25e-3           | 0.29      |
-+-----+-----------+-----------+-------------------+-------------------+-----------+
-|  2  | 4481.02   | 728.72    | 1.17e-4           | 1.36e-3           | 0.17      |
-+-----+-----------+-----------+-------------------+-------------------+-----------+
-|  3  | 5717.17   | 832.23    | 1.05e-4           | 1.31e-3           | 0.16      |
-+-----+-----------+-----------+-------------------+-------------------+-----------+
-|  4  | 7041.61   | 943.25    | 2.24e-4           | 2.66e-3           | 0.32      |
-+-----+-----------+-----------+-------------------+-------------------+-----------+
-|  5  | 8807.53   | 1089.76   | 3.39e-5           | 4.01e-4           | 0.06      |
-+-----+-----------+-----------+-------------------+-------------------+-----------+
-
-Note that combined peaks are not reported separately in this table, as they now constitute a single component in the modeled thermogram [9]_.
-
-The deconvolution RMSE can be printed as a metric of the quality of the fit::
-
-	print(tg.rmse)
 
 Predicting thermograms for other time-temperature histories
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-One feature of the ``rampedpyrox`` package is the ability to forward-model degradation rates for any arbitrary time-temperature history once the estimated f(Ea) distribution has been determined. This allows users the ability to:
+One feature of the ``rampedpyrox`` package is the ability to forward-model degradation rates for any arbitrary time-temperature history once the estimated p\ :sub: `0`\ (E) distribution has been determined. This allows users the ability to:
 
-* Quickly analyze a small amount of sample with a fast ramp rate in order to estimate f(Ea), then forward-model the thermogram for a typical ramp rate of 5K/min in order to determine the best times to toggle gas collection fractions.
+* Quickly analyze a small amount of sample with a fast ramp rate in order to estimate p\ :sub: `0`\ (E), then forward-model the thermogram for a typical ramp rate of 5K/min in order to determine the best times to toggle gas collection fractions.
 
   * This feature could allow for future development of an automated Ramped PyrOx system.
 
 * Manipulate oven ramp rates and temperature programs in an similar way to a gas chromatograph (GC) in order to separate co-eluting components, mimic real-world environmental heating rates, etc.
 
-* Predict petroleum maturation and evolved gas isotope composition over geologic timescales [11]_.
+* Predict petroleum maturation and evolved gas isotope composition over geologic timescales [8]_.
 
-Here, I will use the above-created f(Ea) energy complex (`omega = 3`) to generate a new DAEM with a ramp rate of 15K/min up to 950K, then hold at 950K::
+Here, I will use the above-created p\ :sub: `0`\ (E) energy complex to generate a new DAEM with a ramp rate of 15K/min up to 950K, then hold at 950K::
 
 	#import modules
 	import numpy as np
 
-	#extract the Ea array from the energy complex
-	Ea = ec_3.Ea
+	#extract the Ee array from the energy complex
+	E = ec.E
 
 	#make an array of 350 points going from 0 to 5000 seconds
 	t = np.linspace(0, 5000, 350)
@@ -484,7 +435,7 @@ Here, I will use the above-created f(Ea) energy complex (`omega = 3`) to generat
 
 	#make the new model
 	daem_fast = rp.Daem(
-		Ea,
+		E,
 		log10k0,
 		t,
 		T)
@@ -495,7 +446,9 @@ Here, I will use the above-created f(Ea) energy complex (`omega = 3`) to generat
 	tg_fast = rp.RpoThermogram(t, T)
 
 	#forward-model the energy complex onto the new thermogram
-	tg_fast.forward_model(daem_fast, ec_3)
+	tg_fast.forward_model(daem_fast, ec)
+
+**Note:** Because a portion of this time-temperature history is isothermal, this calculation will inevitably divide by `0` while calculating some metrics. As a result, it will generate some warnings and will fail to calculate an average decay temperature. Results plotted against time are still valid and robust.
 
 The `tg_fast` thermogram now contains modeled data and can be plotted::
 	
@@ -544,112 +497,100 @@ Which generates a plot like this:
 
 |fastmodeleddata|
 
+Importing and correcting isotope values
+---------------------------------------
+At this point, the thermogram, DAEM model, and p\ :sub: `0`\ (E) distribution have all been created. Now, the next step is to import the RPO isotope values and to calculate the distribution of E values corresponding to each RPO fraction. This is This is done by creating an ``rp.RpoIsotopes`` instance using the ``from_csv`` method. If the sample was run on the NOSAMS Ramped PyrOx instrument, setting ``blank_corr = True`` and an appropriate value for ``mass_rerr`` will automatically blank-correct values according to the blank carbon estimation of Hemingway et al. (2017) [12]_ [13]_. Additionally, if :sup:`13`\ C isotope composition was measured, these can be further corrected for any mass-balance discrepancies and for kinetic isotope fractionation within the RPO instrument [12]_.
 
-Note that Component 5 has not begun to decompose within this time window and the the fraction of carbon remaining, `g`, does not go to zero. 
-
-Determining component isotope composition
------------------------------------------
-At this point, the thermogram has been deconvolved into individual components [which can be composed of multiple f(Ea) peaks, see `Deconvolving rate data into peaks`_ above] according to the DAEM and the isotope composition of each component can now be determined using the `sum_data` file imported previously (see `Importing Isotope Data`_ above). This is done by creating an ``rp.RpoIsotopes`` instance using the ``from_csv`` method and performing the fit. If the sample was run on the NOSAMS Ramped PyrOx instrument, setting ``blank_corr = True`` and an appropriate value for ``mass_rerr`` will automatically blank-correct values according to the blank carbon estimation of Hemingway et al. **(in prep)** [12]_ [13]_. 
-
-Create an ``rp.RpoIsotopes`` instance and input the measured data::
+Here I create an ``rp.RpoIsotopes`` instance and input the measured data::
 	
 	ri = rp.RpoIsotopes.from_csv(
-		sum_data,
-		blk_corr = True,
-		mass_err = 0.01) #1 percent uncertainty in mass
-
-The component isotope composition can now be estimated by fitting each component decomposition rate to the measured isotopes for each CO\ :sub:`2`\  fraction, with uncertainty estimated in a Monte Carlo fashion (*i.e.* bootstrapping). However, the difference in Ea between :sup:`12`\ C and :sup:`13`\ C must first be accounted for, as this will lead to a kinetic isotope effect during carbon decomposition and has the potential to overprint differences in source isotope composition.
-
-Kinetic Isotope Effect (KIE)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-While the KIE has no effect on Fm values since they are fractionation-corrected by definition [14]_, mass-dependent kinetic fractionation effects must be explicitly accounted for when estimating the source carbon stable isotope composition during any kinetic experiment. For example, the KIE can lead to large isotope fractionation during thermal generation of methane and natural gas over geologic timescales [10]_ or during photodegradation of organic carbon by *uv* light [15]_.
-
-As such, the ``rampedpyrox`` package allows for direct input of `DEa` values [DEa = Ea(:sup:`13`\ C) - Ea(:sup:`12`\ C), in kJ/mol] when fitting Ramped PyrOx isotopes, either as a single value for all components or as unique values for each component. However, the magnitude of this effect is likely minimal within the NOSAMS Ramped PyrOx instrument -- Hemingway et al. **(in prep)** determined a best-fit value of 0.3e-3 - 1.8e-3 kJ/mol for a suite of standard reference materials [12]_ -- and will therefore lead to small isotope corrections for samples analyzed on this instrument (*i.e.* << 1 per mille)
-
-Using a `DEa` value of 1.8e-3 kJ/mol, I fit the isotopes using 10,000 Monte Carlo iterations::
-
-	ri.fit(
+		iso_data,
 		daem,
-		ec_3,
-		tg,
-		DEa = 0.0018,
-		nIter = 10000)
+		ec,
+		blk_corr = True,
+		bulk_d13C_true = [-25.0, 0.1], #independently measured true mean, std.
+		mass_err = 0.01, #1 percent uncertainty in mass
+		DE = 0.0018) #1.8 J/mol for KIE 
 
-The resulting component information can be printed with the ``cmpt_info`` attribute and saved to a `.csv` file::
+While creating the `RpoIsotopes` instance and correcting isotope composition, this additionally calculated the distribution of E values contained within each RPO fraction. That is, carbon described by this distribution will decompose over the inputted temperature ranges and will result in the trapped CO\ :sub:`2`\ for each fraction [5]_. These distributions can now be compared with measured isotopes in order to determine the relationship between isotope composition and reaction energetics.
 
-	ri.cmpt_info
-	ri.cmpt_info.to_csv('isotope_component_info_file.csv')
+A summary table can be printed or saved to .csv according to::
 
-Which prints a table similar to:
+	#print to terminal
+	print(ri.ri_corr_info)
 
-+----------------------------------------------------------------------------------------------------+
-|Isotope and mass estimates for each deconvolved component:                                          |
-+=====+============+=================+=============+=================+======+=========+==============+
-|     | mass (ugC) | mass std. (ugC) | d13C (VPDB) | d13C std (VPDB) |  Fm  | Fm std. | DEa (kJ/mol) |
-+-----+------------+-----------------+-------------+-----------------+------+---------+--------------+
-|  1  | 245.80     | 1.78            | -29.57      | 0.07            | 0.84 | 2.02e-3 | 1.80e-3      |
-+-----+------------+-----------------+-------------+-----------------+------+---------+--------------+
-|  2* | 245.80     | 1.78            | -29.57      | 0.07            | 0.84 | 2.02e-3 | 1.80e-3      |
-+-----+------------+-----------------+-------------+-----------------+------+---------+--------------+
-|  3  | 137.46     | 1.81            | -25.32      | 0.12            | 0.42 | 3.87e-3 | 1.80e-3      |
-+-----+------------+-----------------+-------------+-----------------+------+---------+--------------+
-|  4  | 138.35     | 2.00            | -26.75      | 0.13            | 0.20 | 3.19e-3 | 1.80e-3      |
-+-----+------------+-----------------+-------------+-----------------+------+---------+--------------+
-|  5  | 260.45     | 2.27            | -22.91      | 0.08            | 0.00 | 0.00e-3 | 1.80e-3      |
-+-----+------------+-----------------+-------------+-----------------+------+---------+--------------+
-|  6  | 66.20      | 0.98            | -24.52      | 0.13            | 0.06 | 3.61e-3 | 1.80e-3      |
-+-----+------------+-----------------+-------------+-----------------+------+---------+--------------+
-|  7* | 66.20      | 0.98            | -24.52      | 0.13            | 0.06 | 3.61e-3 | 1.80e-3      |
-+-----+------------+-----------------+-------------+-----------------+------+---------+--------------+
+	#save to .csv file
+	ri.ri_corr_info.to_csv('file_to_save.csv')
 
+**Note:** This displays the fractionation, mass-balance, and KIE corrected isotope values. To view raw (inputted) values, use `ri_raw_info` instead.
 
-**Note:** Components containing multiple peaks are repeated with an asterisk (*) in order to facilitate comparison of component isotope composition with peak f(Ea) composition.
+This will result in a table similar to:
 
-You can also print the regression RMSEs::
-	
-	#RMSE values
-	m = 'mass RMSE (ugC): %.2f' %ri.m_rmse
-	d13C = 'd13C RMSE (VPDB): %.2f' %ri.d13C_rmse
-	Fm = 'Fm RMSE: %.4f' %ri.Fm_rmse
++--------------------------------------------------------------------------------------------+
+|   |t0 (s)|tf (s)|E (kJ/mol)|E_std|mass (ugC)|mass_std |d13C (VPDB)|d13C_std |Fm   |Fm_std  |
++===+======+======+==========+=====+==========+=========+===========+=========+=====+========+
+| 1 |754   |2724  | 134.12   |8.83 | 68.32    | 0.70    | -29.40    | 0.15    |0.89 |3.55e-3 |
++---+------+------+----------+-----+----------+---------+-----------+---------+-----+--------+
+| 2 |2724  |3420  | 148.01   |6.96 | 105.55   | 1.06    | -27.99    | 0.15    |0.80 |2.21e-3 |
++---+------+------+----------+-----+----------+---------+-----------+---------+-----+--------+
+| 3 |3420  |3966  | 158.84   |7.47 | 82.42    | 0.83    | -26.76    | 0.15    |0.68 |2.81e-3 |
++---+------+------+----------+-----+----------+---------+-----------+---------+-----+--------+
+| 4 |3966  |4718  | 173.13   |8.55 | 92.56    | 0.93    | -25.14    | 0.15    |0.46 |3.21e-3 |
++---+------+------+----------+-----+----------+---------+-----------+---------+-----+--------+
+| 5 |4718  |5553  | 190.67   |10.82| 85.56    | 0.86    | -25.33    | 0.15    |0.34 |2.82e-3 |
++---+------+------+----------+-----+----------+---------+-----------+---------+-----+--------+
+| 6 |5553  |6328  | 209.20   |10.59| 98.43    | 0.98    | -24.29    | 0.15    |0.11 |2.22e-3 |
++---+------+------+----------+-----+----------+---------+-----------+---------+-----+--------+
+| 7 |6328  |6940  | 222.90   |8.12 | 101.50   | 1.01    | -22.87    | 0.15    |0.02 |1.91e-3 |
++---+------+------+----------+-----+----------+---------+-----------+---------+-----+--------+
+| 8 |6940  |7714  | 231.30   |7.13 | 125.57   | 1.26    | -21.88    | 0.15    |0.01 |1.81e-3 |
++---+------+------+----------+-----+----------+---------+-----------+---------+-----+--------+
+| 9 |7714  |11028 | 260.63   |17.77| 86.55    | 0.90    | -23.57    | 0.16    |0.04 |2.42e-3 |
++---+------+------+----------+-----+----------+---------+-----------+---------+-----+--------+
 
-	print(m+'\n'+d13C+'\n'+Fm)
-
-Which results in something similar to:
-
-+------------+---------+
-|            |  RMSE   |
-+============+=========+
-| mass (ugC) |  3.18   |
-+------------+---------+
-| d13C (VPDB)|  0.44   |
-+------------+---------+
-| Fm         |  0.0319 |
-+------------+---------+
-
-Finally, the ``rp.RpoIsotopes`` instance records the instantaneous :sup:`13`\ C/:sup:`12`\ C ratio of CO\ :sub:`2`\  produced at each time point::
+Additionally, the E distributions contained within each RPO fraction can be plotted along with isotope vs. E cross plots. Here, I'll plot the distributions and cross plots for both :sup:`13`\ C and :sup:`14`\ C (corrected). Lastly, I'll plot using the raw (uncorrected) :sup:`13`\ C values as a comparison::
 
 	#make a figure
-	fig, ax = plt.subplots(1, 1, 
-		figsize = (5, 5))
+	fig, ax = plt.subplots(2, 2, 
+		figsize = (8,8), 
+		sharex = True)
 
-	#plot CO2 data
-	ax.plot(
-		tg.t,
-		ri.d13C_product,
-		linewidth = 2,
-		color = 'k')
+	#plot results
+	ax[0, 0] = ri.plot(
+		ax = ax[0, 0], 
+		plt_var = 'p0E')
 
-	#label the axes
-	ax.set_xlabel('time (s)')
-	ax.set_ylabel(r'$\delta ^{13}C$ of $CO_2$ (instantaneous)')
+	ax[0, 1] = ri.plot(
+		ax = ax[0, 1], 
+		plt_var = 'd13C',
+		plt_corr = True)
+
+	ax[1, 0] = ri.plot(
+		ax = ax[1, 0], 
+		plt_var = 'Fm',
+		plt_corr = True)
+
+	ax[1, 1] = ri.plot(
+		ax = ax[1, 1], 
+		plt_var = 'd13C',
+		plt_corr = False) #plotting raw values
+
+	#adjust the axes
+	ax[0,0].set_xlim([100,300])
+	ax[0,1].set_ylim([-30,-21])
+	ax[1,1].set_ylim([-30,-21])
 
 	plt.tight_layout()
 
-Which creates a plot similar to:
+Which generates a plot like this:
 
-|d13C|
+|isotopes|
 
-.. Notes and substitutions
+Additional Notes on the Kinetic Isotope Effect (KIE)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+While the KIE has no effect on Fm values since they are fractionation-corrected by definition [11]_, mass-dependent kinetic fractionation effects must be explicitly accounted for when estimating the source carbon stable isotope composition during any kinetic experiment. For example, the KIE can lead to large isotope fractionation during thermal generation of methane and natural gas over geologic timescales [8]_ or during photodegradation of organic carbon by *uv* light [15]_.
+
+As such, the ``rampedpyrox`` package allows for direct input of `DE` values [DE = E(:sup:`13`\ C) - E(:sup:`12`\ C), in kJ/mol] when correcting Ramped PyrOx isotopes. However, the magnitude of this effect is likely minimal within the NOSAMS Ramped PyrOx instrument -- Hemingway et al. (2017) determined a best-fit value of 0.3e-3 - 1.8e-3 kJ/mol for a suite of standard reference materials [9]_ -- and will therefore lead to small isotope corrections for samples analyzed on this instrument (*i.e.* << 1 per mille)
 
 Notes and References
 --------------------
@@ -658,40 +599,34 @@ Notes and References
 
 .. |lcurve| image:: _images/doc_Lcurve.png
 
-.. |phis| image:: _images/doc_phis2.png
+.. |p0E| image:: _images/doc_p0E.png
 
 .. |modeleddata| image:: _images/doc_modeleddata2.png
 
 .. |fastmodeleddata| image:: _images/doc_fast_modeleddata.png
 
-.. |d13C| image:: _images/doc_d13C.png
+.. |isotopes| image:: _images/doc_isotopes.png
 
 .. [1] Note: If analyzing samples run at NOSAMS, all other columns in the `all_data` file generated by LabView are not used and can be deleted or given an arbitrary name.
 
-.. [2] Note: 'd13C_std' and 'Fm_std' default to zero (no uncertainty) if these columns do not exist in the .csv file.
+.. [2] Note: For the NOSAMS Ramped PyrOx instrument, plotting against temperature results in a noisy thermogram due to the variability in the ramp rate, dT/dt.
 
-.. [3] Note: For the NOSAMS Ramped PyrOx instrument, plotting against temperature results in a noisy thermogram due to the variability in the ramp rate, dT/dt.
+.. [3] Braun and Burnham (1999), *Energy & Fuels*, **13(1)**, 1-22 provides a comprehensive review of the kinetic theory, mathematical derivation, and forward-model implementation of the DAEM. 
 
-.. [4] Note: Throughout this package, "true" measurements are named with Roman letters -- *e.g.* f (pdf of rates/activation energies), g (fraction of carbon remaining) -- and fitted model variables are named with Greek letters -- *e.g.* phi (sum-of-peak approximation of f), gamma (sum-of-component approximation of g).
+.. [4] See Forney and Rothman (2012), *Biogeosciences*, **9**, 3601-3612 for information on building and regularizing a Laplace transform matrix to be used to solve the inverse model using the L-curve method.
 
-.. [5] Braun and Burnham (1999), *Energy & Fuels*, **13(1)**, 1-22 provides a comprehensive review of the kinetic theory, mathematical derivation, and forward-model implementation of the DAEM. 
+.. [5] See Hemingway et al. **(in prep)** for a step-by-step mathematical derivation of the DAEM and the inverse solution applied here.
 
-.. [6] See Forney and Rothman (2012), *Biogeosciences*, **9**, 3601-3612 for information on building and regularizing a Laplace transform matrix to be used to solve the inverse model using the L-curve method.
+.. [6] See White et al. (2011), *J. Anal. Appl. Pyrolysis*, **91**, 1-33 for a review on the KCE and choice of *log\ :sub:`10`\ k\ :sub:`0`*.
 
-.. [7] See White et al. (2011), *J. Anal. Appl. Pyrolysis*, **91**, 1-33 for a review on the KCE and choice of *log\ :sub:`10`\ k\ :sub:`0`*.
+.. [7] See Hansen (1994), *Numerical Algorithms*, **6**, 1-35 for a discussion on Tikhonov regularization.
 
-.. [8] See Hansen (1994), *Numerical Algorithms*, **6**, 1-35 for a discussion on Tikhonov regularization.
+.. [8] See Dieckmann (2005) *Marine and Petroleum Geology*, **22**, 375-390 and Dieckmann et al. (2006) *Marine and Petroleum Gelogoy*, **23**, 183-199 for a discussion on the limitations of predicting organic carbon maturation over geologic timescales using laboratory experiments.
 
-.. [9] Note: Throughout this package, deconvolved rate data peaks are referred to as "peaks", while the forward-modeled components that make-up the thermogram are referred to as "components". This is due to the fact that multiple "peaks" can be combined into a single "component".
+.. [9] Hemingway et al., (2017), *Radiocarbon*, determine the blank carbon flux and isotope composition for the NOSAMS instrument. Additionaly, this manuscript estimates that a DE value of 0.3 - 1.8 J/mol best explains the NOSAMS Ramped PyrOx stable-carbon isotope KIE.
 
-.. [10] See Cramer (2004), *Org. Geochem.*, **35**, 379-392 for a discussion on the relationship between Gaussian f(Ea) peak shape and organic carbon complexity, as well as the KIE.
+.. [10] Blank composition calculated for other Ramped PyrOx instuments can be inputted by changing the default ``blk_d13C``, ``blk_flux``, and ``blk_Fm`` parameters.
 
-.. [11] See Dieckmann (2005) *Marine and Petroleum Geology*, **22**, 375-390 and Dieckmann et al. (2006) *Marine and Petroleum Gelogoy*, **23**, 183-199 for a discussion on the limitations of predicting organic carbon maturation over geologic timescales using laboratory experiments.
+.. [11] See Stuiver and Polach (1977), *Radiocarbon*, **19(3)**, 355-363 for radiocarbon notation and data treatment.
 
-.. [12] Hemingway et al., (2016), *Radiocarbon*, **in prep** determine the blank carbon flux and isotope composition for the NOSAMS instrument. Additionaly, this manuscript estimates that a DEa value of 0.3 - 1.8J/mol best explains the NOSAMS Ramped PyrOx stable-carbon isotope KIE.
-
-.. [13] Blank composition calculated for other Ramped PyrOx instuments can be inputted by changing the default ``blk_d13C``, ``blk_flux``, and ``blk_Fm`` parameters.
-
-.. [14] See Stuiver and Polach (1977), *Radiocarbon*, **19(3)**, 355-363 for radiocarbon notation and data treatment.
-
-.. [15] Follett et al. (2014), *PNAS*, **111(47)**, 16706-16711. 
+.. [12] Follett et al. (2014), *PNAS*, **111(47)**, 16706-16711. 
