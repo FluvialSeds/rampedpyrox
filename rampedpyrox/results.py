@@ -884,9 +884,12 @@ class RpoIsotopes(Results):
 			d13C = self.d13C_corr
 			d13C_std = self.d13C_corr_std
 		
-		else:
+		elif hasattr(self, 'd13C_raw'):
 			d13C = self.d13C_raw
 			d13C_std = self.d13C_raw_std
+
+		else:
+			return
 
 		#kie-correct values
 		d13C, d13C_std = _rpo_kie_corr(

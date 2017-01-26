@@ -419,7 +419,7 @@ def _rpo_extract_iso(file, mass_err):
 
 	else:
 		d13C = None
-		m_std = None
+		d13C_std = None
 
 	if 'Fm' in file.columns:
 		Fm = file.Fm[2:].values
