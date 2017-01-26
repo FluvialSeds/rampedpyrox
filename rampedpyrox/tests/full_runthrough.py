@@ -12,7 +12,7 @@ def gen_str(name):
 
 #paths to data files
 data = gen_str('test_data/thermogram.csv')
-sum_data = gen_str('test_data/isotopes.csv')
+sum_data = gen_str('test_data/res_no_iso.csv')
 
 #calculate thermogram
 tg = rp.RpoThermogram.from_csv(
@@ -32,7 +32,7 @@ daem = rp.Daem.from_timedata(
 ec = rp.EnergyComplex.inverse_model(
 	daem, 
 	tg,
-	omega='auto') #can replace with best-fit value if known
+	omega=1) #can replace with best-fit value if known
 
 #forward model estimated thermogram back onto tg
 tg.forward_model(daem, ec)
@@ -42,14 +42,14 @@ ri = rp.RpoIsotopes.from_csv(
 	sum_data,
 	daem,
 	ec,
-	blk_corr = True,
+	blk_corr = False,
 	bulk_d13C_true = None)
 
-#plot results
-fig, ax = plt.subplots(1,3)
-ax[0] = ri.plot(ax = ax[0], plt_var = 'p0E')
-ax[1] = ri.plot(ax = ax[1], plt_var = 'Fm', plt_corr = True)
-ax[2] = ri.plot(ax = ax[2], plt_var = 'd13C', plt_corr = True)
+# #plot results
+# fig, ax = plt.subplots(1,3)
+# ax[0] = ri.plot(ax = ax[0], plt_var = 'p0E')
+# ax[1] = ri.plot(ax = ax[1], plt_var = 'Fm', plt_corr = True)
+# ax[2] = ri.plot(ax = ax[2], plt_var = 'd13C', plt_corr = True)
 
 
 plt.show()
