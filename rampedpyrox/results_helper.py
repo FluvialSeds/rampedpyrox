@@ -83,7 +83,11 @@ def _calc_cutoff(result, model):
 		ind = np.where((t > row[0]) & (t <= row[1]))[0]
 
 		#store first and last indices
-		ind_min[i] = ind[0] - 1 #subtract one so theres no gap!
+		if ind[0] > 0:
+			ind_min[i] = ind[0] - 1 #subtract one so theres no gap!
+		else:
+			ind_min[i] = ind[0] #don't subtract one if it makes it negative
+
 		ind_max[i] = ind[-1]
 
 	return ind_min, ind_max
