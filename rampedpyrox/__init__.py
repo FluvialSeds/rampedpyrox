@@ -15,7 +15,7 @@ documentation can be found at:
 
 	http://rampedpyrox.readthedocs.io
 
-Version 0.1.0 is current as of 24 January 2017.
+Version 0.1.3 is current as of 15 May 2017.
 
 To do for future versions:
 * Change exception structure to "try/except"
@@ -28,7 +28,7 @@ from __future__ import(
 	print_function,
 	)
 
-__version__ = '0.1.0'
+__version__ = '0.1.3'
 
 __docformat__ = 'restructuredtext en'
 
