@@ -10,7 +10,7 @@ Package Information
   Jordon D. Hemingway (jordon_hemingway@harvard.edu)
 
 :Version:
-  0.1.2
+  0.1.3
 
 :Release:
   26 January 2017
