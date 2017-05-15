@@ -94,9 +94,26 @@ def _rpo_extract_tg(file, nt, bl_subtract = True):
 			'file index must be pd.DatetimeIndex instance')
 
 	#extract necessary data
-	secs = (file.index - file.index[0]).seconds
-	CO2 = file.CO2_scaled
-	Temp = file.temp
+	secs_m = (file.index - file.index[0]).seconds
+	CO2_m = file.CO2_scaled
+	T_m = file.temp
+
+	#before continuing, thermogram must be linearly interpolated to deal
+	# with missing data (e.g. if data deleted during data clea-up).
+	# Version: 0.1.3., bug noticed by Cristina Subt (SFU).
+
+	#make array of 1-second deltas
+	secs = np.arange(0,np.max(secs_m))
+
+	#make CO2 function and interpolate
+	fsm = interp1d(secs_m, CO2_m)
+	CO2 = fsm(secs)
+
+	#make Temp function and interpolate
+	ftm = interp1d(secs_m, T_m)
+	Temp = ftm(secs)
+
+	#stop Version 0.1.3. bug fix here.
 
 	#linearly subtract baseline if required
 	if bl_subtract is True:
