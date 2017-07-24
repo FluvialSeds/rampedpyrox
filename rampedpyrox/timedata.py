@@ -298,7 +298,7 @@ class RpoThermogram(TimeData):
 	--------
 	Daem
 		``rp.Model`` subclass used to generate the distributed activation
-		energy model (DAEM)transform matrix for RPO data and translate between
+		energy model (DAEM) transform matrix for RPO data and translate between
 		time- and E-space.
 
 	EnergyComplex

@@ -67,7 +67,7 @@ class RateData(object):
 			cls, 
 			model, 
 			timedata, 
-			omega = 'auto'):
+			lam = 'auto'):
 		'''
 		Inverse models an ``rp.TimeData`` instance using a given ``rp.Model``
 		instance and creates an ``rp.RateData`` instance.
@@ -83,7 +83,7 @@ class RateData(object):
 		Raises
 		------
 		ScalarError
-			If `omega` is not scalar or 'auto'.
+			If `lam` is not scalar or 'auto'.
 
 		Warnings
 		--------
@@ -106,26 +106,26 @@ class RateData(object):
 		elif hasattr(model, 'E'):
 			k = model.E
 
-		#calculate best-fit omega if necessary
-		if omega in ['auto', 'Auto']:
-			omega = model.calc_L_curve(timedata, plot = False)
+		#calculate best-fit lambda value if necessary
+		if lam in ['auto', 'Auto']:
+			lam = model.calc_L_curve(timedata, plot = False)
 		
-		elif isinstance(omega, (int, float)):
-			omega = float(omega)
+		elif isinstance(lam, (int, float)):
+			lam = float(lam)
 		
 		else:
 			raise ScalarError(
-				'omega must be int, float, or "auto"')
+				'lam must be int, float, or "auto"')
 
 		#generate regularized pdf, p
-		p, resid, rgh = _calc_p(model, timedata, omega)
+		p, resid, rgh = _calc_p(model, timedata, lam)
 
 		#create class instance
 		rd = cls(k, p = p)
 
 		#input estimated data
 		rd.input_estimated(
-			omega = omega,
+			lam = lam,
 			resid = resid,
 			rgh = rgh)
 
@@ -134,7 +134,7 @@ class RateData(object):
 	#define a method to input estimated rate data
 	def input_estimated(
 			self,
-			omega = None, 
+			lam = None, 
 			resid = None, 
 			rgh = None):
 		'''
@@ -142,7 +142,7 @@ class RateData(object):
 
 		Parameters
 		----------		
-		omega : scalar
+		lam : scalar
 			Best-fit smoothing weighting factor for Tikhonov regularization.
 			Calculated using L-curve approach.
 
@@ -155,7 +155,7 @@ class RateData(object):
 		Raises
 		------
 		ScalarError
-			If omega is not scalar or `None`.
+			If lam is not scalar or `None`.
 		'''
 
 		#extract n rate/E (necessary since models have different nomenclature)
@@ -171,14 +171,14 @@ class RateData(object):
 		self.resid = resid
 		self.rgh = rgh
 
-		#input omega if it exists for bookkeeping
-		if omega is not None:
-			if not isinstance(omega, (int, float)):
+		#input lam if it exists for bookkeeping
+		if lam is not None:
+			if not isinstance(lam, (int, float)):
 				raise ScalarError(
-					'omega must be None, int, or float')
+					'lam must be None, int, or float')
 			
 			else:
-				self.omega = omega
+				self.lam = lam
 
 	#define plotting method
 	def plot(self, ax = None, labs = None, rd = None):
@@ -220,7 +220,7 @@ class RateData(object):
 				rd[1],
 				linewidth = 2,
 				color = 'k',
-				label = r'Regularized p ($\omega$ = %.2f)' %self.omega)
+				label = r'Regularized p ($\lambda$ = %.2f)' %self.lam)
 
 			#set limits
 			ax.set_xlim([0, 1.1*np.max(rd[0])])
@@ -298,7 +298,7 @@ class EnergyComplex(RateData):
 		ec = rp.EnergyComplex(
 			daem, 
 			tg, 
-			omega = 'auto')
+			lam = 'auto')
 
 	Plotting the resulting regularized energy complex::
 
@@ -325,21 +325,21 @@ class EnergyComplex(RateData):
 			E_max (kJ/mol), \n
 			E_mean (kJ/mol), \n
 			E_std (kJ/mol), \n
-			p0(E)_max (unitless)
+			p0E_max (unitless)
 
-	omega : float
+	lam : float
 		Tikhonov regularization weighting factor.
 
 	p : np.ndarray
-		Array of the pdf of the E distribution, p0E. Length `nEa`.
+		Array of the pdf of the E distribution, p0E. Length `nE`.
 
 	resid : float
 		The RMSE between the measured thermogram data and the estimated 
-		thermogram using the p (ghat). Used for determining the best-fit omega
+		thermogram using the p (ghat). Used for determining the best-fit lambda
 		value.
 
 	rgh :
-		The roughness RMSE. Used for determining best-fit omega value.
+		The roughness RMSE. Used for determining best-fit lambda value.
 
 	References
 	----------
@@ -385,7 +385,7 @@ class EnergyComplex(RateData):
 			cls, 
 			model, 
 			timedata, 
-			omega = 'auto'):
+			lam = 'auto'):
 		'''
 		Generates an energy complex by inverting an ``rp.TimeData`` instance 
 		using a given ``rp.Model`` instance.
@@ -399,7 +399,7 @@ class EnergyComplex(RateData):
 		timedata : rp.TimeData
 			``rp.TimeData`` instance containing the timeseries data to invert.
 
-		omega : scalar or 'auto'
+		lam : scalar or 'auto'
 			Smoothing weighting factor for Tikhonov regularization. Defaults
 			to 'auto'.
 
@@ -443,14 +443,14 @@ class EnergyComplex(RateData):
 		ec = super(EnergyComplex, cls).inverse_model(
 			model, 
 			timedata,
-			omega = omega)
+			lam = lam)
 
 		return ec
 
 	#define a method to input estimated rate data
 	def input_estimated(
 			self, 
-			omega = 0, 
+			lam = 0, 
 			resid = 0, 
 			rgh = 0):
 		'''
@@ -459,7 +459,7 @@ class EnergyComplex(RateData):
 
 		Parameters
 		----------
-		omega : scalar
+		lam : scalar
 			Tikhonov regularization weighting factor used to generate
 			estimated data. Defaults to 0.
 
@@ -471,7 +471,7 @@ class EnergyComplex(RateData):
 		'''
 
 		super(EnergyComplex, self).input_estimated(
-			omega = omega,
+			lam = lam,
 			resid = resid,
 			rgh = rgh)
 
@@ -493,7 +493,7 @@ class EnergyComplex(RateData):
 		'''
 
 		#create axis label tuple
-		labs = (r'E (kJ/mol)', r'$p_{0}(E)$ (unitless)')
+		labs = (r'E (kJ/mol)', r'$p(0, E)$ (unitless)')
 
 		#check if data exist
 		if hasattr(self, 'p'):

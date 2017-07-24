@@ -78,12 +78,12 @@ def calc_L_curve(
 		timedata, 
 		ax = None, 
 		plot = False, 
-		nOm = 150, 
-		om_max = 1e2, 
-		om_min = 1e-3):
+		nLam = 150, 
+		lam_max = 1e2, 
+		lam_min = 1e-3):
 	'''
 	Function to calculate the L-curve for a given model and timedata
-	instance in order to choose the best-fit smoothing parameter, `omega`.
+	instance in order to choose the best-fit smoothing parameter, `lambda`.
 
 	Parameters
 	----------
@@ -105,30 +105,30 @@ def calc_L_curve(
 	plot : Boolean
 		Tells the method to plot the resulting L curve or not.
 
-	om_min : int
-		Minimum omega value to search. Defaults to 1e-3.
+	lam_min : int
+		Minimum lambda value to search. Defaults to 1e-3.
 
-	om_max : int
-		Maximum omega value to search. Defaults to 1e2.
+	lam_max : int
+		Maximum lambda value to search. Defaults to 1e2.
 
-	nOm : int
-		Number of omega values to consider. Defaults to 150.
+	nLam : int
+		Number of lambda values to consider. Defaults to 150.
 
 	Returns
 	-------
-	om_best : float
-		The calculated best-fit omega value.
-
+	lam_best : float
+		The calculated best-fit lambda value.
+		
 	axis : None or matplotlib.axis
 		If ``plot = True``, returns an updated axis handle with plot.
 	
 	Raises
 	------
 	ScalarError
-		If `om_max` or `om_min` are not int or float.
+		If `lam_max` or `lam_min` are not int or float.
 
 	ScalarError
-		If `nOm` is not int.
+		If `nLam` is not int.
 
 	See Also
 	--------
@@ -141,12 +141,7 @@ def calc_L_curve(
 		respiration rates from decay time series. *Biogeosciences*, **9**,
 		3601-3612.
 
-	[2] P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
-		Numerical aspects of linear inversion (monographs on mathematical
-		modeling and computation). *Society for Industrial and Applied
-		Mathematics*.
-
-	[3] P.C. Hansen (1994) Regularization tools: A Matlab package for analysis
+	[2] P.C. Hansen (1994) Regularization tools: A Matlab package for analysis
 		and solution of discrete ill-posed problems. *Numerical Algorithms*, 
 		**6**, 1-35.
 	'''
@@ -155,9 +150,9 @@ def calc_L_curve(
 		timedata, 
 		ax = ax, 
 		plot = plot, 
-		nOm = nOm, 
-		om_max = om_max, 
-		om_min = om_max)
+		nLam = nLam, 
+		lam_max = lam_max, 
+		lam_min = lam_max)
 
 #define function to derivatize an array w.r.t. another array
 def derivatize(num, denom):

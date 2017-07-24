@@ -1,6 +1,6 @@
 Comprehensive Walkthrough
 =========================
-The following examples should form a comprehensive walkthough of downloading the package, getting thermogram data into the right form for importing, running the DAEM inverse model to generate an activation energy (E) probability density function [p\ :sub:`0`\ (E)], determining the E range contained in each RPO fraction, correcting isotope values for blank and kinetic fractionation, and generating all necessary plots and tables for data analysis.
+The following examples should form a comprehensive walkthough of downloading the package, getting thermogram data into the right form for importing, running the DAEM inverse model to generate an activation energy (E) probability density function [p(0,E)], determining the E range contained in each RPO fraction, correcting isotope values for blank and kinetic fractionation, and generating all necessary plots and tables for data analysis.
 
 For detailed information on class attributes, methods, and parameters, consult the `Package Reference Documentation` or use the ``help()`` command from within Python.
 
@@ -28,7 +28,7 @@ Basic runthrough::
 	#generate the DAEM
 	daem = rp.Daem.from_timedata(
 		tg,
-		log10k0 = 10, #assume a constant value of 10
+		log10omega = 10, #assume a constant value of 10
 		E_max = 350,
 		E_min = 50,
 		nE = 400)
@@ -37,7 +37,7 @@ Basic runthrough::
 	ec = rp.EnergyComplex.inverse_model(
 		daem, 
 		tg,
-		omega = 'auto') #calculates best-fit omega
+		lam = 'auto') #calculates best-fit lambda value
 
 	#forward-model back onto the thermogram
 	tg.forward_model(daem, ec)
@@ -258,12 +258,12 @@ The inversion transform
 ~~~~~~~~~~~~~~~~~~~~~
 Once the ``rp.RpoThermogram`` instance has been created, you are ready to run the inversion model and generate a regularized and discretized probability density function (pdf) of the rate/activation energy distribution, `p`. For non-isothermal thermogram data, this is done using a first-order Distributed Activation Energy Model (DAEM) [3]_ by generating an ``rp.Daem`` instance containing the proper transform matrix, `A`, to translate between time and activation energy space [4]_. This matrix contains all the assumptions that go into building the DAEM inverse model as well as all of the information pertaining to experimental conditions (*e.g.* ramp rate) [5]_. Importantly, the transform matrix does not contain any information about the sample itself -- it is simply the model "design" -- and a single ``rp.Daem`` instance can be used for multiple samples provided they were analyzed under identical experimental conditions (however, this is not recommended, as subtle differences in experimental conditions such as ramp rate could exist).
 
-One critical user input for the DAEM is the Arrhenius pre-exponential factor, *k\ :sub:`0`* (inputted here in log\ :sub:`10`\  form). Because there is much discussion in the literature over the constancy and best choice of this parameter (the so-called 'kinetic compensation effect' or KCE [6]_), this package allows *log\ :sub:`10`\ k\ :sub:`0`* to be inputted as a constant, an array, or a function of E.
+One critical user input for the DAEM is the Arrhenius pre-exponential factor, *omega* (inputted here in log\ :sub:`10`\  form). Because there is much discussion in the literature over the constancy and best choice of this parameter (the so-called 'kinetic compensation effect' or KCE [6]_), this package allows *log\ :sub:`10`\ omega* to be inputted as a constant, an array, or a function of E.
 
 For convenience, you can create any model directly from either time data or rate data, rather than manually inputting time, temperature, and rate vectors. Here, I create a DAEM using the thermogram defined above and allow E to range from 50 to 400 kJ/mol::
 
-	#define log10k0, assume constant value of 10
-	log10k0 = 10 #value advocated in Hemingway et al. (in prep)
+	#define log10omega, assume constant value of 10
+	log10omega = 10 #value advocated in Hemingway et al. (2017) Biogeosciences
 
 	#define E range (in kJ/mol)
 	E_min = 50
@@ -273,14 +273,14 @@ For convenience, you can create any model directly from either time data or rate
 	#create the DAEM instance
 	daem = rp.Daem.from_timedata(
 		tg,
-		log10k0 = log10k0,
+		log10omega = log10omega,
 		E_max = E_max,
 		E_min = E_min,
 		nE = nE)
 
 Regularizing the inversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-Once the model has been created, you must tell the package how much to 'smooth' the resulting p\ :sub:`0`\ (E) distribution. This is done by choosing an `omega` value to be used as a smoothness weighting factor for Tikhonov regularization [7]_. Higher values of `omega` increase how much emphasis is placed on minimizing changes in the first derivative at the expense of a better fit to the measured data, which includes analytical uncertainty. Rractically speaking, regularization aims to "fit the data while ignoring the noise." This package can calculate a best-fit `omega` value using the L-curve method [5]_.
+Once the model has been created, you must tell the package how much to 'smooth' the resulting p(0,E) distribution. This is done by choosing a `lambda` value to be used as a smoothness weighting factor for Tikhonov regularization [7]_. Higher values of `lambda` increase how much emphasis is placed on minimizing changes in the first derivative at the expense of a better fit to the measured data, which includes analytical uncertainty. Rractically speaking, regularization aims to "fit the data while ignoring the noise." This package can calculate a best-fit `lambda` value using the L-curve method [5]_.
 
 Here, I calculate and plot L curve for the thermogram and model defined above::
 
@@ -288,30 +288,30 @@ Here, I calculate and plot L curve for the thermogram and model defined above::
 	fig,ax = plt.subplots(1, 1,
 		figsize = (5, 5))
 
-	om_best, ax = daem.calc_L_curve(
+	lam_best, ax = daem.calc_L_curve(
 		tg,
 		ax = ax,
 		plot = True)
 
 	plt.tight_layout()
 
-Resulting L-curve plot looks like this, here with a calculated best-fit omega
+Resulting L-curve plot looks like this, here with a calculated best-fit lambda
 value of 0.484:
 
 |lcurve|
 
 Making a RateData instance (the inversion results)
 --------------------------------------------------
-After creating the ``rp.Daem`` instance and deciding on a value for `omega`, you are ready to invert the thermogram and generate an Activation Energy Complex (EC). An EC is a subclass of the more general ``rp.RateData`` instance which, broadly speaking, contains all rate and/or activation energy information. That is, the EC contains an estimate of the underlying E distribution, p\ :sub:`0`\ (E), that is intrinsic to a particular sample for a particular degradation experiment type (*e.g.* combustion, *uv* oxidation, enzymatic degradation, etc.). A fundamental facet of this model is the realization that degradation of any given sample can be described by a distribution of reactivities as described by activation energy.
+After creating the ``rp.Daem`` instance and deciding on a value for `lambda`, you are ready to invert the thermogram and generate an Activation Energy Complex (EC). An EC is a subclass of the more general ``rp.RateData`` instance which, broadly speaking, contains all rate and/or activation energy information. That is, the EC contains an estimate of the underlying E distribution, p(0,E), that is intrinsic to a particular sample for a particular degradation experiment type (*e.g.* combustion, *uv* oxidation, enzymatic degradation, etc.). A fundamental facet of this model is the realization that degradation of any given sample can be described by a distribution of reactivities as described by activation energy.
 
-Here I create an energy complex with `omega` set to 'auto'::
+Here I create an energy complex with `lam` set to 'auto'::
 
 	ec = rp.EnergyComplex.inverse_model(
 		daem, 
 		tg,
-		omega = 'auto')
+		lam = 'auto')
 
-I then plot the resulting deconvolved energy complex::
+I then plot the resulting energy complex::
 
 	#make a figure
 	fig,ax = plt.subplots(1, 1, 
@@ -323,7 +323,7 @@ I then plot the resulting deconvolved energy complex::
 	ax.set_ylim([0, 0.022])
 	plt.tight_layout()
 
-Resulting p\ :sub: `0`\ (E) looks like this:
+Resulting p(0,E) looks like this:
 
 |p0E|
 
@@ -344,7 +344,7 @@ This will create a table similar to:
 +-------------------+----------+
 | E_std (kJ/mol)    |  39.58   |
 +-------------------+----------+
-| p0(E)_max         |  0.02    |
+| p0E_max           |  0.02    |
 +-------------------+----------+
 
 Additionally, goodness of fit residual RMSE and roughness values can be viewed::
@@ -403,9 +403,9 @@ Resulting plot looks like this:
 
 Predicting thermograms for other time-temperature histories
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-One feature of the ``rampedpyrox`` package is the ability to forward-model degradation rates for any arbitrary time-temperature history once the estimated p\ :sub: `0`\ (E) distribution has been determined. This allows users the ability to:
+One feature of the ``rampedpyrox`` package is the ability to forward-model degradation rates for any arbitrary time-temperature history once the estimated p(0,E) distribution has been determined. This allows users the ability to:
 
-* Quickly analyze a small amount of sample with a fast ramp rate in order to estimate p\ :sub: `0`\ (E), then forward-model the thermogram for a typical ramp rate of 5K/min in order to determine the best times to toggle gas collection fractions.
+* Quickly analyze a small amount of sample with a fast ramp rate in order to estimate p(0,E), then forward-model the thermogram for a typical ramp rate of 5K/min in order to determine the best times to toggle gas collection fractions.
 
   * This feature could allow for future development of an automated Ramped PyrOx system.
 
@@ -413,7 +413,7 @@ One feature of the ``rampedpyrox`` package is the ability to forward-model degra
 
 * Predict petroleum maturation and evolved gas isotope composition over geologic timescales [8]_.
 
-Here, I will use the above-created p\ :sub: `0`\ (E) energy complex to generate a new DAEM with a ramp rate of 15K/min up to 950K, then hold at 950K::
+Here, I will use the above-created p(0,E) energy complex to generate a new DAEM with a ramp rate of 15K/min up to 950K, then hold at 950K::
 
 	#import modules
 	import numpy as np
@@ -430,13 +430,13 @@ Here, I will use the above-created p\ :sub: `0`\ (E) energy complex to generate 
 	ind = np.where(T > 950)
 	T[ind] = 950
 
-	#use the same log10k0 value as before
-	log10k0 = 10
+	#use the same log10omega value as before
+	log10omega = 10
 
 	#make the new model
 	daem_fast = rp.Daem(
 		E,
-		log10k0,
+		log10omega,
 		t,
 		T)
 
@@ -499,7 +499,7 @@ Which generates a plot like this:
 
 Importing and correcting isotope values
 ---------------------------------------
-At this point, the thermogram, DAEM model, and p\ :sub: `0`\ (E) distribution have all been created. Now, the next step is to import the RPO isotope values and to calculate the distribution of E values corresponding to each RPO fraction. This is This is done by creating an ``rp.RpoIsotopes`` instance using the ``from_csv`` method. If the sample was run on the NOSAMS Ramped PyrOx instrument, setting ``blank_corr = True`` and an appropriate value for ``mass_rerr`` will automatically blank-correct values according to the blank carbon estimation of Hemingway et al. (2017) [9]_ [10]_. Additionally, if :sup:`13`\ C isotope composition was measured, these can be further corrected for any mass-balance discrepancies and for kinetic isotope fractionation within the RPO instrument [5]_ [9]_.
+At this point, the thermogram, DAEM model, and p(0,E) distribution have all been created. Now, the next step is to import the RPO isotope values and to calculate the distribution of E values corresponding to each RPO fraction. This is This is done by creating an ``rp.RpoIsotopes`` instance using the ``from_csv`` method. If the sample was run on the NOSAMS Ramped PyrOx instrument, setting ``blank_corr = True`` and an appropriate value for ``mass_err`` will automatically blank-correct values according to the blank carbon estimation of Hemingway et al. (2017) [9]_ [10]_. Additionally, if :sup:`13`\ C isotope composition was measured, these can be further corrected for any mass-balance discrepancies and for kinetic isotope fractionation within the RPO instrument [5]_ [9]_.
 
 Here I create an ``rp.RpoIsotopes`` instance and input the measured data::
 	
@@ -615,9 +615,9 @@ Notes and References
 
 .. [4] See Forney and Rothman (2012), *Biogeosciences*, **9**, 3601-3612 for information on building and regularizing a Laplace transform matrix to be used to solve the inverse model using the L-curve method.
 
-.. [5] See Hemingway et al. **(in prep)** for a step-by-step mathematical derivation of the DAEM and the inverse solution applied here.
+.. [5] See Hemingway et al. (2017), *Biogeosciences*, for a step-by-step mathematical derivation of the DAEM and the inverse solution applied here.
 
-.. [6] See White et al. (2011), *J. Anal. Appl. Pyrolysis*, **91**, 1-33 for a review on the KCE and choice of *log\ :sub:`10`\ k\ :sub:`0`*.
+.. [6] See White et al. (2011), *J. Anal. Appl. Pyrolysis*, **91**, 1-33 for a review on the KCE and choice of *log\ :sub:`10`\ omega*.
 
 .. [7] See Hansen (1994), *Numerical Algorithms*, **6**, 1-35 for a discussion on Tikhonov regularization.
 

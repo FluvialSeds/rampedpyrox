@@ -44,7 +44,7 @@ def _calc_ghat(model, ratedata):
 	return np.inner(model.A, ratedata.p)
 
 #define a function to generate estimated rate data from model and timedata
-def _calc_p(model, timedata, omega):
+def _calc_p(model, timedata, lam):
 	'''
 	Calculates the reactive continuum of rates (or E, for DAEM) for a given
 	``rp.TimeData`` and ``rp.Model`` instance.
@@ -58,8 +58,8 @@ def _calc_p(model, timedata, omega):
 		``rp.Timedata`` instance containing the fraction remaining with time 
 		array to use for the calculation.
 
-	omega : scalar
-		Tikhonov regularization weighting factor.
+	lam : scalar
+		Tikhonov regularization weighting factor, `lambda`.
 
 	Returns
 	-------
@@ -79,12 +79,7 @@ def _calc_p(model, timedata, omega):
 		respiration rates from decay time series. *Biogeosciences*, **9**,
 		3601-3612.
 
-	[2] P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
-		Numerical aspects of linear inversion (monographs on mathematical
-		modeling and computation). *Society for Industrial and Applied*
-		*Mathematics*.
-
-	[3] P.C. Hansen (1994) Regularization tools: A Matlab package for analysis
+	[2] P.C. Hansen (1994) Regularization tools: A Matlab package for analysis
 		and solution of discrete ill-posed problems. *Numerical Algorithms*, 
 		**6**, 1-35.
 	'''
@@ -97,7 +92,7 @@ def _calc_p(model, timedata, omega):
 
 	#concatenate A+R and g+zeros
 	A_reg = np.concatenate(
-		(model.A, R*omega))
+		(model.A, R*lam))
 
 	g_reg = np.concatenate(
 		(timedata.g, np.zeros(nk + 1)))
@@ -134,19 +129,14 @@ def _calc_R(n):
 		respiration rates from decay time series. *Biogeosciences*, **9**,
 		3601-3612.
 
-	[2] P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
-		Numerical aspects of linear inversion (monographs on mathematical
-		modeling and computation). *Society for Industrial and Applied*
-		*Mathematics*.
-
-	[3] P.C. Hansen (1994) Regularization tools: A Matlab package for analysis
+	[2] P.C. Hansen (1994) Regularization tools: A Matlab package for analysis
 		and solution of discrete ill-posed problems. *Numerical Algorithms*, 
 		**6**, 1-35.
 	'''
 
 	R = np.zeros([n+1, n])
 
-	#ensure pdf = 0 outside of Ea range specified
+	#ensure pdf = 0 outside of E range specified
 	R[0, 0] = 1.0
 	R[-1, -1] = -1.0
 
@@ -161,7 +151,7 @@ def _calc_R(n):
 	return R
 
 #define function to calculte the A matrix for DAEM models
-def _rpo_calc_A(E, log10k0, t, T):
+def _rpo_calc_A(E, log10omega, t, T):
 	'''
 	Calculates the A matrix for a DAEM model (e.g. a Ramped Pyrox run).
 
@@ -171,7 +161,7 @@ def _rpo_calc_A(E, log10k0, t, T):
 		Array of activation energy points to be used in the A matrix, in kJ.
 		Length `nE`.
 
-	log10k0 : scalar or array-like
+	log10omega : scalar or array-like
 		Arrhenius pre-exponential factor, either a constant value, array with
 		length `nE`, or a lambda function of E.
 
@@ -208,12 +198,12 @@ def _rpo_calc_A(E, log10k0, t, T):
 	t = assert_len(t, nt) #s
 	T = assert_len(T, nt) #K
 
-	#get log10k0 into the right format
-	if hasattr(log10k0,'__call__'):
-		log10k0 = log10k0(E)
+	#get log10omega into the right format
+	if hasattr(log10omega,'__call__'):
+		log10omega = log10omega(E)
 	
-	log10k0 = assert_len(log10k0, nE) 
-	k0 = 10**log10k0 #s-1
+	log10omega = assert_len(log10omega, nE) 
+	omega = 10**log10omega #s-1
 
 	#calculate time and E gradients
 	dt = np.gradient(t)
@@ -231,11 +221,11 @@ def _rpo_calc_A(E, log10k0, t, T):
 
 		#generate matrices
 		eps_mat = np.outer(E, np.ones(i)) #kJ, [nE,i]
-		k0_mat = np.outer(k0, np.ones(i)) #s-1, [nE,i]
+		omega_mat = np.outer(omega, np.ones(i)) #s-1, [nE,i]
 		u_mat = np.outer(np.ones(nE), U) #Kelvin, [nE,i]
 
 		#generate A for row i (i.e. for each timepoint) and store in A
-		hE_mat = -k0_mat*dtau*np.exp(-eps_mat/(R*u_mat)) #unitless, [nEa,i]
+		hE_mat = -omega_mat*dtau*np.exp(-eps_mat/(R*u_mat)) #unitless, [nE,i]
 		A[i] = np.exp(np.sum(hE_mat, axis = 1))*dE #kJ
 
 	return A

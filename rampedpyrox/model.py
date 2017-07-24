@@ -81,13 +81,13 @@ class Model(object):
 			self, 
 			timedata, 
 			ax = None, 
-			nOm = 150, 
-			om_max = 1e2, 
-			om_min = 1e-3, 
+			nLam = 150, 
+			lam_max = 1e2, 
+			lam_min = 1e-3, 
 			plot = False):
 		'''
 		Function to calculate the L-curve for a given model and timedata
-		instance in order to choose the best-fit smoothing parameter, omega.
+		instance in order to choose the best-fit smoothing parameter, lambda.
 
 		Parameters
 		----------
@@ -100,14 +100,14 @@ class Model(object):
 			creates a ``matplotlip.axis`` instance to return. Defaults to 
 			`None`.
 
-		nOm : int
-			Number of omega values to consider. Defaults to 150.
+		nLam : int
+			Number of lambda values to consider. Defaults to 150.
 
-		om_max : float or int
-			Maximum omega value to search. Defaults to 1e2.
+		lam_max : float or int
+			Maximum lambda value to search. Defaults to 1e2.
 
-		om_min : float or int
-			Minimum omega value to search. Defaults to 1e-3.
+		lam_min : float or int
+			Minimum lambda value to search. Defaults to 1e-3.
 
 		plot : Boolean
 			Tells the method to plot the resulting L curve or not. Defaults to
@@ -115,8 +115,8 @@ class Model(object):
 
 		Returns
 		-------
-		om_best : float
-			The calculated best-fit omega value.
+		lam_best : float
+			The calculated best-fit lambda value.
 
 		axis : None or matplotlib.axis
 			If ``plot = True``, returns an updated axis handle with plot.
@@ -124,10 +124,10 @@ class Model(object):
 		Raises
 		------
 		ScalarError
-			If `om_max` or `om_min` are not scalar.
+			If `lam_max` or `lam_min` are not scalar.
 
 		ScalarError
-			If `nOm` is not int.
+			If `nLam` is not int.
 
 		See Also
 		--------
@@ -140,38 +140,33 @@ class Model(object):
 			respiration rates from decay time series. *Biogeosciences*, **9**,
 			3601-3612.
 
-		[2] P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
-			Numerical aspects of linear inversion (monographs on mathematical
-			modeling and computation). *Society for Industrial and Applied*
-			*Mathematics*.
-
-		[3] P.C. Hansen (1994) Regularization tools: A Matlab package for 
+		[2] P.C. Hansen (1994) Regularization tools: A Matlab package for 
 			analysis and solution of discrete ill-posed problems. *Numerical**
 			**Algorithms*, **6**, 1-35.
 		'''
 
-		#check that nOm, om_max, and om_min are in the right form
-		if not isinstance(om_max, (int, float)):
+		#check that nLam, lam_max, and lam_min are in the right form
+		if not isinstance(lam_max, (int, float)):
 			raise ScalarError(
-				'om_max must be float or int')
+				'lam_max must be float or int')
 
-		elif not isinstance(om_min, (int, float)):
+		elif not isinstance(lam_min, (int, float)):
 			raise ScalarError(
-				'om_min must be float or int')
+				'lam_min must be float or int')
 
-		elif not isinstance(nOm, int):
+		elif not isinstance(nLam, int):
 			raise ScalarError(
-				'nOm must be int')
+				'nLam must be int')
 
 		#define arrays
-		log_om_vec = np.linspace(np.log10(om_min), np.log10(om_max), nOm)
-		om_vec = 10**log_om_vec
+		log_lam_vec = np.linspace(np.log10(lam_min), np.log10(lam_max), nLam)
+		lam_vec = 10**log_lam_vec
 
-		res_vec = np.zeros(nOm)
-		rgh_vec = np.zeros(nOm)
+		res_vec = np.zeros(nLam)
+		rgh_vec = np.zeros(nLam)
 
-		#for each omega value in the vector, calculate the errors
-		for i, w in enumerate(om_vec):
+		#for each lambda value in the vector, calculate the errors
+		for i, w in enumerate(lam_vec):
 			_, res, rgh = _calc_p(self, timedata, w)
 			res_vec[i] = res
 			rgh_vec[i] = rgh
@@ -194,7 +189,7 @@ class Model(object):
 		#find first occurrance of argmax k, ignoring first and last points
 		i = np.argmax(k[1:-1])
 		i += 1 #account for the fact that we dropped the first point
-		om_best = om_vec[i]
+		lam_best = lam_vec[i]
 
 		#plot if necessary
 		if plot:
@@ -218,7 +213,7 @@ class Model(object):
 				facecolor='w',
 				edgecolor='k',
 				linewidth=1.5,
-				label=r'best-fit $\omega$')
+				label=r'best-fit $\lambda$')
 
 			#set axis labels and text
 
@@ -232,7 +227,7 @@ class Model(object):
 
 			ax.set_ylabel(ylab)
 
-			label1 = r'best-fit $\omega$ = %.3f' %(om_best)
+			label1 = r'best-fit $\lambda$ = %.3f' %(lam_best)
 			
 			label2 = (
 				r'$log_{10}$ (resid. err.) = %.3f' %(res_vec[i]))
@@ -251,10 +246,10 @@ class Model(object):
 			#make tight layout
 			plt.tight_layout()
 
-			return om_best, ax
+			return lam_best, ax
 
 		else:
-			return om_best
+			return lam_best
 
 
 class Daem(Model):
@@ -267,7 +262,7 @@ class Daem(Model):
 	E : array-like
 		Array of E values, in kJ/mol. Length `nE`.
 
-	log10k0 : scalar, array-like, or lambda function
+	log10omega : scalar, array-like, or lambda function
 		Arrhenius pre-exponential factor, either a constant value, array-like
 		with length `nE`, or a lambda function of E (in kJ). 
 
@@ -294,7 +289,7 @@ class Daem(Model):
 
 	Examples
 	--------
-	Creating a DAEM using manually-inputted `E`, `k0`, `t`, and `T`::
+	Creating a DAEM using manually-inputted `E`, `omega`, `t`, and `T`::
 
 		#import modules
 		import numpy as np
@@ -306,10 +301,10 @@ class Daem(Model):
 		T = beta*t + 273.15 #K
 		
 		E = np.arange(50, 350) #kJ/mol
-		log10k0 = 10 #s-1
+		log10omega = 10 #s-1
 
 		#create instance
-		daem = rp.Daem(E, log10k0, t, T)
+		daem = rp.Daem(E, log10omega, t, T)
 
 	Creating a DAEM from real thermogram data using the ``rp.Daem.from_timedata``
 	class method::
@@ -326,7 +321,7 @@ class Daem(Model):
 			E_max = 350, 
 			E_min = 50, 
 			nE = 250, 
-			log10k0 = 10)
+			log10omega = 10)
 
 	Creating a DAEM from an energy complex using the
 	``rp.Daem.from_ratedata`` class method::
@@ -341,13 +336,13 @@ class Daem(Model):
 		daem = rp.Daem.from_ratedata(
 			ec, 
 			beta = 0.08, 
-			log10k0 = 10, 
+			log10omega = 10, 
 			nt = 250, 
 			t0 = 0, 
 			T0 = 373, 
 			tf = 1e4)
 
-	Plotting the L-curve of a Daem to find the best-fit omega value::
+	Plotting the L-curve of a Daem to find the best-fit lambda value::
 
 		#import modules
 		import matplotlib.pyplot as plt
@@ -356,13 +351,13 @@ class Daem(Model):
 		fig, ax = plt.subplots(1,1)
 
 		#plot L curve
-		om_best, ax = daem.calc_L_curve(
+		lam_best, ax = daem.calc_L_curve(
 			tg,
 			ax = None, 
 			plot = True,
-			om_min = 1e-3,
-			om_max = 1e2,
-			nOm = 150)
+			lam_min = 1e-3,
+			lam_max = 1e2,
+			nLam = 150)
 
 	**Attributes**
 
@@ -389,9 +384,9 @@ class Daem(Model):
 		kinetics using a distribution of activation energies and simpler 
 		models. *Energy & Fuels*, **1**, 153-161.
 
-	[2] B. Cramer et al. (1998) Modeling isotope fractionation during primary
-		cracking of natural gas: A reaction kinetic approach. *Chemical*
-		*Geology*, **149**, 235-250.
+	[2] B. Cramer (2004) Methane generation from coal during open system
+		pyrolysis investigated by isotope specific, Gaussian distributed
+		reaction kinetics. *Organic Geochemistry*, **35**, 279-392.
 
 	[3] V. Dieckmann (2005) Modeling petroleum formation from heterogeneous
 		source rocks: The influence of frequency factors on activation energy
@@ -406,25 +401,20 @@ class Daem(Model):
 		respiration rates from decay time series. *Biogeosciences*, **9**,
 		3601-3612.
 
-	[6] P.C. Hansen (1987) Rank-deficient and discrete ill-posed problems:
-		Numerical aspects of linear inversion (monographs on mathematical
-		modeling and computation). *Society for Industrial and Applied*
-		*Mathematics*.
-
-	[7] P.C. Hansen (1994) Regularization tools: A Matlab package for analysis
+	[6] P.C. Hansen (1994) Regularization tools: A Matlab package for analysis
 		and solution of discrete ill-posed problems. *Numerical Algorithms*, 
 		**6**, 1-35.
 
-	[8] C.C. Lakshmananan et al. (1991) Implications of multiplicity in
+	[7] C.C. Lakshmananan et al. (1991) Implications of multiplicity in
 		kinetic parameters to petroleum exploration: Distributed activation
 		energy models. *Energy & Fuels*, **5**, 110-117.
 
-	[9] J.E. White et al. (2011) Biomass pyrolysis kinetics: A comparative
+	[8] J.E. White et al. (2011) Biomass pyrolysis kinetics: A comparative
 		critical review with relevant agricultural residue case studies.
 		*Journal of Analytical and Applied Pyrolysis*, **91**, 1-33.
 	'''
 
-	def __init__(self, E, log10k0, t, T):
+	def __init__(self, E, log10omega, t, T):
 
 		#warn if T is scalar
 		if isinstance(T, (int, float)):
@@ -439,18 +429,18 @@ class Daem(Model):
 				' value of: %r. Consider using an isothermal model type'
 				' instead.' % T[0], UserWarning)
 
-		#get log10k0 into the right format
-		if hasattr(log10k0,'__call__'):
-			log10k0 = log10k0(E)
+		#get log10omega into the right format
+		if hasattr(log10omega,'__call__'):
+			log10omega = log10omega(E)
 
 		#calculate A matrix
-		A = _rpo_calc_A(E, log10k0, t, T)
+		A = _rpo_calc_A(E, log10omega, t, T)
 
 		super(Daem, self).__init__(A, t, T)
 
 		#store Daem-specific attributes
 		nE = len(E)
-		self.log10k0 = assert_len(log10k0, nE)
+		self.log10omega = assert_len(log10omega, nE)
 		self.E = assert_len(E, nE)
 		self.nE = nE
 
@@ -460,7 +450,7 @@ class Daem(Model):
 			timedata, 
 			E_max = 350, 
 			E_min = 50, 
-			log10k0 = 10, 
+			log10omega = 10, 
 			nE = 250):
 		'''
 		Class method to directly generate an ``rp.Daem`` instance using data
@@ -480,7 +470,7 @@ class Daem(Model):
 			The minimum activation energy value to consider, in kJ/mol.
 			Defaults to 50.
 
-		log10k0 : scalar, array-like, or lambda function
+		log10omega : scalar, array-like, or lambda function
 			Arrhenius pre-exponential factor, either a constant value, array-
 			likewith length `nE`, or a lambda function of E. Defaults to 10.
 		
@@ -514,14 +504,14 @@ class Daem(Model):
 		t = timedata.t
 		T = timedata.T
 
-		return cls(E, log10k0, t, T)
+		return cls(E, log10omega, t, T)
 
 	@classmethod
 	def from_ratedata(
 			cls, 
 			ratedata, 
 			beta = 0.08, 
-			log10k0 = 10, 
+			log10omega = 10, 
 			nt = 250,
 			t0 = 0, 
 			T0 = 373, 
@@ -540,7 +530,7 @@ class Daem(Model):
 			Temperature ramp rate to use in model, in Kelvin/second. Defaults
 			to 0.08 (*i.e.* 5K/min)
 
-		log10k0 : scalar, array-like, or lambda function
+		log10omega : scalar, array-like, or lambda function
 			Arrhenius pre-exponential factor, either a constant value, array-
 			likewith length `nE`, or a lambda function of E. Defaults to 10.
 
@@ -587,7 +577,7 @@ class Daem(Model):
 		t = np.linspace(t0, tf, nt)
 		T = T0 + beta*t
 
-		return cls(E, log10k0, t, T)
+		return cls(E, log10omega, t, T)
 
 if __name__ == '__main__':
 
