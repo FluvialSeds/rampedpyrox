@@ -325,7 +325,7 @@ class EnergyComplex(RateData):
 			E_max (kJ/mol), \n
 			E_mean (kJ/mol), \n
 			E_std (kJ/mol), \n
-			p0E_max (unitless)
+			p0E_max
 
 	lam : float
 		Tikhonov regularization weighting factor.
@@ -493,7 +493,7 @@ class EnergyComplex(RateData):
 		'''
 
 		#create axis label tuple
-		labs = (r'E (kJ/mol)', r'$p(0, E)$ (unitless)')
+		labs = (r'E (kJ/mol)', r'$p(0, E)$')
 
 		#check if data exist
 		if hasattr(self, 'p'):

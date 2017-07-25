@@ -50,7 +50,7 @@ Basic runthrough::
 		blk_corr = True, #uses values for NOSAMS instrument
 		bulk_d13C_true = [-24.9, 0.1], #true d13C value
 		mass_err = 0.01,
-		DE = 0.0018) #value from Hemingway et al., 2017
+		DE = 0.0018) #value from Hemingway et al. (2017), Radiocarbon
 
 	#compare corrected isotopes and E values
 	print(ri.ri_corr_info)
@@ -263,7 +263,8 @@ One critical user input for the DAEM is the Arrhenius pre-exponential factor, *o
 For convenience, you can create any model directly from either time data or rate data, rather than manually inputting time, temperature, and rate vectors. Here, I create a DAEM using the thermogram defined above and allow E to range from 50 to 400 kJ/mol::
 
 	#define log10omega, assume constant value of 10
-	log10omega = 10 #value advocated in Hemingway et al. (2017) Biogeosciences
+	#value advocated in Hemingway et al. (2017) Biogeosciences
+	log10omega = 10
 
 	#define E range (in kJ/mol)
 	E_min = 50
@@ -499,7 +500,7 @@ Which generates a plot like this:
 
 Importing and correcting isotope values
 ---------------------------------------
-At this point, the thermogram, DAEM model, and p(0,E) distribution have all been created. Now, the next step is to import the RPO isotope values and to calculate the distribution of E values corresponding to each RPO fraction. This is This is done by creating an ``rp.RpoIsotopes`` instance using the ``from_csv`` method. If the sample was run on the NOSAMS Ramped PyrOx instrument, setting ``blank_corr = True`` and an appropriate value for ``mass_err`` will automatically blank-correct values according to the blank carbon estimation of Hemingway et al. (2017) [9]_ [10]_. Additionally, if :sup:`13`\ C isotope composition was measured, these can be further corrected for any mass-balance discrepancies and for kinetic isotope fractionation within the RPO instrument [5]_ [9]_.
+At this point, the thermogram, DAEM model, and p(0,E) distribution have all been created. Now, the next step is to import the RPO isotope values and to calculate the distribution of E values corresponding to each RPO fraction. This is This is done by creating an ``rp.RpoIsotopes`` instance using the ``from_csv`` method. If the sample was run on the NOSAMS Ramped PyrOx instrument, setting ``blank_corr = True`` and an appropriate value for ``mass_err`` will automatically blank-correct values according to the blank carbon estimation of Hemingway et al. (2017), *Radiocarbon* [9]_ [10]_. Additionally, if :sup:`13`\ C isotope composition was measured, these can be further corrected for any mass-balance discrepancies and for kinetic isotope fractionation within the RPO instrument [5]_ [9]_.
 
 Here I create an ``rp.RpoIsotopes`` instance and input the measured data::
 	
@@ -508,7 +509,7 @@ Here I create an ``rp.RpoIsotopes`` instance and input the measured data::
 		daem,
 		ec,
 		blk_corr = True,
-		bulk_d13C_true = [-25.0, 0.1], #independently measured true mean, std.
+		bulk_d13C_true = [-25.0, 0.1], #measured true mean, std.
 		mass_err = 0.01, #1 percent uncertainty in mass
 		DE = 0.0018) #1.8 J/mol for KIE 
 
@@ -590,7 +591,7 @@ Additional Notes on the Kinetic Isotope Effect (KIE)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 While the KIE has no effect on Fm values since they are fractionation-corrected by definition [11]_, mass-dependent kinetic fractionation effects must be explicitly accounted for when estimating the source carbon stable isotope composition during any kinetic experiment. For example, the KIE can lead to large isotope fractionation during thermal generation of methane and natural gas over geologic timescales [8]_ or during photodegradation of organic carbon by *uv* light [15]_.
 
-As such, the ``rampedpyrox`` package allows for direct input of `DE` values [DE = E(:sup:`13`\ C) - E(:sup:`12`\ C), in kJ/mol] when correcting Ramped PyrOx isotopes. However, the magnitude of this effect is likely minimal within the NOSAMS Ramped PyrOx instrument -- Hemingway et al. (2017) determined a best-fit value of 0.3e-3 - 1.8e-3 kJ/mol for a suite of standard reference materials [9]_ -- and will therefore lead to small isotope corrections for samples analyzed on this instrument (*i.e.* << 1 per mille)
+As such, the ``rampedpyrox`` package allows for direct input of `DE` values [DE = E(:sup:`13`\ C) - E(:sup:`12`\ C), in kJ/mol] when correcting Ramped PyrOx isotopes. However, the magnitude of this effect is likely minimal within the NOSAMS Ramped PyrOx instrument -- Hemingway et al. (2017), *Radiocarbon* determined a best-fit value of 0.3e-3 - 1.8e-3 kJ/mol for a suite of standard reference materials [9]_ -- and will therefore lead to small isotope corrections for samples analyzed on this instrument (*i.e.* << 1 per mille)
 
 Notes and References
 --------------------

@@ -596,7 +596,7 @@ class RpoIsotopes(Results):
 		DE : scalar
 			Value for the difference in E between 12C- and 13C-containing
 			atoms, in kJ. Defaults to 0.0018 (the best-fit value calculated
-			in Hemingway et al., **2017**).
+			in Hemingway et al., Radiocarbon, **2017**).
 
 		file : str or pd.DataFrame
 			File containing RPO isotope data, either as a string pointing
@@ -639,7 +639,7 @@ class RpoIsotopes(Results):
 		[1] J.D. Hemingway et al. (2017) Assessing the blank carbon
 			contribution, isotope mass balance, and kinetic isotope 
 			fractionation of the ramped pyrolysis/oxidation instrument at 
-			NOSAMS. *Radiocarbon*
+			NOSAMS. *Radiocarbon*, **59**, 179-193.
 		'''
 
 		#extract data from file
@@ -730,7 +730,7 @@ class RpoIsotopes(Results):
 		[1] J.D. Hemingway et al. (2017) Assessing the blank carbon
 			contribution, isotope mass balance, and kinetic isotope 
 			fractionation of the ramped pyrolysis/oxidation instrument at 
-			NOSAMS. *Radiocarbon*
+			NOSAMS. *Radiocarbon*, **59**, 179-193.
 		'''
 
 		#raise warnings
@@ -855,7 +855,7 @@ class RpoIsotopes(Results):
 		DE : scalar
 			Value for the difference in E between 12C- and 13C-containing
 			atoms, in kJ. Defaults to 0.0018 (the best-fit value calculated
-			in Hemingway et al., **2017**).
+			in Hemingway et al., Radiocarbon, **2017**).
 
 		Warnings
 		--------
@@ -867,7 +867,7 @@ class RpoIsotopes(Results):
 		[1] J.D. Hemingway et al. (2017) Assessing the blank carbon
 			contribution, isotope mass balance, and kinetic isotope 
 			fractionation of the ramped pyrolysis/oxidation instrument at 
-			NOSAMS. *Radiocarbon*
+			NOSAMS. *Radiocarbon*, **59**, 179-193.
 		'''
 
 		#raise warnings
