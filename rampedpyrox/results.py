@@ -179,7 +179,7 @@ class Results(object):
 
 class RpoIsotopes(Results):
 	__doc__='''
-	Class for inputting Ramped PyrOx isotopes, calculating p0(E) contained in
+	Class for inputting Ramped PyrOx isotopes, calculating p(0,E) contained in
 	each RPO fraction, correcting isotope values for blank contribution, mass
 	balance, and kinetic fractionation (d13C only), and storing resulting data
 	and statistics.
@@ -228,7 +228,7 @@ class RpoIsotopes(Results):
 		d13C correction.
 
 	ratedata : rp.EnergyComplex
-		``rp.EnergyComplex`` instance containing p0(E) distribution for the
+		``rp.EnergyComplex`` instance containing p(0,E) distribution for the
 		thermogram associated with inputted isotopes. Used for calculating
 		the fractional E distributions and for KIE d13C correction.
 
@@ -323,7 +323,7 @@ class RpoIsotopes(Results):
 	1.8 J/mol. **NOTE:** See ``RpoIsotopes.from_csv`` documentation for
 	instructions on getting the .csv file in the right format.
 
-	Plotting resulting p0(E) contained in each RPO fraction::
+	Plotting resulting p(0,E) contained in each RPO fraction::
 
 		#import additional modules
 		import matplotlib.pyplot as plt
@@ -331,7 +331,7 @@ class RpoIsotopes(Results):
 		#create figure
 		fig, ax = plt.subplots(1,3)
 
-		#plot p0(E) distributions
+		#plot p(0,E) distributions
 		ax[0] = ri.plot(
 			ax = ax[0], 
 			plt_var = 'p0E')
@@ -918,7 +918,7 @@ class RpoIsotopes(Results):
 	#define plotting method
 	def plot(self, ax = None, plt_var = 'p0E', plt_corr = True):
 		'''
-		Method for plotting results, either p0(E) distributions contained
+		Method for plotting results, either p(0,E) distributions contained
 		within each RPO fraction or isotopes vs. mean E for each RPO fraction.
 
 		Parameters
@@ -929,7 +929,7 @@ class RpoIsotopes(Results):
 
 		plt_var : str
 			Tells the method which variable to plot, available options are:
-			'p0E' (for fraction-specific p0(E) distributions), 'Fm', and d13C
+			'p0E' (for fraction-specific p(0,E) distributions), 'Fm', and d13C
 			(isotope vs. fraction E scatter plots).
 
 		plt_corr : str
@@ -1002,7 +1002,7 @@ class RpoIsotopes(Results):
 
 		else:
 
-			#generate rd and md for p0(E) plots
+			#generate rd and md for p(0,E) plots
 			rd = (self._E, self._p)
 			md = (self._E, self._p_frac)
 

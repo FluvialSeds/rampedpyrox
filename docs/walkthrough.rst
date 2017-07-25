@@ -50,7 +50,7 @@ Basic runthrough::
 		blk_corr = True, #uses values for NOSAMS instrument
 		bulk_d13C_true = [-24.9, 0.1], #true d13C value
 		mass_err = 0.01,
-		DE = 0.0018) #value from Hemingway et al. (2017), Radiocarbon
+		DE = 0.0018) #from Hemingway et al. (2017), Radiocarbon
 
 	#compare corrected isotopes and E values
 	print(ri.ri_corr_info)
@@ -258,7 +258,7 @@ The inversion transform
 ~~~~~~~~~~~~~~~~~~~~~
 Once the ``rp.RpoThermogram`` instance has been created, you are ready to run the inversion model and generate a regularized and discretized probability density function (pdf) of the rate/activation energy distribution, `p`. For non-isothermal thermogram data, this is done using a first-order Distributed Activation Energy Model (DAEM) [3]_ by generating an ``rp.Daem`` instance containing the proper transform matrix, `A`, to translate between time and activation energy space [4]_. This matrix contains all the assumptions that go into building the DAEM inverse model as well as all of the information pertaining to experimental conditions (*e.g.* ramp rate) [5]_. Importantly, the transform matrix does not contain any information about the sample itself -- it is simply the model "design" -- and a single ``rp.Daem`` instance can be used for multiple samples provided they were analyzed under identical experimental conditions (however, this is not recommended, as subtle differences in experimental conditions such as ramp rate could exist).
 
-One critical user input for the DAEM is the Arrhenius pre-exponential factor, *omega* (inputted here in log\ :sub:`10`\  form). Because there is much discussion in the literature over the constancy and best choice of this parameter (the so-called 'kinetic compensation effect' or KCE [6]_), this package allows *log\ :sub:`10`\ omega* to be inputted as a constant, an array, or a function of E.
+One critical user input for the DAEM is the Arrhenius pre-exponential factor, *omega* (inputted here in log\ :sub:`10`\  form). Because there is much discussion in the literature over the constancy and best choice of this parameter (the so-called 'kinetic compensation effect' or KCE [6]_), this package allows *log10omega* to be inputted as a constant, an array, or a function of E.
 
 For convenience, you can create any model directly from either time data or rate data, rather than manually inputting time, temperature, and rate vectors. Here, I create a DAEM using the thermogram defined above and allow E to range from 50 to 400 kJ/mol::
 
@@ -297,7 +297,7 @@ Here, I calculate and plot L curve for the thermogram and model defined above::
 	plt.tight_layout()
 
 Resulting L-curve plot looks like this, here with a calculated best-fit lambda
-value of 0.484:
+value of 0.414:
 
 |lcurve|
 
@@ -589,9 +589,27 @@ Which generates a plot like this:
 
 Additional Notes on the Kinetic Isotope Effect (KIE)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-While the KIE has no effect on Fm values since they are fractionation-corrected by definition [11]_, mass-dependent kinetic fractionation effects must be explicitly accounted for when estimating the source carbon stable isotope composition during any kinetic experiment. For example, the KIE can lead to large isotope fractionation during thermal generation of methane and natural gas over geologic timescales [8]_ or during photodegradation of organic carbon by *uv* light [15]_.
+While the KIE has no effect on Fm values since they are fractionation-corrected by definition [11]_, mass-dependent kinetic fractionation effects must be explicitly accounted for when estimating the source carbon stable isotope composition during any kinetic experiment. For example, the KIE can lead to large isotope fractionation during thermal generation of methane and natural gas over geologic timescales [8]_ or during photodegradation of organic carbon by *uv* light [12]_.
 
 As such, the ``rampedpyrox`` package allows for direct input of `DE` values [DE = E(:sup:`13`\ C) - E(:sup:`12`\ C), in kJ/mol] when correcting Ramped PyrOx isotopes. However, the magnitude of this effect is likely minimal within the NOSAMS Ramped PyrOx instrument -- Hemingway et al. (2017), *Radiocarbon* determined a best-fit value of 0.3e-3 - 1.8e-3 kJ/mol for a suite of standard reference materials [9]_ -- and will therefore lead to small isotope corrections for samples analyzed on this instrument (*i.e.* << 1 per mille)
+
+Plotting raw thermogram and isotope data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Finally, once a thermogram and isotope result instance have been made, once can additionally plot the raw thermogram and isotope data according to::
+
+	#make a figure
+	fig,ax = plt.subplots(1, 1, 
+		figsize = (5,5))
+
+	#plot results
+	ax = rp.plot_tg_isotopes(tg, ri, ax = ax)
+
+	plt.tight_layout()
+
+Resulting thermogram and isotope plot looks like this:
+
+|rawdata|
+
 
 Notes and References
 --------------------
@@ -607,6 +625,8 @@ Notes and References
 .. |fastmodeleddata| image:: _images/doc_fast_modeleddata.png
 
 .. |isotopes| image:: _images/doc_isotopes.png
+
+.. |rawdata| image:: _images/doc_rawdata.png
 
 .. [1] Note: If analyzing samples run at NOSAMS, all other columns in the `tg_data` file generated by LabView are not used and can be deleted or given an arbitrary name.
 
@@ -629,3 +649,5 @@ Notes and References
 .. [10] Blank composition calculated for other Ramped PyrOx instuments can be inputted by changing the default ``blk_d13C``, ``blk_flux``, and ``blk_Fm`` parameters.
 
 .. [11] See Stuiver and Polach (1977), *Radiocarbon*, **19(3)**, 355-363 for radiocarbon notation and data treatment.
+
+.. [12] See Follett et al. (2014), *PNAS*, **111**, 16706-16711 for details on serial oxidation of DOC by *uv* light.

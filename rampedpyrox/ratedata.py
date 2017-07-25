@@ -220,7 +220,7 @@ class RateData(object):
 				rd[1],
 				linewidth = 2,
 				color = 'k',
-				label = r'Regularized p ($\lambda$ = %.2f)' %self.lam)
+				label = r'Regularized p(0,E) ($\lambda$ = %.2f)' %self.lam)
 
 			#set limits
 			ax.set_xlim([0, 1.1*np.max(rd[0])])
@@ -252,8 +252,8 @@ class EnergyComplex(RateData):
 		Array of activation energy, in kJ/mol. Length `nE`.
 
 	p : None or array-like
-		Array of the regularized pdf of the E distribution, p0E. Length `nE`.
-		Defaults to `None`.
+		Array of the regularized pdf of the E distribution, p(0,E). Length
+		`nE`. Defaults to `None`.
 
 	Raises
 	------
@@ -308,7 +308,7 @@ class EnergyComplex(RateData):
 		#create figure
 		fig, ax = plt.subplots(1,1)
 
-		#plot resulting E pdf, p0E
+		#plot resulting E pdf, p(0,E)
 		ax = ec.plot(ax = ax)
 
 	**Attributes**
@@ -478,7 +478,7 @@ class EnergyComplex(RateData):
 	#define plotting method
 	def plot(self, ax = None):
 		'''
-		Plots the pdf of E, p0E, against E.
+		Plots the pdf of E, p(0,E), against E.
 
 		Keyword Arguments
 		-----------------

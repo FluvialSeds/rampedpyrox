@@ -141,8 +141,8 @@ class Model(object):
 			3601-3612.
 
 		[2] P.C. Hansen (1994) Regularization tools: A Matlab package for 
-			analysis and solution of discrete ill-posed problems. *Numerical**
-			**Algorithms*, **6**, 1-35.
+			analysis and solution of discrete ill-posed problems. *Numerical*
+			*Algorithms*, **6**, 1-35.
 		'''
 
 		#check that nLam, lam_max, and lam_min are in the right form
