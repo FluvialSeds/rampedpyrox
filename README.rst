@@ -26,7 +26,7 @@ How to Cite
 When analyzing data with ``rampedpyrox`` to be used in a peer-reviewed
 journal, please cite this package as:
 
-* J.D. Hemingway. *rampedpyrox*: open-source tools for thermoanalytical data analysis, 2016-, http://pypi.python.org/rampedpyrox [online; accessed |date|]
+* J.D. Hemingway. *rampedpyrox*: open-source tools for thermoanalytical data analysis, 2016-, http://pypi.python.org/pypi/rampedpyrox [online; accessed |date|]
 
 Additionally, please cite the following peer-reviewed manuscript describing the deveopment of the package and Ramped PyrOx data treatment:
 
