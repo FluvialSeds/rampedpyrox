@@ -62,7 +62,7 @@ model = rp.Daem.from_timedata(
 ratedata = rp.EnergyComplex.inverse_model(
 	model, 
 	timedata,
-	omega = 3)
+	lam = 3)
 
 timedata.forward_model(model, ratedata)
 

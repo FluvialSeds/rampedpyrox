@@ -18,21 +18,21 @@ sum_data = gen_str('test_data/res_no_iso.csv')
 tg = rp.RpoThermogram.from_csv(
 	data,
 	bl_subtract = True,
-	nt=250)
+	nt = 250)
 
 #calculate DAEM
 daem = rp.Daem.from_timedata(
 	tg,
-	log10k0=10, #value advocated in JDH thesis Ch 3
-	E_max=400, #can change if too high
-	E_min=50, #can change if too low
-	nE=400)
+	log10omega = 10, #value advocated in Hemingway (2017) Biogeosciences
+	E_max = 400, #can change if too high
+	E_min = 50, #can change if too low
+	nE = 400)
 
 #calculate energy complex
 ec = rp.EnergyComplex.inverse_model(
 	daem, 
 	tg,
-	omega=1) #can replace with best-fit value if known
+	lam = 1) #can replace with best-fit value if known
 
 #forward model estimated thermogram back onto tg
 tg.forward_model(daem, ec)

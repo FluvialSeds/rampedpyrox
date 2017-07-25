@@ -51,7 +51,7 @@ model = rp.Daem.from_timedata(
 ratedata = rp.EnergyComplex.inverse_model(
 	model, 
 	timedata,
-	omega = 3)
+	lam = 3)
 
 #test the model helper functions
 class test_model_helper_functions:
@@ -122,11 +122,11 @@ class test_model_helper_functions:
 
 	def test_A_takes_lambda(self):
 		#input lambda and make sure it works
-		log10k0 = lambda ea: 0.02*ea + 5
+		log10omega = lambda ea: 0.02*ea + 5
 
 		A = _rpo_calc_A(
 			ratedata.E, 
-			log10k0, 
+			log10omega, 
 			timedata.t, 
 			timedata.T)
 

@@ -265,7 +265,7 @@ class test_thermogram_modeled_input:
 		ec = rp.EnergyComplex.inverse_model(
 			daem,
 			tg,
-			omega = 3)
+			lam = 3)
 
 		tg.forward_model(daem, ec)
 
@@ -289,7 +289,7 @@ class test_thermogram_modeled_input:
 		ec = rp.EnergyComplex.inverse_model(
 			daem,
 			tg,
-			omega = 3)
+			lam = 3)
 
 		tg.forward_model(daem, ec)
 

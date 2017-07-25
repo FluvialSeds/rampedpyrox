@@ -280,7 +280,7 @@ For convenience, you can create any model directly from either time data or rate
 
 Regularizing the inversion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-Once the model has been created, you must tell the package how much to 'smooth' the resulting p(0,E) distribution. This is done by choosing a `lambda` value to be used as a smoothness weighting factor for Tikhonov regularization [7]_. Higher values of `lambda` increase how much emphasis is placed on minimizing changes in the first derivative at the expense of a better fit to the measured data, which includes analytical uncertainty. Rractically speaking, regularization aims to "fit the data while ignoring the noise." This package can calculate a best-fit `lambda` value using the L-curve method [5]_.
+Once the model has been created, you must tell the package how much to 'smooth' the resulting p(0,E) distribution. This is done by choosing a `lam` value to be used as a smoothness weighting factor for Tikhonov regularization [7]_. Higher values of `lam` increase how much emphasis is placed on minimizing changes in the first derivative at the expense of a better fit to the measured data, which includes analytical uncertainty. Rractically speaking, regularization aims to "fit the data while ignoring the noise." This package can calculate a best-fit `lam` value using the L-curve method [5]_.
 
 Here, I calculate and plot L curve for the thermogram and model defined above::
 

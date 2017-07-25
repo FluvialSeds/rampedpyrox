@@ -16,13 +16,6 @@ from nose.tools import(
 	assert_warns,
 	)
 
-# from rampedpyrox.ratedata.ratedata_helper import(
-# 	_calc_phi,
-# 	_deconvolve,
-# 	_f_phi_diff,
-# 	_gaussian,
-# 	_peak_indices)
-
 from rampedpyrox.core.exceptions import(
 	ArrayError,
 	LengthError,
@@ -51,7 +44,7 @@ model = rp.Daem.from_timedata(
 ratedata = rp.EnergyComplex.inverse_model(
 	model, 
 	timedata,
-	omega = 3)
+	lam = 3)
 
 
 class test_ratedata_creation:
