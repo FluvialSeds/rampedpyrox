@@ -18,13 +18,13 @@ from nose.tools import(
 	assert_warns,
 	)
 
-from rampedpyrox.model.model_helper import(
+from rampedpyrox.model_helper import(
 	_calc_ghat,
 	_calc_p,
 	_calc_R,
 	_rpo_calc_A)
 
-from rampedpyrox.core.exceptions import(
+from rampedpyrox.exceptions import(
 	ArrayError,
 	LengthError,
 	StringError,

@@ -18,10 +18,10 @@ from nose.tools import(
 	assert_warns,
 	)
 
-from rampedpyrox.timedata.timedata_helper import(
+from rampedpyrox.timedata_helper import(
 	_rpo_extract_tg)
 
-from rampedpyrox.core.exceptions import(
+from rampedpyrox.exceptions import(
 	ArrayError,
 	FileError,
 	LengthError,

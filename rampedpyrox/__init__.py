@@ -1,11 +1,9 @@
 '''
-Initializes the rampedpyrox package.
-
 rampedpyrox was created as a thesis dissertation supplement by:
 
-	Jordon D. Hemingway 
-	MIT/WHOI Joint Program
-	jhemingway@whoi.edu
+	Jordon D. Hemingway, MIT/WHOI Joint Program
+	Currently Postdoctoral Fellow, Harvard University
+	jordon_hemingway@fas.harvard.edu
 
 source code can be found at:
 	

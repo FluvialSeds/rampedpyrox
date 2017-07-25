@@ -116,7 +116,7 @@ class Results(object):
 					facecolor = [0.3,0.3,0.3],
 					edgecolor = 'k',
 					alpha = 0.3,
-					label = r'$p(t_{0},E) - p(t_{f},E)$')
+					label = r'$\Pi_{f}(E)$')
 
 			#set limits
 			ax.set_xlim([0.9*np.min(md[0]), 1.1*np.max(md[0])])
@@ -129,7 +129,7 @@ class Results(object):
 					rd[1],
 					linewidth = 2,
 					color = 'k',
-					label = r'$p_{0}(E)$')
+					label = r'$p(0,E)$')
 
 				#(re)set limits
 				ax.set_xlim([0.9*np.min(rd[0]), 1.1*np.max(rd[0])])

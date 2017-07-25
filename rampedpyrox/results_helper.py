@@ -487,7 +487,7 @@ def _rpo_kie_corr(
 	'''
 
 	#generate daem for 13C-containing atoms
-	daem13 = Daem(model.E+DE, model.log10k0, model.t, model.T)
+	daem13 = Daem(model.E+DE, model.log10omega, model.t, model.T)
 
 	#calculate ratio of rates, the KIE
 	tg12 = np.dot(model.A,ratedata.p)

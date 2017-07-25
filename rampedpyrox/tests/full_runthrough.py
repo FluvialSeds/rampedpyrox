@@ -12,7 +12,8 @@ def gen_str(name):
 
 #paths to data files
 data = gen_str('test_data/thermogram.csv')
-sum_data = gen_str('test_data/res_no_iso.csv')
+# sum_data = gen_str('test_data/res_no_iso.csv') # FOR TESTING W/OUT ISOTOPES
+sum_data = gen_str('test_data/isotopes.csv')
 
 #calculate thermogram
 tg = rp.RpoThermogram.from_csv(
@@ -42,10 +43,10 @@ ri = rp.RpoIsotopes.from_csv(
 	sum_data,
 	daem,
 	ec,
-	blk_corr = False,
+	blk_corr = True,
 	bulk_d13C_true = None)
 
-# #plot results
+#plot results
 # fig, ax = plt.subplots(1,3)
 # ax[0] = ri.plot(ax = ax[0], plt_var = 'p0E')
 # ax[1] = ri.plot(ax = ax[1], plt_var = 'Fm', plt_corr = True)

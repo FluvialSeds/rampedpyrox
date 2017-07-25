@@ -16,7 +16,7 @@ from nose.tools import(
 	assert_warns,
 	)
 
-from rampedpyrox.core.exceptions import(
+from rampedpyrox.exceptions import(
 	ArrayError,
 	LengthError,
 	ScalarError,
@@ -110,7 +110,7 @@ class test_ratedata_creation:
 			rp.EnergyComplex.inverse_model,
 			model,
 			timedata,
-			omega = [1,2,3])
+			lam = [1,2,3])
 
 	def test_input_estimated_instances(self):
 
@@ -118,7 +118,7 @@ class test_ratedata_creation:
 		ec = rp.EnergyComplex.inverse_model(
 			model, 
 			timedata,
-			omega = 3)
+			lam = 3)
 
 		#make sure everything is the right type
 		assert_is_instance(ec.resid, float)

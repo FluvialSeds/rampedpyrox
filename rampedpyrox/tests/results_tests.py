@@ -18,7 +18,7 @@ from nose.tools import(
 	# assert_warns,
 	)
 
-from rampedpyrox.results.results_helper import(
+from rampedpyrox.results_helper import(
 	_calc_cutoff,
 	_calc_E_frac,
 	_rpo_blk_corr,
@@ -27,7 +27,7 @@ from rampedpyrox.results.results_helper import(
 	_rpo_mass_bal_corr,
 	)
 
-from rampedpyrox.core.exceptions import(
+from rampedpyrox.exceptions import(
 	# rpException,
 	# ArrayError,
 	# FileError,
