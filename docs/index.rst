@@ -24,6 +24,10 @@ Package Information
 
 :url:
   http://github.com/FluvialSeds/rampedpyrox
+  http://pypi.python.org/pypi/rampedpyrox
+
+:doi:
+  |doi|
 
 Bug Reports
 -----------
@@ -100,3 +104,4 @@ Indices and tables
 .. * :ref:`modindex`
 
 .. |date| date::
+.. |doi| image:: https://zenodo.org/badge/66090463.svg
