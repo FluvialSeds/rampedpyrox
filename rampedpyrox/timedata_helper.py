@@ -94,7 +94,7 @@ def _rpo_extract_tg(file, nt, bl_subtract = True):
 			'file index must be pd.DatetimeIndex instance')
 
 	#extract necessary data
-	secs_m = (file.index - file.index[0]).seconds
+	secs_m = (file.index - file.index[0]).seconds.values
 	CO2_m = file.CO2_scaled
 	T_m = file.temp
 
