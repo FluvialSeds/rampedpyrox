@@ -5,7 +5,7 @@ def readme():
 		return f.read()
 
 setup(name='rampedpyrox',
-	version='1.0.0',
+	version='1.0.1',
 	description='Ramped PyrOx kinetic and isotope analysis',
 	long_description=readme(),
 	classifiers=[
@@ -20,7 +20,7 @@ setup(name='rampedpyrox',
 		'Topic :: Scientific/Engineering'
 	],
 	url='https://github.com/FluvialSeds/rampedpyrox',
-	download_url='https://github.com/FluvialSeds/rampedpyrox/tarball/1.0.0',
+	download_url='https://github.com/FluvialSeds/rampedpyrox/tarball/1.0.1',
 	keywords=[
 		'geochemistry',
 		'isotopes',
