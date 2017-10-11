@@ -33,7 +33,7 @@ daem = rp.Daem.from_timedata(
 ec = rp.EnergyComplex.inverse_model(
 	daem, 
 	tg,
-	lam = 1) #can replace with best-fit value if known
+	lam = 'auto') #can replace with best-fit value if known
 
 #forward model estimated thermogram back onto tg
 tg.forward_model(daem, ec)
