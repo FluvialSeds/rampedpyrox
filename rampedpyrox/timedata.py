@@ -35,6 +35,7 @@ from .plotting_helper import(
 
 from .summary_helper import(
 	_calc_RPO_info,
+	_calc_BD_info,
 	)
 
 from .model_helper import(
@@ -731,6 +732,7 @@ class RpoThermogram(TimeData):
 
 		return ax
 
+
 class BioDecay(TimeData):
 	__doc__ = '''
 	Class for inputting and storing IsoCaRB true (observed) and estimated
@@ -743,7 +745,7 @@ class BioDecay(TimeData):
 		Array of time, in seconds. Length `nt`.
 
 	T : array-like
-		Scalar or array of temperature, in Kelvin. Length `nt`.
+		Scalar of mean incubation temperature, in Kelvin.
 
 	g : None or array-like
 		Array of the true fraction of carbon remaining at each timepoint,
@@ -773,7 +775,6 @@ class BioDecay(TimeData):
 			g_std = None, #force to be None for BioDecay
 			T_std = None) #force to be None for BioDecay
 
-#TODO
 		#if g exists, add Bioreactor-specific summary file
 		if g is not None:
 
@@ -793,7 +794,7 @@ class BioDecay(TimeData):
 		Parameters
 		----------
 		file : str or pd.DataFrame
-			File containing isotope data, either as a path string or a
+			File containing decay data, either as a path string or a
 			dataframe.
 
 		bl_subtract : Boolean
@@ -813,7 +814,7 @@ class BioDecay(TimeData):
 		the following columns:
 
 			date_time, \n
-			T_room, \n
+			temp, \n
 			P_room, \n
 			pCO2, \n
 			CO2_raw, \n
@@ -826,7 +827,7 @@ class BioDecay(TimeData):
 			ug_frac, \n
 			ug_sum
 
-		(Note that all columns besides `date_time`, `T_room`, and `CO2_scaled`
+		(Note that all columns besides `date_time`, `temp`, and `CO2_scaled`
 		are unused.) Ensure that all rows before the start of temperature
 		ramping and after the ovens have been turned off have been removed.
 
@@ -841,9 +842,8 @@ class BioDecay(TimeData):
 			a .csv file.
 		'''
 
-#TODO
-		#extract data from file
-		g, t, T = _biodecay_extract_profile(
+		#extract data from file (use same helper function as thermogram)
+		g, t, T = _rpo_extract_tg(
 			file, 
 			nt, 
 			bl_subtract = bl_subtract)
@@ -877,7 +877,7 @@ class BioDecay(TimeData):
 		Raises
 		------
 		ArrayError
-			If `nE` is not the same in the ``rp.Model`` instance and the 
+			If `nk` is not the same in the ``rp.Model`` instance and the 
 			``rp.RateData`` instance.
 
 		ArrayError
@@ -924,8 +924,8 @@ class BioDecay(TimeData):
 		#raise exception if not the right shape
 		if model.nE != ratedata.nE:
 			raise ArrayError(
-				'Cannot combine model with nE = %r and RateData with'
-				' nE = %r. Check that RateData was not created using'
+				'Cannot combine model with nk = %r and RateData with'
+				' nk = %r. Check that RateData was not created using'
 				' a different model' % (model.nE, ratedata.nE))
 
 		#raise exception if not the right shape
@@ -962,14 +962,13 @@ class BioDecay(TimeData):
 		#call the superclass method
 		super(BioDecay, self).input_estimated(ghat)
 
-#TODO
 		#add BioDecay-specific modelled bd summary file
 		self.bdhat_info = _calc_BD_info(self.t, self.T, ghat)
 
 	#define plotting method
 	def plot(self, ax = None, yaxis = 'rate'):
 		'''
-		Plots the true and model-estimated thermograms against time or temp.
+		Plots the true and model-estimated decay profiles against time.
 
 		Parameters
 		----------
@@ -1002,16 +1001,16 @@ class BioDecay(TimeData):
 		#extract axis label ditionary
 		bd_labs = _plot_dicts('bd_labs', self)
 		labs = (
-			bd_labs[xaxis][yaxis][0], 
-			bd_labs[xaxis][yaxis][1])
+			bd_labs[yaxis][0], 
+			bd_labs[yaxis][1])
 
 		#check if real data exist
 		if hasattr(self, 'g'):
 			#extract real data dict
 			bd_rd = _plot_dicts('bd_rd', self)
 			rd = (
-				bd_rd[xaxis][yaxis][0], 
-				bd_rd[xaxis][yaxis][1])
+				bd_rd[yaxis][0], 
+				bd_rd[yaxis][1])
 		else:
 			rd = None
 
@@ -1020,8 +1019,8 @@ class BioDecay(TimeData):
 			#extract modelled data dict
 			bd_md = _plot_dicts('bd_md', self)
 			md = (
-				bd_md[xaxis][yaxis][0], 
-				bd_md[xaxis][yaxis][1])
+				bd_md[yaxis][0], 
+				bd_md[yaxis][1])
 		else:
 			md = None
 

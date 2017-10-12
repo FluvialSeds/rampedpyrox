@@ -8,7 +8,12 @@ from __future__ import(
 	)
 
 __docformat__ = 'restructuredtext en'
-__all__ = ['_calc_rate_info', '_calc_RPO_info', '_rpo_isotopes_frac_info']
+__all__ = [
+	'_calc_rate_info', 
+	'_calc_BD_info', 
+	'_calc_RPO_info', 
+	'_rpo_isotopes_frac_info'
+	]
 
 import numpy as np
 import pandas as pd
@@ -73,7 +78,59 @@ def _calc_rate_info(k, p, kstr = 'E'):
 
 	return rate_summary
 
-#define function to calculate timedata info and store
+#define function to calculate BioDecay timedata info and store
+def _calc_BD_info(t, T, g):
+	'''
+	Calculates the ``rp.TimeData`` instance BioDecay summary statistics and
+	stores in a Series.
+
+	Parameters
+	----------
+	t : numpy.ndarray
+		Array of timepoints, in seconds. Length `nt`.
+
+	T : numpy.ndarray
+		Array of temperature, in Kelvin. Length `nt`.
+
+	g : numpy.ndarray
+		Array of the true fraction of carbon remaining at each timepoint.
+		Length `nt`.
+
+	Returns
+	-------
+	bd_summary : pd.Series
+		Series of resulting BioDecay summary info.
+	'''
+
+	#set pandas display options
+	pd.set_option('precision', 2)
+
+	#define series index
+	ind = ['t_max (s)',
+			't_mean (s)',
+			't_std (s)',
+			'max_rate (frac/s)']
+
+	#derivatize g
+	dgdt = derivatize(g,t)
+
+	#find max
+	i = np.where(dgdt == np.min(dgdt))[0][0]
+
+	#calculate statistics
+	tmax = t[i]
+	rmax_s = -dgdt[i]
+	tav, tstd = extract_moments(t, dgdt)
+
+	#combine into list
+	vals = [tmax, tav, tstd, rmax_s, ]
+
+	#make series
+	tg_summary = pd.Series(vals, index = ind)
+
+	return bd_summary
+
+#define function to calculate RampedPyrox timedata info and store
 def _calc_RPO_info(t, T, g):
 	'''
 	Calculates the ``rp.TimeData`` instance thermogram summary statistics and

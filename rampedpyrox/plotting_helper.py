@@ -24,10 +24,13 @@ def _plot_dicts(case, td):
 		The case that defines the dict to pull.
 		Acceptable strings:
 
-			'rpo_rd', \n
+			'bd_labs', \n
+			'bd_md', \n
+			'bd_rd', \n
 			'rpo_labs', \n
-			'rpo_md'
-
+			'rpo_md', \n
+			'rpo_rd'
+			
 	td : TimeData or subclass
 		``rp.TimeData`` instance containing the data to plot.
 
@@ -37,7 +40,25 @@ def _plot_dicts(case, td):
 		The resulting dictionary containing plotting info.
 	'''
 
-	if case == 'rpo_labs':
+	if case == 'bd_labs':
+		#create a dict to keep track of axis labels
+		pl_dict = {'fraction' : ('time (s)', 'g (unitless)'),
+						'rate' : ('time (s)', r'fraction/time $(s^{-1})$')
+						}
+
+	elif case == 'bd_md':
+		#create a dict to keep track of cases of modeled data
+		pl_dict = {'fraction' : (td.t, td.ghat),
+						'rate' : (td.t, -td.dghatdt)
+						}
+
+	elif case == 'bd_rd':
+		#create a dict to keep track of cases for real data
+		pl_dict = {'fraction' : (td.t, td.g),
+						'rate' : (td.t, -td.dgdt)
+						}
+
+	elif case == 'rpo_labs':
 		#create a nested dict to keep track of axis labels
 		pl_dict = {'time': 
 						{'fraction' : ('time (s)', 'g (unitless)'),
