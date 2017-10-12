@@ -126,7 +126,7 @@ def _calc_BD_info(t, T, g):
 	vals = [tmax, tav, tstd, rmax_s, ]
 
 	#make series
-	tg_summary = pd.Series(vals, index = ind)
+	bd_summary = pd.Series(vals, index = ind)
 
 	return bd_summary
 

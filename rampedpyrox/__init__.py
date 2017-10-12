@@ -35,6 +35,7 @@ __docformat__ = 'restructuredtext en'
 #import timedata classes
 from .timedata import(
 	RpoThermogram,
+	BioDecay,
 	)
 
 #import model classes

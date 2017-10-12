@@ -44,6 +44,7 @@ from .model_helper import(
 
 from .timedata_helper import(
 	_rpo_extract_tg,
+	_bd_extract_profile,
 	)
 
 
@@ -814,6 +815,7 @@ class BioDecay(TimeData):
 		the following columns:
 
 			date_time, \n
+			t_elapsed, \n
 			temp, \n
 			P_room, \n
 			pCO2, \n
@@ -827,9 +829,9 @@ class BioDecay(TimeData):
 			ug_frac, \n
 			ug_sum
 
-		(Note that all columns besides `date_time`, `temp`, and `CO2_scaled`
-		are unused.) Ensure that all rows before the start of temperature
-		ramping and after the ovens have been turned off have been removed.
+		(Note that all columns besides `t_elapsed`, `temp`, and `CO2_scaled`
+		are unused.) Ensure that `t_elapsed` is equal to zero exactly when the
+		incubation experiment began (i.e. this will be negative beforehand).
 
 		When down-sampling, `t` contains the midpoints of each time bin and
 		`g` and `T` contain the corresponding temp. and fraction remaining 
@@ -843,7 +845,7 @@ class BioDecay(TimeData):
 		'''
 
 		#extract data from file (use same helper function as thermogram)
-		g, t, T = _rpo_extract_tg(
+		g, t, T = _bd_extract_profile(
 			file, 
 			nt, 
 			bl_subtract = bl_subtract)
@@ -997,7 +999,6 @@ class BioDecay(TimeData):
 				'yaxis does not accept %r. Must be either "rate" or'
 				' "fraction"' %yaxis)
 
-#TODO
 		#extract axis label ditionary
 		bd_labs = _plot_dicts('bd_labs', self)
 		labs = (
