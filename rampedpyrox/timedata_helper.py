@@ -22,6 +22,83 @@ from scipy.interpolate import interp1d
 # 	FileError,
 # 	)
 
+#define function to calculate bacterial growth efficiency (BGE)
+def _bd_calc_BGE(
+	Cflux,
+	cell_counts
+	alpha = 50
+	):
+	'''
+	Function to calculate bacterial growth efficiency (BGE) over the course of
+	a biodecay experiment.
+
+	Parameters
+	----------
+	Cflux : pd.Series
+		Series containing carbon flux in ugC min-1 L-1, with pd.DatetimeIndex 
+		as index.
+
+	cell_counts : pd.Series
+		Series containing cell counts at each sampling point (in units of
+		cells per mL), with pd.DatetimeIndex as index.
+
+	alpha : scalar
+		Mass of carbon per cell, in femtograms. Defaults to `50`.
+
+	Returns
+	-------
+	bge : pd.Series
+		Series containing calculated BGE values, reported at the final
+		timepoint for a given value.
+
+	Raises
+	------
+	ValueError
+		If `cell_counts` timestamps are not contained in `Cflux` index.
+
+	References
+	----------
+	PER CELL CARBON MASS REFERENCE? GET FROM NAGISSA!
+
+	'''
+
+	#only retain timepoints with cell count values
+	cell_counts.dropna(inplace = True)
+	
+	#calcualte indices for cell count timepoints
+	cc_inds = cell_counts.index
+
+	#check indices
+	if not all([a in Cflux.index for a in cc_inds]):
+		raise ValueError(
+			'cell_count timestamps not contained in Cflux index.' \
+			' Check timestamps!')
+
+	#calculate microbial biomass C in ug L-1 at each time point
+	cellC = alpha * cell_counts * 1e-6
+
+	#calculate difference and drop first entry (will be NaN)
+	DcellC = cellC.diff()[1:]
+
+	#calculate timestep in minutes
+	Dt = np.gradient(Cflux.index) / pd.Timedelta(minutes = 1)
+
+	#integrate Cflux curve
+	cumC = Dt*Cflux.cumsum() #total ug per L
+
+	#determine change in CO2 mass between cell count points
+	cumC_cc = cumC[cc_inds]
+	DcumC_cc = cumC_cc.diff()[1:]
+
+	bge_vals = 1 / (1 + (DcumC_cc / DcellC))
+
+	#make BGE series, with NaN value at starting timestamp
+	bge = pd.Series(
+		index = cc_inds
+		)
+
+	bge[cc_inds[1:]] = bge_vals
+
 #define function to calculate elapsed time
 def _bd_calc_telapsed(
 	all_index,
@@ -322,22 +399,99 @@ def _bd_data_reduction(
 	all_file,
 	sam_file,
 	mins_before_zero = 30,
-	Vmedia0 = 2000, #intial media volumne, in mL
-	Vhs0 = 4000, #initial headspace volumne, in mL
-	Fsysblk = 10, #system blank flux, in ugC/day
-	Ctot_mano = None): #total manometric C yield
+	Vmedia0 = 2000,
+	Vhs0 = 4000,
+	Fsysblk = 10,
+	downsampled_dt = None,
+	Ctot_mano = None):
 	'''
+	Inputs `all_data` file file from IsoCaRB instrument at Harvard and
+	performs all necessary data corrections and checks.
+
 	Parameters
 	----------
+	all_file : str or pd.DataFrame
+		File containing timeseries data, either as a path string or a
+		dataframe.
+
+	sam_file : str or pd.DataFrame
+		File containing sampling data (baseline checks, liquid subsampling
+		times and volumes, cell counts), either as a path string or a
+		dataframe. First row must contain innoculation time (t0) timestamp.
+
+	mins_before_zero : scalar
+		Number of minutes before t0 to retain in final data. Defaults to `30`.
+
+	Vmedia0 : scalar
+		Initial volume of media used in experiment, in mL. Defaults to `2000`.
+
+	Vhs0 : scalar
+		Initial headspace volume for experiment, in mL. Defaults to `4000`.
+
+	Fsysblk : scalar
+		Constant flux of system blank carbon, as reported in Beaupre et al.,
+		(2016), in units of ugC day-1. Defaults to `10`.
+
+	downsampled_dt : scalar or None:
+		Timestep to be used in final, downsampled data (in minutes). If 
+		`None`, no downsampling is performed and returned `all_data` will 
+		have 1-minutes timesteps.
+
+	Ctot_mano : scalar or None
+		The total carbon yield as determined by the sum of manometric
+		measurements for each collected fraction. Used to re-scale flux values
+		to ensure sum is equal to manometric sum. If `None`, no rescaling is
+		performed. Defaults to `None`.
 
 	Returns
 	-------
+	all_data : pd.DataFrame
+		Dataframe containing all reduced and corrected data. If inputted
+		`downsampled_dt` parameter is not `None`, then `all_data` will be
+		downsampled.
+
+	sam_data : pd.DataFrame
+		Dataframe containing all sampling data (baseline checks, liquid 
+		subsampling times and volumes, cell counts).
 
 	Raises
 	------
+	FileError
+		If `all_file` is not str or ``pd.DataFrame`` instance.
+
+	FileError
+		If `sam_file` is not str or ``pd.DataFrame`` instance.
+
+	FileError
+		If index of `all_file` is not ``pd.DatetimeIndex`` instance.
+
+	FileError
+		If index of `sam_file` is not ``pd.DatetimeIndex`` instance.
+
+	FileError
+		If `all_file` does not contain "temp", "p_room", "CO2_scaled", and 
+		"flow_rate" columns.
+
+	FileError
+		If `sam_file` does not contain "CO2_bl" and "liq_sample" columns.
 
 	Notes
 	-----
+	This function automates all data reduction steps that were originally
+	performed using Beaupre excel spreadsheets. Function was written following
+	the steps in Beaupre "Steps for IsoCaRB Data Reduction" lab document.
+
+	References
+	----------
+	[1] S. Beaupre et al. (2016) IsoCaRB: A novel bioreactor system to
+	characterize the lability and natural carbon isotopic (14C, 13C)
+	signatures of microbially respired organic matter. *L&O Methods*, **14**, 
+	668-681.
+
+	[2] N. Mahmoudi et al. (2017) Sequential bioavailability of sedimentary 
+	organic matter to heterotrophic bacteria. *Environmental Microbiology*,
+	**19**, 2629-2644.
+
 	'''
 
 	#check all_file data format and raise appropriate errors
@@ -396,7 +550,7 @@ def _bd_data_reduction(
 	#sam_file data
 
 	#list of necessary columns
-	sd_cols = ['CO2_bl','liq_sample','cell_ct']
+	sd_cols = ['CO2_bl','liq_sample']
 
 	if not isinstance(sam_data.index, pd.DatetimeIndex):
 		raise FileError(
@@ -477,7 +631,18 @@ def _bd_data_reduction(
 		Ctot_mano = Ctot_mano
 		)
 
-	return all_data
+	#---------------#
+	# 5) DOWNSAMPLE #
+	#---------------#
+
+	if downsampled_dt is not None:
+		dt = str(downsampled_dt) + 'T'
+
+		all_data = all_data.resample(
+			dt
+			).median()
+
+	return all_data, sam_data
 
 #define function to calculate rolling values
 def _bd_rolling(
