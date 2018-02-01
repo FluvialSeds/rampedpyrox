@@ -12,7 +12,7 @@ __all__ = [
 	'_calc_rate_info', 
 	'_calc_BD_info', 
 	'_calc_RPO_info', 
-	'_rpo_isotopes_frac_info'
+	'_calc_ri_info'
 	]
 
 import numpy as np

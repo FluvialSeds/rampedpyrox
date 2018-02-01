@@ -746,7 +746,7 @@ class BioDecay(TimeData):
 		Array of time, in seconds. Length `nt`.
 
 	T : array-like
-		Scalar of mean incubation temperature, in Kelvin.
+		Array of incubation temperature, in Kelvin.
 
 	g : None or array-like
 		Array of the true fraction of carbon remaining at each timepoint,
@@ -914,8 +914,8 @@ class BioDecay(TimeData):
 
 		if rd_type not in ['kDist']:
 			warnings.warn(
-				'Attempting to calculate thermogram using a ratedata instance'
-				' of type %r. Consider using rp.kDist instance'
+				'Attempting to calculate BioDecay profile using a ratedata'
+				' instance of type %r. Consider using rp.kDist instance'
 				' instead' % rd_type, UserWarning)
 
 		#raise exception if no p data exist
@@ -1015,9 +1015,9 @@ class BioDecay(TimeData):
 		else:
 			rd = None
 
-		#check if modelled data exist
+		#check if modeled data exist
 		if hasattr(self, 'ghat'):
-			#extract modelled data dict
+			#extract modeled data dict
 			bd_md = _plot_dicts('bd_md', self)
 			md = (
 				bd_md[yaxis][0], 

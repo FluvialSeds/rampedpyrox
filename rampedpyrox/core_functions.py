@@ -146,13 +146,15 @@ def calc_L_curve(
 		**6**, 1-35.
 	'''
 
-	return model.calc_L_curve(
+	a = model.calc_L_curve(
 		timedata, 
 		ax = ax, 
 		plot = plot, 
 		nLam = nLam, 
 		lam_max = lam_max, 
 		lam_min = lam_max)
+
+	return a
 
 #define function to derivatize an array w.r.t. another array
 def derivatize(num, denom):
