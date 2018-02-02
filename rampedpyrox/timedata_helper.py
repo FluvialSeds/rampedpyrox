@@ -8,8 +8,16 @@ from __future__ import(
 	)
 
 __docformat__ = 'restructuredtext en'
-__all__ = ['_rpo_extract_tg',
-			'_bd_data_reduction']
+__all__ = ['_bd_calc_BGE',
+			'bd_calc_telapsed',
+			'_bd_calc_ugCminL',
+			'_bd_correct_baseline',
+			'_bd_correct_headspace',
+			'_bd_data_reduction',
+			'_bd_plot_bge',
+			'_bd_rolling',
+			'_rpo_extract_tg',
+			]
 
 import numpy as np
 import pandas as pd
@@ -25,9 +33,10 @@ from scipy.interpolate import interp1d
 #define function to calculate bacterial growth efficiency (BGE)
 def _bd_calc_BGE(
 	Cflux,
-	cell_counts
-	alpha = 50
-	):
+	cell_counts,
+	Cflux_err = None,
+	cell_counts_err = None,
+	alpha = [50, 1]):
 	'''
 	Function to calculate bacterial growth efficiency (BGE) over the course of
 	a biodecay experiment.
@@ -42,8 +51,21 @@ def _bd_calc_BGE(
 		Series containing cell counts at each sampling point (in units of
 		cells per mL), with pd.DatetimeIndex as index.
 
-	alpha : scalar
-		Mass of carbon per cell, in femtograms. Defaults to `50`.
+	Cflux_err : None or pd.Series
+		Series containing Cflux uncertainty to be used to calculate BGE
+		uncertainty. If `None`, Cflux is assumed to be known perfectly.
+		Defaults to `None`.
+
+	cell_counts_err : None, scalar, or pd.Series
+		Series containing cell count uncertainty to be used to calculate BGE
+		uncertainty. If `None`, cell counts are assumed to be known perfectly.
+		If scalar, assumed to be fractional uncertainty and applied to all
+		values (i.e. a value of 0.01 means all measurements have 1 % relative
+		uncertainty). Defaults to `None`.
+
+	alpha : list
+		List of mass of carbon per cell and associated uncertainty 
+		(+/- 1 sigma), in femtograms. Defaults to `[50, 1]`.
 
 	Returns
 	-------
@@ -74,30 +96,54 @@ def _bd_calc_BGE(
 			'cell_count timestamps not contained in Cflux index.' \
 			' Check timestamps!')
 
+	#if errors are NoneType, make arrays of zeros instead
+	if Cflux_err is None:
+		Cflux_err = pd.Series(
+			0,
+			index = Cflux.index
+			)
+
+	if cell_counts_err is None:
+		cell_counts_err = pd.Series(
+			0,
+			index = cell_counts.index
+			)
+
+	#or if scalar, broadcast out to be a Series
+	elif type(cell_counts_err) in [int, float]:
+		cell_counts_err = cell_counts_err * cell_counts
+
 	#calculate microbial biomass C in ug L-1 at each time point
-	cellC = alpha * cell_counts * 1e-6
+	cellC = alpha[0] * cell_counts * 1e-6
+	cellC_err = 1e-6 * ((cell_counts * alpha[1])**2 + \
+		(alpha[0] * cell_counts_err)**2 )**0.5
 
 	#calculate difference and drop first entry (will be NaN)
 	DcellC = cellC.diff()[1:]
+	DcellC_err = (cellC_err**2).rolling(2).sum()**0.5
 
 	#calculate timestep in minutes
 	Dt = np.gradient(Cflux.index) / pd.Timedelta(minutes = 1)
 
 	#integrate Cflux curve
 	cumC = Dt*Cflux.cumsum() #total ug per L
+	cumC_err = (np.cumsum((Cflux_err * Dt)**2))**0.5
 
 	#determine change in CO2 mass between cell count points
 	cumC_cc = cumC[cc_inds]
-	DcumC_cc = cumC_cc.diff()[1:]
+	cumC_cc_err = cumC_err[cc_inds]
+	DcumC_cc = cumC_cc.diff()
+	DcumC_cc_err = ((cumC_cc_err**2).rolling(2).sum()**0.5)
 
-	bge_vals = 1 / (1 + (DcumC_cc / DcellC))
+	x = DcumC_cc / DcellC
+	x_err = ((DcumC_cc_err / DcellC)**2 + \
+		(DcumC_cc * DcellC_err / (DcellC**2) )**2)**0.5
 
-	#make BGE series, with NaN value at starting timestamp
-	bge = pd.Series(
-		index = cc_inds
-		)
+	#calculate BGE and error
+	bge = 1 / (1 + x)
+	bge_err = x_err * (1 + x)**-2
 
-	bge[cc_inds[1:]] = bge_vals
+	return bge, bge_err
 
 #define function to calculate elapsed time
 def _bd_calc_telapsed(
@@ -144,13 +190,15 @@ def _bd_calc_telapsed(
 #define function to convert to carbon flux in ugC min-1 L-1
 def _bd_calc_ugCminL(
 	input_data,
+	input_data_err,
 	flow_rate,
 	t_elapsed,
 	p_room,
 	T_room,
 	Vmedia,
-	Fsysblk = None,
-	Ctot_mano = None):
+	Fsysblk = [10, 1],
+	Ctot_mano = None,
+	mano_error = 0.01):
 	'''
 	Function to convert ppmCO2 values into ugC min-1 L-1.
 
@@ -180,9 +228,11 @@ def _bd_calc_ugCminL(
 		Series containing volume of media (in mL) remaining at each timepoint
 		in the experiment, with pd.DatetimeIndex as index.
 
-	Fsysblk : scalar or None
-		Constant system blank flux (in ugC day-1) to be used for blank
-		correction. If `None`, no rescaling is performed. Defaults to `None`.
+	Fsysblk : list or None
+		Constant flux of system blank carbon, as reported in Beaupre et al.,
+		(2016), in units of ugC day-1. First value is the mean and second
+		value is the +/- 1 sigma uncertainty. Defaults to `[10, 1]`. If `None`,
+		no correction is performed.
 
 	Ctot_mano : scalar or None
 		The total carbon yield as determined by the sum of manometric
@@ -190,10 +240,20 @@ def _bd_calc_ugCminL(
 		to ensure sum is equal to manometric sum. If `None`, no rescaling is
 		performed. Defaults to `None`.
 
+	mano_erro : scalar
+		One-sigma relative uncertainty of the manometer, to be used when
+		scaling photometric yields to manometric ones. Reported in fraction
+		of total mass (i.e. a value of 0.01 means 1% relative uncertainty).
+		Defualts to `0.01`.
+
 	Returns
 	-------
 	Cflux : pd.Series
 		Seriers containing carbon flux in ugC min-1 L-1.
+
+	Cflux_err : pd.Series
+		Series containing +/- 1sigma uncertaint of carbon flux in 
+		ugC min-1 L-1.
 	'''
 
 	#calculate multiplying scalar
@@ -201,37 +261,54 @@ def _bd_calc_ugCminL(
 	Mco2 = 12.01 #g/mol
 	alpha = Mco2 / (R * (T_room + 273.15)) #ug/kPa/mL/ppm
 	
-	#calculate carbon flux
+	#calculate carbon flux and associated uncertainty
 	Cflux = input_data * alpha * p_room * flow_rate
+	Cflux_err = input_data_err * alpha * p_room * flow_rate
 
 	#calculate total photometric yield
 	Dt = np.gradient(input_data.index) / pd.Timedelta(minutes = 1)
 	Ctot_photo = np.sum(Cflux * Dt)
+	Ctot_photo_err = (np.sum((Cflux_err * Dt)**2))**0.5
 
 	#first, re-scale to remove system blank flux
 	if Fsysblk is not None:
 		#calcualte total blank C
-		Ctot_sysblk = Fsysblk * t_elapsed[-1] / (60 * 24) #since F in days
+		Ctot_sysblk = Fsysblk[0] * t_elapsed[-1] / (60 * 24) #since F in days
+		Ctot_sysblk_err = Fsysblk[1] * t_elapsed[-1] / (60 * 24)
 
 		#re-scale to remove blank flux
 		s1 = (Ctot_photo - Ctot_sysblk)/Ctot_photo
+		s1_err = ((Ctot_sysblk_err / Ctot_photo)**2 + \
+			(Ctot_sysblk * Ctot_photo_err / (Ctot_photo**2) )**2)**0.5
+
+		#caclualted updated C flux and uncertainty
 		Cflux = s1 * Cflux
+		Cflux_err = ((s1_err)**2 + (Cflux_err)**2)**0.5
 
 	#then, re-scale to match manometric yield
 	if Ctot_mano is not None:
 		#re-scale
 		s2 = Ctot_mano / Ctot_photo
+
+		#calculate uncertainty
+		Ctot_mano_err = Ctot_mano * mano_error
+		s2_err = ((Ctot_mano_err / Ctot_photo)**2 + \
+			(Ctot_mano * Ctot_photo_err / (Ctot_photo**2) )**2)**0.5
+
 		Cflux = s2 * Cflux
+		Cflux_err = ((s2_err)**2 + (Cflux_err)**2)**0.5
 
 	# finally, re-scale for volume remaining at each time point
 	Cflux = 1000 * Cflux / Vmedia
+	Cflux_err = 1000 * Cflux_err / Vmedia
 
-	return Cflux
+	return Cflux, Cflux_err
 
 #define function to correct for baseline drift
 def _bd_correct_baseline(
 	input_data,
-	baselines):
+	baselines,
+	IRGA_error = 1):
 	'''
 	Function to correct biodecay ppmCO2 values for baseline drift.
 
@@ -244,10 +321,18 @@ def _bd_correct_baseline(
 	baselines : pd.Series
 		Series containing baseline values, with pd.DatetimeIndex as index.
 
+	IRGA_error : scalar
+		One-sigma uncertainty of the infrared gas analyzer, in ppm.
+		Defaults to `1`.
+
 	Returns
 	-------
 	bl_corr : pd.Series
 		Seriers containing baseline corrected ppmCO2 array.
+
+	bl_corr_err : pd.Series
+		Series containing 1sigma uncertainty in baseline corrected ppmCO2
+		array.
 
 	Raises
 	------
@@ -300,7 +385,16 @@ def _bd_correct_baseline(
 	#subtract baseline ppmCO2 values to correct data
 	bl_corr = input_data - CO2_bl
 
-	return bl_corr
+	#assume constant IRGA error for both baseline and measurement
+	# total error is thus sqrt(2*(IRGA error)^2) for all time points
+	err_val = (2*IRGA_error**2)**0.5
+	
+	bl_corr_err = pd.Series(
+		err_val,
+		bl_corr.index
+		)
+
+	return bl_corr, bl_corr_err
 
 #define function to correct for headspace averaging and volume changes
 def _bd_correct_headspace(
@@ -401,9 +495,11 @@ def _bd_data_reduction(
 	mins_before_zero = 30,
 	Vmedia0 = 2000,
 	Vhs0 = 4000,
-	Fsysblk = 10,
+	Fsysblk = [10, 1],
 	downsampled_dt = None,
-	Ctot_mano = None):
+	Ctot_mano = None,
+	IRGA_error = 1.0,
+	mano_error = 0.01):
 	'''
 	Inputs `all_data` file file from IsoCaRB instrument at Harvard and
 	performs all necessary data corrections and checks.
@@ -428,9 +524,10 @@ def _bd_data_reduction(
 	Vhs0 : scalar
 		Initial headspace volume for experiment, in mL. Defaults to `4000`.
 
-	Fsysblk : scalar
+	Fsysblk : list
 		Constant flux of system blank carbon, as reported in Beaupre et al.,
-		(2016), in units of ugC day-1. Defaults to `10`.
+		(2016), in units of ugC day-1. First value is the mean and second
+		value is the +/- 1 sigma uncertainty. Defaults to `[10, 1]`.
 
 	downsampled_dt : scalar or None:
 		Timestep to be used in final, downsampled data (in minutes). If 
@@ -442,6 +539,17 @@ def _bd_data_reduction(
 		measurements for each collected fraction. Used to re-scale flux values
 		to ensure sum is equal to manometric sum. If `None`, no rescaling is
 		performed. Defaults to `None`.
+
+	IRGA_error : scalar
+		One-sigma uncertainty of the infrared gas analyzer, in ppm.
+		Defaults to `1`.
+
+	mano_erro : scalar
+		One-sigma relative uncertainty of the manometer, to be used when
+		scaling photometric yields to manometric ones. Reported in fraction
+		of total mass (i.e. a value of 0.01 means 1% relative uncertainty).
+		Defualts to `0.01`.
+
 
 	Returns
 	-------
@@ -480,6 +588,17 @@ def _bd_data_reduction(
 	This function automates all data reduction steps that were originally
 	performed using Beaupre excel spreadsheets. Function was written following
 	the steps in Beaupre "Steps for IsoCaRB Data Reduction" lab document.
+
+	Error is propagated using the following assumptions:
+	[1] IRGA has constant, user-defined error (typically +/-1 ppm 1sigma)
+	[2] Headspace volume, gas flow rate, room temp., and room pressure are
+	known exactly and have no uncertainty.
+	[3] When scaling fluxes to manometric measurements, manometer has user-
+	defined relative uncertainty, typically 1%.
+	[4] System blank flux has constant, user-defined uncertainty (typically
+	+/- 1 ugC/day 1 sigma, as defined in Beaupre et al., 2016)
+	[5] Blank, baseline, and measured ppmCO2 uncertainties are independent.
+	This is not strictly true, but a fine approximation.
 
 	References
 	----------
@@ -564,7 +683,7 @@ def _bd_data_reduction(
 			)
 
 	#---------------------------------------------------#
-	# 1) REMOVE SPIKES AND CALCULATE t ARRAY IN MINUTES #
+	# 1) CALCULATE t ARRAY IN MINUTES AND REMOVE SPIKES #
 	#---------------------------------------------------#
 
 	#because seconds might have gotten dropped during import, downsample to
@@ -599,9 +718,10 @@ def _bd_data_reduction(
 	# 2) REMOVE BASELINE DRIFT #
 	#--------------------------#
 
-	all_data['CO2_blcorr'] = _bd_correct_baseline(
+	all_data['CO2_blcorr'], all_data['CO2_err'] = _bd_correct_baseline(
 		all_data['CO2_filt'],
-		sam_data['CO2_bl']
+		sam_data['CO2_bl'],
+		IRGA_error = IRGA_error
 		)
 
 	#------------------------------------#
@@ -620,15 +740,17 @@ def _bd_data_reduction(
 	# 4) CONVERT TO ugC/min, RESCALE, AND SUBTRACT SYSTEM BLANK #
 	#-----------------------------------------------------------#
 
-	all_data['ugC_minL'] = _bd_calc_ugCminL(
+	all_data['ugC_minL'], all_data['Cflux_err'] = _bd_calc_ugCminL(
 		all_data['CO2_nohs'],
+		all_data['CO2_err'],
 		all_data['flow_rate'],
 		all_data['t_elapsed'],
 		all_data['p_room'],
 		all_data['temp'],
 		Vmedia,
 		Fsysblk = Fsysblk,
-		Ctot_mano = Ctot_mano
+		Ctot_mano = Ctot_mano,
+		mano_error = mano_error
 		)
 
 	#---------------#
@@ -643,6 +765,91 @@ def _bd_data_reduction(
 			).median()
 
 	return all_data, sam_data
+
+#define function to plot carbon flux overlaid by BGE
+def _bd_plot_bge(
+	t_elapsed,
+	bge,
+	bge_err = None,
+	ax = None,
+	ymin = 0.0,
+	ymax = 1.0):
+	'''
+	Function to plot the carbon flux (in ugC min-1 L-1) overlaid by bacterial
+	growth efficiency for each time bin.
+
+	Parameters
+	----------
+	t_elapsed : pd.Series
+		Series containing the time elapsed (in minutes), with pd.DatetimeIndex
+		as index.
+
+	bge : pd.Series
+		Series containing calculated BGE values, reported at the final
+		timepoint for a given value.
+
+	bge_err : None or pd.Series
+		Series containing uncertainties for BGE values, reported at the final
+		timepoint for a given value. If `None`, no uncertainty is plotted.
+		Defaults to `None`.
+
+	ax : None or matplotlib.axis
+		Axis to plot BGE data on. If `None`, automatically creates a
+		``matplotlip.axis`` instance to return. Defaults to `None`.
+
+	ymin : float
+		Minimum y value for BGE axis. Defaults to `0.0`.
+
+	ymax : float
+		Maximum y value for BGE axis. Defaults to `1.0`.
+
+	Returns
+	-------
+	ax : matplotlib.axis
+		Axis containing BGE data
+	'''
+	#create axis if necessary and label
+	if ax is None:
+		_, ax = plt.subplots(1, 1)
+
+	#find t_elapsed values for each entry in bge
+	bge_inds = bge.index
+	bge_times = t_elapsed[bge_inds]
+
+	#loop through each time range and plot BGE
+	for i, ind in enumerate(bge_inds[1:]):
+		#find bounding time points
+		t0 = t_elapsed[bge_inds[i]]
+		tf = t_elapsed[ind]
+		b = bge[i+1]
+
+		#plot results
+		ax.plot(
+			[t0, tf],
+			[b, b],
+			c = 'k',
+			linewidth = 2
+			)
+
+		#include uncertainty as a shaded box
+		if bge_err is not None:
+
+			berr = bge_err[i+1]
+
+			ax.fill_between(
+				[t0, tf],
+				b - berr,
+				b + berr,
+				alpha = 0.5,
+				color = 'k',
+				linewidth = 0
+				)
+
+	#set limits and label
+	ax.set_ylim([ymin, ymax])
+	ax.set_ylabel('Bacterial Growth Efficiency (BGE)')
+
+	return ax
 
 #define function to calculate rolling values
 def _bd_rolling(
