@@ -9,9 +9,98 @@ from __future__ import(
 	)
 
 __docformat__ = 'restructuredtext en'
-__all__ = ['_plot_dicts', '_rem_dup_leg']
+__all__ = ['_bd_plot_bge',
+			'_plot_dicts', 
+			'_plot_dicts_iso',
+			'_rem_dup_leg',
+			]
 
 import numpy as np
+
+#define function to plot carbon flux overlaid by BGE
+def _bd_plot_bge(
+	t_elapsed,
+	bge,
+	bge_err = None,
+	ax = None,
+	ymin = 0.0,
+	ymax = 1.0):
+	'''
+	Function to plot the carbon flux (in ugC min-1 L-1) overlaid by bacterial
+	growth efficiency for each time bin.
+
+	Parameters
+	----------
+	t_elapsed : pd.Series
+		Series containing the time elapsed (in minutes), with pd.DatetimeIndex
+		as index.
+
+	bge : pd.Series
+		Series containing calculated BGE values, reported at the final
+		timepoint for a given value.
+
+	bge_err : None or pd.Series
+		Series containing uncertainties for BGE values, reported at the final
+		timepoint for a given value. If `None`, no uncertainty is plotted.
+		Defaults to `None`.
+
+	ax : None or matplotlib.axis
+		Axis to plot BGE data on. If `None`, automatically creates a
+		``matplotlip.axis`` instance to return. Defaults to `None`.
+
+	ymin : float
+		Minimum y value for BGE axis. Defaults to `0.0`.
+
+	ymax : float
+		Maximum y value for BGE axis. Defaults to `1.0`.
+
+	Returns
+	-------
+	ax : matplotlib.axis
+		Axis containing BGE data
+	'''
+	#create axis if necessary and label
+	if ax is None:
+		_, ax = plt.subplots(1, 1)
+
+	#find t_elapsed values for each entry in bge
+	bge_inds = bge.index
+	bge_times = t_elapsed[bge_inds]
+
+	#loop through each time range and plot BGE
+	for i, ind in enumerate(bge_inds[1:]):
+		#find bounding time points
+		t0 = t_elapsed[bge_inds[i]]
+		tf = t_elapsed[ind]
+		b = bge[i+1]
+
+		#plot results
+		ax.plot(
+			[t0, tf],
+			[b, b],
+			c = 'k',
+			linewidth = 2
+			)
+
+		#include uncertainty as a shaded box
+		if bge_err is not None:
+
+			berr = bge_err[i+1]
+
+			ax.fill_between(
+				[t0, tf],
+				b - berr,
+				b + berr,
+				alpha = 0.5,
+				color = 'k',
+				linewidth = 0
+				)
+
+	#set limits and label
+	ax.set_ylim([ymin, ymax])
+	ax.set_ylabel('Bacterial Growth Efficiency (BGE)')
+
+	return ax
 
 #define function to pull plotting dicts
 def _plot_dicts(case, td):

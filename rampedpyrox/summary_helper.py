@@ -123,7 +123,7 @@ def _calc_BD_info(t, T, g):
 	tav, tstd = extract_moments(t, dgdt)
 
 	#combine into list
-	vals = [tmax, tav, tstd, rmax_s, ]
+	vals = [tmax, tav, tstd, rmax_s]
 
 	#make series
 	bd_summary = pd.Series(vals, index = ind)

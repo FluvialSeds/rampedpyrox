@@ -29,6 +29,7 @@ from .core_functions import(
 	)
 
 from .plotting_helper import(
+	_bd_plot_bge,
 	_plot_dicts,
 	_rem_dup_leg,
 	)
@@ -44,6 +45,7 @@ from .model_helper import(
 
 from .timedata_helper import(
 	_rpo_extract_tg,
+	_bd_calc_bge,
 	_bd_data_reduction,
 	_bd_extract_profile,
 	)
@@ -777,10 +779,14 @@ class BioDecay(TimeData):
 			g_std = None, #force to be None for BioDecay
 			T_std = None) #force to be None for BioDecay
 
-		#if g exists, add Bioreactor-specific summary file
+		#if g exists add Bioreactor-specific summary file 
 		if g is not None:
 
-			self.bd_info = _calc_BD_info(self.t, self.T, self.g)
+			self.bd_info = _calc_BD_info(
+				self.t, 
+				self.T, 
+				self.g
+				)	
 
 	#define class method for creating instance directly from .csv file
 	@classmethod
@@ -796,8 +802,8 @@ class BioDecay(TimeData):
 		Ctot_mano = None,
 		IRGA_error = 1.0,
 		mano_error = 0.01,
-		bl_subtract = True, 
-		nt = 250):
+		bl_subtract = True,
+		nt = 250,):
 		'''
 		Class method to directly import IsoCaRB data from a .csv file and 
 		create an ``rp.BioDecay`` class instance.
@@ -929,6 +935,63 @@ class BioDecay(TimeData):
 
 		return bd
 
+	def calc_bge(self, cell_counts_err = None, alpha = [50, 1]):
+		'''
+		Function to calculate bacterial growth efficiency (BGE) over the 
+		course of a biodecay experiment using 'all_data' and 'sam_data'
+		files inputted using the `from_csv` method. Requires that 'sam_data'
+		contains column called 'cell_ct'.
+
+		Parameters
+		----------
+		cell_counts_err : None, scalar, or pd.Series
+			Series containing cell count uncertainty to be used to calculate 
+			BGE uncertainty. If `None`, cell counts are assumed to be known 
+			perfectly. If scalar, assumed to be fractional uncertainty and 
+			applied to all values (i.e. a value of 0.01 means all measurements 
+			have 1 % relative uncertainty). Defaults to `None`.
+
+		alpha : list
+			List of mass of carbon per cell and associated uncertainty 
+			(+/- 1 sigma), in femtograms. Defaults to `[50, 1]`.
+
+		Raises
+		------
+		AttributeError
+			If BioDecay object does not contain 'all_data' or 'sam_data'
+			attributes.
+
+		AttributeError
+			If BioDecay object 'sam_data' table does not contain a column
+			called 'cell_ct'.
+
+		References
+		----------
+		PER CELL CARBON MASS REFERENCE? GET FROM NAGISSA!
+		'''
+
+		#check that object has all_data and sam_data attributes
+		if not hasattr(self, 'all_data') or not hasattr(self, 'sam_data'):
+			raise AttributeError(
+				'bd object does not have "all_data" and/or "sam_data"' \
+				' attributes. Try importing from csv files.')
+
+		#check that sam_data has 'cell_ct' column
+		if 'cell_ct' not in self.sam_data.columns:
+			raise AttributeError(
+				'sam_data attribute in bd object does not contain "cell_ct"' \
+				' column. Double check inputted data')
+
+		#calculate BGE
+		self.BGE =  _bd_calc_bge(
+			self.all_data['ugC_minL'],
+			self.sam_data['cell_ct'],
+			Cflux_err = self.all_data['Cflux_err'],
+			cell_counts_err = cell_counts_err,
+			alpha = alpha)
+
+		return
+
 	#define method for inputting forward-modelled data
 	def forward_model(self, model, ratedata):
 		'''
@@ -1044,8 +1107,8 @@ class BioDecay(TimeData):
 		#add BioDecay-specific modelled bd summary file
 		self.bdhat_info = _calc_BD_info(self.t, self.T, ghat)
 
-	#define plotting method
-	def plot(
+	#define method to plot inputted experimental results (ppmCO2, BGE, etc.)
+	def plot_experimental(
 		self,
 		ax = None,
 		xaxis = 'mins',
@@ -1068,6 +1131,13 @@ class BioDecay(TimeData):
 
 		Raises
 		------
+		AttributeError
+			If BioDecay object does not contain `all_data` attribute
+
+		AttributeError
+			If BioDecay object does not contain `BGE` attribute (only
+			raised if performing BGE overlay plot)
+
 		StringError
 			If `xaxis` is not 'mins', 'hours', or 'days'.
 
@@ -1078,66 +1148,132 @@ class BioDecay(TimeData):
 			If `overlay` is not 'BGE' or None.
 		'''
 
+		#check that object has all_data and sam_data attributes
+		if not hasattr(self, 'all_data'):
+			raise AttributeError(
+				'bd object does not have "all_data" attribute. Try importing' \
+				' from csv files.')
+
+
 		#check that axes are appropriate strings
-		xl = ['mins','minutes','Mins','Minutes','hours','Hours','days','Days']
+		xl = ['secs',
+				'Secs',
+				'seconds',
+				'Seconds',
+				'mins',
+				'minutes',
+				'Mins',
+				'Minutes',
+				'hours',
+				'Hours',
+				'days',
+				'Days',
+				]
+
 		if xaxis not in xl:
 			raise StringError(
 				'xaxis does not accept %r. Must be "mins", "hours",'\
 				'  or "days"' %xaxis)
 
 		#check that axes are appropriate strings
-		yl = ['ppmCO2','Cflux','ugC_minL']
+		yl = ['ppmCO2',
+			'CO2',
+			'Cflux',
+			'ugC_minL',
+			]
+
 		if yaxis not in yl:
 			raise StringError(
 				'yaxis does not accept %r. Must be "ppmCO2" or "Cflux"' %yaxis)
 
 		#check that overlay is the right string or none
-		ol = ['bge','BGE',None]
+		ol = ['bge','BGE', None]
 		if overlay not in ol:
 			raise StringError(
 				'overlay does not accept %r. Must be "BGE" or None' %overlay)
 
+		#check x axis input strings and extract appropriate data
+		if xaxis in ['secs','Secs','seconds','Seconds']:
+			x = self.all_data['t_elapsed'] * 60
+			xlab = 'Elapsed time (seconds)'
+
+		elif xaxis in ['mins','minutes','Mins','Minutes']:
+			x = self.all_data['t_elapsed']
+			xlab = 'Elapsed time (minutes)'
+
+		elif xaxis in ['hours','Hours']:
+			x = self.all_data['t_elapsed'] / 60
+			xlab = 'Elapsed time (hours)'
+
+		elif xaxis in ['days','Days']:
+			x = self.all_data['t_elapsed'] / (60*24)
+			xlab = 'Elapsed time (days)'
+
+		#check y axis input strings and extract appropriate data
+		if yaxis in ['ppmCO2','CO2']:
+			y = self.all_data['CO2_nohs']
+			ye = self.all_data['CO2_err']
+			ylab = r'Corrected ppm $CO_{2}$'
+
+		elif yaxis in ['Cflux','ugC_minL']:
+			y = self.all_data['ugC_minL']
+			ye = self.all_data['Cflux_err']
+			ylab = r'Carbon flux $(\mu g C min^{-1} L^{-1})$'
 
 
+		#make axis if it does not exist
+		if ax is None:
+			_, ax = plt.subplots(1, 1)
 
+		#plot data
+		ax.plot(x, y,
+			lw = 1,
+			c = [0.5, 0.5, 0.5]
+			)
 
+		ax.fill_between(x, y - ye, y + ye,
+			lw = 0,
+			color = [0.5, 0.5, 0.5],
+			alpha = 0.3
+			)
 
+		#add labels
+		ax.set_xlabel(xlab)
+		ax.set_ylabel(ylab)
 
+		#make overlay plot if necessary
+		if overlay in ['bge','BGE']:
 
+			#ensure BGE attribute exists
+			if not hasattr(self, 'BGE'):
+				raise AttributeError(
+					'bd object does not have "BGE" attribute. Try calculating' \
+					' using "calc_bge" method.')
+			
+			#make axis if necessary
+			if overlay_ax is None:
+				#twinx to overlay on same plot
+				overlay_ax = ax.twinx()
 
-		# #extract axis label ditionary
-		# bd_labs = _plot_dicts('bd_labs', self)
-		# labs = (
-		# 	bd_labs[yaxis][0], 
-		# 	bd_labs[yaxis][1])
+			#plot BGE data
+			overlay_ax =  _bd_plot_bge(
+				x,
+				self.BGE['mean'],
+				bge_err = self.BGE['err'],
+				ax = overlay_ax,
+				ymin = 0.0,
+				ymax = 1.0)
 
-		# #check if real data exist
-		# if hasattr(self, 'g'):
-		# 	#extract real data dict
-		# 	bd_rd = _plot_dicts('bd_rd', self)
-		# 	rd = (
-		# 		bd_rd[yaxis][0], 
-		# 		bd_rd[yaxis][1])
-		# else:
-		# 	rd = None
+			#store axes
+			axes = (ax, overlay_ax)
 
-		# #check if modeled data exist
-		# if hasattr(self, 'ghat'):
-		# 	#extract modeled data dict
-		# 	bd_md = _plot_dicts('bd_md', self)
-		# 	md = (
-		# 		bd_md[yaxis][0], 
-		# 		bd_md[yaxis][1])
-		# else:
-		# 	md = None
+		#FUTURE ADDITIONS: Add other overplots as 'elif' statements.
 
-		# ax = super(BioDecay, self).plot(
-		# 	ax = ax, 
-		# 	md = md,
-		# 	labs = labs, 
-		# 	rd = rd)
+		else:
+			#store axis
+			axes = ax
 
-		return ax
+		return axes
 
 if __name__ == '__main__':
 

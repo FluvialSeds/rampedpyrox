@@ -9,7 +9,6 @@ class rpException(Exception):
 	'''
 	pass
 
-
 class ArrayError(rpException):
 	'''
 	Array-like object is not in the right form (e.g. strings).
