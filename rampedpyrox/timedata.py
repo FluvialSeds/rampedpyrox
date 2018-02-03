@@ -44,6 +44,7 @@ from .model_helper import(
 
 from .timedata_helper import(
 	_rpo_extract_tg,
+	_bd_data_reduction,
 	_bd_extract_profile,
 	)
 
@@ -784,19 +785,72 @@ class BioDecay(TimeData):
 	#define class method for creating instance directly from .csv file
 	@classmethod
 	def from_csv(
-			cls, 
-			file, 
-			bl_subtract = True, 
-			nt = 250):
+		cls,
+		all_file,
+		sam_file,
+		mins_before_zero = 30,
+		Vmedia0 = 2000,
+		Vhs0 = 4000,
+		Fsysblk = [10, 1],
+		downsampled_dt = None,
+		Ctot_mano = None,
+		IRGA_error = 1.0,
+		mano_error = 0.01,
+		bl_subtract = True, 
+		nt = 250):
 		'''
-		Class method to directly import IsoCaRB data from a .csv file and create
-		an ``rp.BioDecay`` class instance.
+		Class method to directly import IsoCaRB data from a .csv file and 
+		create an ``rp.BioDecay`` class instance.
 
 		Parameters
 		----------
-		file : str or pd.DataFrame
-			File containing decay data, either as a path string or a
+		all_file : str or pd.DataFrame
+			File containing timeseries data, either as a path string or a
 			dataframe.
+
+		sam_file : str or pd.DataFrame
+			File containing sampling data (baseline checks, liquid subsampling
+			times and volumes, cell counts), either as a path string or a
+			dataframe. First row must contain innoculation time (t0) timestamp.
+
+		mins_before_zero : scalar
+			Number of minutes before t0 to retain in final data. Defaults to 
+			`30`.
+
+		Vmedia0 : scalar
+			Initial volume of media used in experiment, in mL. Defaults to 
+			`2000`.
+
+		Vhs0 : scalar
+			Initial headspace volume for experiment, in mL. Defaults to 
+			`4000`.
+
+		Fsysblk : list
+			Constant flux of system blank carbon, as reported in Beaupre et 
+			al., (2016), in units of ugC day-1. First value is the mean and 
+			second value is the +/- 1 sigma uncertainty. Defaults to 
+			`[10, 1]`.
+
+		downsampled_dt : scalar or None:
+			Timestep to be used in final, downsampled data (in minutes). If 
+			`None`, no downsampling is performed and returned `all_data` will 
+			have 1-minutes timesteps.
+
+		Ctot_mano : scalar or None
+			The total carbon yield as determined by the sum of manometric
+			measurements for each collected fraction. Used to re-scale flux
+			values to ensure sum is equal to manometric sum. If `None`, no 
+			rescaling is performed. Defaults to `None`.
+
+		IRGA_error : scalar
+			One-sigma uncertainty of the infrared gas analyzer, in ppm.
+			Defaults to `1`.
+
+		mano_erro : scalar
+			One-sigma relative uncertainty of the manometer, to be used when
+			scaling photometric yields to manometric ones. Reported in 
+			fraction of total mass (i.e. a value of 0.01 means 1% relative 
+			uncertainty). Defualts to `0.01`.
 
 		bl_subtract : Boolean
 			Tells the program whether or not to linearly subtract the baseline
@@ -805,7 +859,7 @@ class BioDecay(TimeData):
 			typically be set to `True` regardless of previous data treatment.**
 
 		nt : int
-			The number of time points to use. Defaults to 250.
+			The number of time points to use. Defaults to `250`.
 
 		Notes
 		-----
@@ -815,9 +869,8 @@ class BioDecay(TimeData):
 		the following columns:
 
 			date_time, \n
-			t_elapsed, \n
 			temp, \n
-			P_room, \n
+			p_room, \n
 			pCO2, \n
 			CO2_raw, \n
 			baseline, \n
@@ -829,13 +882,13 @@ class BioDecay(TimeData):
 			ug_frac, \n
 			ug_sum
 
-		(Note that all columns besides `t_elapsed`, `temp`, and `CO2_scaled`
-		are unused.) Ensure that `t_elapsed` is equal to zero exactly when the
-		incubation experiment began (i.e. this will be negative beforehand).
+		Note that all columns besides `date_time`, `temp`, `p_room`, 
+		`CO2_scaled`, and `flow_rate` are unused. Ensure that `all_file` and
+		`sam_file` timestamps are aligned (i.e. this will give an error if
+		`sam_file` timestamps are not contained within `all_data'.
 
 		When down-sampling, `t` contains the midpoints of each time bin and
-		`g` and `T` contain the corresponding temp. and fraction remaining 
-		at each midpoint.
+		`g` contains the corresponding fraction remaining at each midpoint.
 
 		See Also
 		--------
@@ -844,13 +897,37 @@ class BioDecay(TimeData):
 			a .csv file.
 		'''
 
+		#extract all data from file and perform data reduction, blank
+		# correction, and volume normalization calculations
+		ad, sd = _bd_data_reduction(
+			all_file,
+			sam_file,
+			mins_before_zero = mins_before_zero,
+			Vmedia0 = Vmedia0,
+			Vhs0 = Vhs0,
+			Fsysblk = Fsysblk,
+			downsampled_dt = downsampled_dt,
+			Ctot_mano = Ctot_mano,
+			IRGA_error = IRGA_error,
+			mano_error = mano_error)
+
+		#using 't_elapsed' and 'ugC_minL' columns, downsample and calculate
+		# `t` and `g`, the fraction of OC remaining.
+
 		#extract data from file (use same helper function as thermogram)
 		g, t, T = _bd_extract_profile(
-			file, 
+			ad, 
 			nt, 
 			bl_subtract = bl_subtract)
 
-		return cls(t, T, g = g)
+		#store in class instance
+		bd = cls(t, T, g = g)
+
+		#store all data and sample data information
+		bd.all_data = ad
+		bd.sam_data = sd
+
+		return bd
 
 	#define method for inputting forward-modelled data
 	def forward_model(self, model, ratedata):
@@ -968,68 +1045,97 @@ class BioDecay(TimeData):
 		self.bdhat_info = _calc_BD_info(self.t, self.T, ghat)
 
 	#define plotting method
-	def plot(self, ax = None, yaxis = 'rate'):
+	def plot(
+		self,
+		ax = None,
+		xaxis = 'mins',
+		yaxis = 'Cflux',
+		overlay = None,
+		overlay_ax = None):
 		'''
 		Plots the true and model-estimated decay profiles against time.
 
 		Parameters
 		----------
-		ax : None or matplotlib.axis
-			Axis to plot on. If `None`, automatically creates a
-			``matplotlip.axis`` instance to return. Defaults to `None`.
-
-		yaxis : str
-			Sets the y axis unit, either 'fraction' or 'rate'. Defaults to 
-			'rate'.
 
 		Returns
 		-------
 		ax : matplotlib.axis
 			Updated axis instance with plotted data.
 
+		overlay_ax : matplotlib.axis
+			Axis for overlaid plot, if it exists. Otherwise, not exported.
+
 		Raises
 		------
 		StringError
-			if `yaxis` is not 'fraction' or 'rate'.
+			If `xaxis` is not 'mins', 'hours', or 'days'.
+
+		StringError
+			If `yaxis` is not 'ppmCO2' or 'Cflux'.
+
+		StringError
+			If `overlay` is not 'BGE' or None.
 		'''
 
 		#check that axes are appropriate strings
-		if yaxis not in ['fraction','rate']:
+		xl = ['mins','minutes','Mins','Minutes','hours','Hours','days','Days']
+		if xaxis not in xl:
 			raise StringError(
-				'yaxis does not accept %r. Must be either "rate" or'
-				' "fraction"' %yaxis)
+				'xaxis does not accept %r. Must be "mins", "hours",'\
+				'  or "days"' %xaxis)
 
-		#extract axis label ditionary
-		bd_labs = _plot_dicts('bd_labs', self)
-		labs = (
-			bd_labs[yaxis][0], 
-			bd_labs[yaxis][1])
+		#check that axes are appropriate strings
+		yl = ['ppmCO2','Cflux','ugC_minL']
+		if yaxis not in yl:
+			raise StringError(
+				'yaxis does not accept %r. Must be "ppmCO2" or "Cflux"' %yaxis)
 
-		#check if real data exist
-		if hasattr(self, 'g'):
-			#extract real data dict
-			bd_rd = _plot_dicts('bd_rd', self)
-			rd = (
-				bd_rd[yaxis][0], 
-				bd_rd[yaxis][1])
-		else:
-			rd = None
+		#check that overlay is the right string or none
+		ol = ['bge','BGE',None]
+		if overlay not in ol:
+			raise StringError(
+				'overlay does not accept %r. Must be "BGE" or None' %overlay)
 
-		#check if modeled data exist
-		if hasattr(self, 'ghat'):
-			#extract modeled data dict
-			bd_md = _plot_dicts('bd_md', self)
-			md = (
-				bd_md[yaxis][0], 
-				bd_md[yaxis][1])
-		else:
-			md = None
 
-		ax = super(BioDecay, self).plot(
-			ax = ax, 
-			md = md,
-			labs = labs, 
-			rd = rd)
+
+
+
+
+
+
+
+		# #extract axis label ditionary
+		# bd_labs = _plot_dicts('bd_labs', self)
+		# labs = (
+		# 	bd_labs[yaxis][0], 
+		# 	bd_labs[yaxis][1])
+
+		# #check if real data exist
+		# if hasattr(self, 'g'):
+		# 	#extract real data dict
+		# 	bd_rd = _plot_dicts('bd_rd', self)
+		# 	rd = (
+		# 		bd_rd[yaxis][0], 
+		# 		bd_rd[yaxis][1])
+		# else:
+		# 	rd = None
+
+		# #check if modeled data exist
+		# if hasattr(self, 'ghat'):
+		# 	#extract modeled data dict
+		# 	bd_md = _plot_dicts('bd_md', self)
+		# 	md = (
+		# 		bd_md[yaxis][0], 
+		# 		bd_md[yaxis][1])
+		# else:
+		# 	md = None
+
+		# ax = super(BioDecay, self).plot(
+		# 	ax = ax, 
+		# 	md = md,
+		# 	labs = labs, 
+		# 	rd = rd)
 
 		return ax
 
