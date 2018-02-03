@@ -935,7 +935,7 @@ class BioDecay(TimeData):
 
 		return bd
 
-	def calc_bge(self, cell_counts_err = None, alpha = [50, 1]):
+	def calc_BGE(self, cell_counts_err = None, alpha = [50, 1]):
 		'''
 		Function to calculate bacterial growth efficiency (BGE) over the 
 		course of a biodecay experiment using 'all_data' and 'sam_data'

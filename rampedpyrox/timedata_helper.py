@@ -120,21 +120,41 @@ def _bd_calc_bge(
 
 	#calculate difference and drop first entry (will be NaN)
 	DcellC = cellC.diff()[1:]
-	DcellC_err = (cellC_err**2).rolling(2).sum()**0.5
+
+	#calculate cellC difference uncertainty
+	Dcell_counts = cell_counts.diff()[1:]
+	DcellC_err = 1e-6 * ((Dcell_counts * alpha[1])**2 + \
+		(alpha[0] * cell_counts_err)**2 )**0.5
 
 	#calculate timestep in minutes
 	Dt = np.gradient(Cflux.index) / pd.Timedelta(minutes = 1)
 
-	#integrate Cflux curve
-	cumC = Dt*Cflux.cumsum() #total ug per L
-	cumC_err = (np.cumsum((Cflux_err * Dt)**2))**0.5
+	#calculate fractions, broadcast onto Cflux index, and ffill
+	nfrac = len(cell_counts)
+	frac = pd.Series(np.arange(nfrac), cc_inds)
+	frac = frac.reindex(
+		index = Cflux.index
+		)
+	frac.fillna(
+		method = 'bfill', 
+		inplace = True
+		)
 
-	#determine change in CO2 mass between cell count points
-	cumC_cc = cumC[cc_inds]
-	cumC_cc_err = cumC_err[cc_inds]
-	DcumC_cc = cumC_cc.diff()
-	DcumC_cc_err = ((cumC_cc_err**2).rolling(2).sum()**0.5)
+	#group by fraction
+	Cflux_grouped = (Cflux * Dt).groupby(frac)
+	Cflux_err_grouped = ((Cflux_err * Dt)**2).groupby(frac)
 
+	#calculate grouped sum
+	DcumC_cc = Cflux_grouped.sum()
+	DcumC_cc.index = cc_inds #reset index to cc_inds
+	DcumC_cc[0] = np.nan #make first entry NaN (before first cell count)
+
+	#calculate grouped error
+	DcumC_cc_err = Cflux_err_grouped.sum()**0.5
+	DcumC_cc_err.index = cc_inds #reset index to cc_inds
+	DcumC_cc_err[0] = np.nan #make first entry NaN (before first cell count)
+
+	#calculate fractions and associated error
 	x = DcumC_cc / DcellC
 	x_err = ((DcumC_cc_err / DcellC)**2 + \
 		(DcumC_cc * DcellC_err / (DcellC**2) )**2)**0.5
