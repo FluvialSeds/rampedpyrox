@@ -27,6 +27,7 @@ from .core_functions import(
 
 from .model_helper import(
 	_calc_p,
+	_bd_calc_A,
 	_rpo_calc_A,
 	)
 
@@ -495,8 +496,8 @@ class Daem(Model):
 
 		if td_type not in ['RpoThermogram']:
 			warnings.warn(
-				'Attempting to calculate isotopes using an isothermal timedata'
-				' instance of type %r. Consider using rp.RpoThermogram' 
+				'Attempting to calculate p distribution using an isothermal'
+				' timedata instance of type %r. Consider using rp.RpoThermogram' 
 				' instance instead' % td_type, UserWarning)
 
 		#generate E, t, and T array
@@ -578,6 +579,153 @@ class Daem(Model):
 		T = T0 + beta*t
 
 		return cls(E, log10omega, t, T)
+
+
+class LaplaceTransform(Model):
+	__doc__='''
+	
+	ADD DOCSTRING!
+	
+	'''
+
+	def __init__(self, k, t, T, logged = False):
+
+		#calculate A matrix
+		A = _bd_calc_A(k, t, logged = logged)
+
+		super(LaplaceTransform, self).__init__(A, t, T)
+
+		#store LaplaceTransform-specific attributes
+		nk = len(k)
+		self.k = assert_len(k, nk)
+		self.nk = nk
+		self.logged = logged
+
+	@classmethod
+	def from_timedata(
+			cls, 
+			timedata, 
+			k_max = 1, 
+			k_min = 1e-6, 
+			nk = 250,
+			logged = False):
+		'''
+		Class method to directly generate an ``rp.LaplaceTransform`` instance 
+		using data stored in an ``rp.TimeData`` instance.
+
+		Parameters
+		----------
+		timedata : rp.TimeData
+			``rp.TimeData`` instance containing the time array to use
+			for creating the LaplaceTransform model.
+
+		k_max : int
+			The maximum first-order rate constant value to consider, in s-1 if
+			not `logged` is `False` or in ln(s-1) if `logged` is `True`.
+			Defaults to 1.
+
+		k_min : int
+			The minimum first-order rate constant value to consider, in s-1 if
+			not `logged` is `False` or in ln(s-1) if `logged` is `True`.
+			Defaults to 1e-6.
+		
+		nk : int
+			The number of rate constant points. Defaults to 250.
+
+		logged : boolean
+			If `True`, treats inputted `k` array as the natural log of k (i.e. 
+			lambda in Forney and Rothman, 2012 notation). If `False`, treats
+			`k` as a linear array. Defaults to `False`.
+
+		Warnings
+		--------
+		UserWarning
+			If attempting to create a LaplaceTransform with a non-isothermal 
+			timedata instance.
+
+		See Also
+		--------
+		from_ratedata
+			Class method to directly generate an ``rp.LaplaceTransform`` 
+			instance using data stored in an ``rp.RateData`` instance.
+		'''
+
+		#warn if timedata is not RpoThermogram
+		td_type = type(timedata).__name__
+
+		if td_type not in ['BioDecay']:
+			warnings.warn(
+				'Attempting to calculate p distribution using a non-isothermal'
+				' timedata instance of type %r. Consider using rp.BioDecay' 
+				' instance instead' % td_type, UserWarning)
+
+		#generate k, t, and T array
+		k = np.linspace(k_min, k_max, nk)
+		t = timedata.t
+		T = timedata.T
+
+		return cls(k, t, T, logged = logged)
+
+	@classmethod
+	def from_ratedata(
+			cls, 
+			ratedata,
+			nt = 250,
+			t0 = 0,
+			tf = 1e5,
+			T = 298):
+		'''
+		Class method to directly generate an ``rp.LaplaceTransform`` instance 
+		using data stored in an ``rp.RateData`` instance.
+
+		Parameters
+		----------
+		ratedata : rp.RateData
+			``rp.RateData`` instance containing the k array to use for
+			creating the LaplaceTransform. 
+
+		nt : int
+			The number of time points to use. Defaults to 250.
+
+		t0 : int or float
+			The initial time to be used in the model, in seconds. Defaults 
+			to 0.
+
+		tf : int or float
+			The final time to be used in the model, in seconds. Defaults to
+			100,000.
+
+		T : int or float
+			The temperature of the experiment, in Kelvin. Defaults to 298.
+
+		Warnings
+		--------
+		UserWarning
+			If attempting to create a LaplaceTransform with a non-kDistribution 
+			ratedata instance.
+
+		See Also
+		--------
+		from_timedata
+			Class method to directly generate an ``rp.LaplaceTransform`` 
+			instance using data stored in an ``rp.TimeData`` instance.
+		'''
+
+		#warn if ratedata is not EnergyComplex
+		rd_type = type(ratedata).__name__
+
+		if rd_type not in ['kDistribution']:
+			warnings.warn(
+				'Attempting to calculate isotopes using a ratedata instance of'
+				' type %r. Consider using rp.kDistribution instance instead'
+				% rd_type, UserWarning)
+
+		#generate k, t, and T array
+		k = ratedata.k
+		t = np.linspace(t0, tf, nt)
+		l = ratedata.logged #make sure this gets stored!
+
+		return cls(k, t, T, logged = l)
 
 if __name__ == '__main__':
 

@@ -41,11 +41,13 @@ from .timedata import(
 #import model classes
 from .model import(
 	Daem,
+	LaplaceTransform,
 	)
 
 #import ratedata classes
 from .ratedata import(
 	EnergyComplex,
+	kDistribution,
 	)
 
 #import results classes

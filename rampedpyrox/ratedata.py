@@ -223,8 +223,8 @@ class RateData(object):
 				label = r'Regularized p(0,E) ($\lambda$ = %.2f)' %self.lam)
 
 			#set limits
-			ax.set_xlim([0, 1.1*np.max(rd[0])])
-			ax.set_ylim([0, 1.1*np.max(rd[1])])
+			# ax.set_xlim([0, 1.1*np.max(rd[0])])
+			# ax.set_ylim([0, 1.1*np.max(rd[1])])
 
 		#remove duplicate legend entries
 		han_list, lab_list = _rem_dup_leg(ax)
@@ -429,7 +429,7 @@ class EnergyComplex(RateData):
 			warnings.warn(
 				'Attempting to calculate isotopes using a model instance of'
 				' type %r. Consider using rp.Daem instance instead'
-				% rd_type, UserWarning)
+				% mod_type, UserWarning)
 
 		#warn if timedata is not RpoThermogram
 		td_type = type(timedata).__name__
@@ -508,6 +508,165 @@ class EnergyComplex(RateData):
 			rd = rd)
 
 		return ax
+
+
+class kDistribution(RateData):
+	__doc__='''
+
+	ADD DOCSTRING!
+
+	'''
+
+	def __init__(self, k, p = None):
+
+		#store activation energy attributes
+		nk = len(k)
+
+		#ensure types
+		k = assert_len(k, nk)
+
+		#store
+		self.k = k
+		self.nk = nk
+
+		#check if p exists and store p, statistics
+		if p is not None:
+			self.p = assert_len(p, nk)
+			self.kd_info = _calc_rate_info(k, p, kstr = 'k')
+
+	#define classmethod to generate instance by inverse modeling timedata with
+	# a model
+	@classmethod
+	def inverse_model(
+			cls, 
+			model, 
+			timedata, 
+			lam = 'auto'):
+		'''
+		Generates an energy complex by inverting an ``rp.TimeData`` instance 
+		using a given ``rp.Model`` instance.
+
+		Parameters
+		----------
+		model : rp.Model
+			``rp.Model`` instance containing the A matrix to use for 
+			inversion.
+
+		timedata : rp.TimeData
+			``rp.TimeData`` instance containing the timeseries data to invert.
+
+		lam : scalar or 'auto'
+			Smoothing weighting factor for Tikhonov regularization. Defaults
+			to 'auto'.
+
+		Warnings
+		--------
+		UserWarning
+			If ``scipy.optimize.least_squares`` cannot converge on a solution.
+
+		UserWarning
+			If attempting to use timedata that is not a ``rp.BioDecay``
+			instance.
+
+		UserWarning
+			If attempting to use a model that is not a ``rp.LaplaceTransform``
+			instance.
+
+		See Also
+		--------
+		BioDecay.forward_model
+			``rp.TimeData`` method for forward-modeling an ``rp.RateData`` 
+			instance using a particular model.
+		'''
+
+		#warn if model is not LaplaceTransform
+		mod_type = type(model).__name__
+
+		if mod_type not in ['LaplaceTransform']:
+			warnings.warn(
+				'Attempting to calculate p distribution using a model instance'
+				' of type %r. Consider using rp.LaplaceTransform instance'
+				' instead' % mod_type, UserWarning)
+
+		#warn if timedata is not RpoThermogram
+		td_type = type(timedata).__name__
+
+		if td_type not in ['BioDecay']:
+			warnings.warn(
+				'Attempting to calculate p distribution using a non-isothermal'
+				' timedata instance of type %r. Consider using rp.BioDecay' 
+				' instance instead' % td_type, UserWarning)
+
+		ec = super(kDistribution, cls).inverse_model(
+			model, 
+			timedata,
+			lam = lam)
+
+		return ec
+
+	#define a method to input estimated rate data
+	def input_estimated(
+			self, 
+			lam = 0, 
+			resid = 0, 
+			rgh = 0):
+		'''
+		Inputs estimated rate data into the ``rp.kDistribution`` instance and
+		calculates statistics.
+
+		Parameters
+		----------
+		lam : scalar
+			Tikhonov regularization weighting factor used to generate
+			estimated data. Defaults to 0.
+
+		resid : float
+			Residual RMSE for the inputted estimated data. Defaults to 0.
+
+		rgh : float
+			Roughness RMSE for the inputted estimated data. Defaults to 0.
+		'''
+
+		super(kDistribution, self).input_estimated(
+			lam = lam,
+			resid = resid,
+			rgh = rgh)
+
+
+	#define plotting method
+	def plot(self, ax = None):
+		'''
+		Plots the pdf of k, p(0,k), against k.
+
+		Keyword Arguments
+		-----------------
+		ax : None or matplotlib.axis
+			Axis to plot on. If `None`, automatically creates a
+			``matplotlip.axis`` instance to return. Defaults to `None`.
+
+		Returns
+		-------
+		ax : matplotlib.axis
+			Updated axis instance with plotted data.
+		'''
+
+		#create axis label tuple
+		labs = (r'k $(s^{-1})$', r'$p(0, k)$')
+
+		#check if data exist
+		if hasattr(self, 'p'):
+			#extract data
+			rd = (self.k, self.p)
+		else:
+			rd = None
+
+		ax = super(kDistribution, self).plot(
+			ax = ax, 
+			labs = labs, 
+			rd = rd)
+
+		return ax
+
 
 if __name__ == '__main__':
 

@@ -8,7 +8,12 @@ from __future__ import(
 	)
 
 __docformat__ = 'restructuredtext en'
-__all__ = ['_calc_ghat', '_calc_p', '_calc_R', '_rpo_calc_A']
+__all__ = ['_bd_calc_A',
+			'_calc_ghat', 
+			'_calc_p', 
+			'_calc_R',
+			'_rpo_calc_A'
+			]
 
 import numpy as np
 
@@ -19,6 +24,73 @@ from scipy.optimize import nnls
 from .core_functions import(
 	assert_len,
 	)
+
+#define function to calculte the A matrix for DAEM models
+def _bd_calc_A(k, t, logged = False):
+	'''
+	Calculates the A matrix for a BioDecay model (e.g. an IsoCaRB run).
+
+	Parameters
+	----------
+	k : array-like
+		Array of first-order rate constants to be used in the A matrix, in s-1.
+		Length `nk`.
+
+	t : array-like
+		Array of timepoints to be used in the A matrix, in seconds. Length `nt`.
+
+	logged : boolean
+		If `True`, treats inputted `k` array as the natural log of k (i.e. lambda
+		in Forney and Rothman, 2012 notation). If `False`, treats `k` as a
+		linear array. Defaults to `False`.
+
+	Returns
+	-------
+	A : np.ndarray
+		2d array of the Laplace transform for the first-order decay model. 
+		Shape [`nt` x `nk`].
+
+	References
+	----------
+	[1] B.P. Boudreau and B.R. Ruddick (1991) On a reactive continuum
+		representation of organic matter diagenesis. *Am. J. Sci.*, **291**,
+		507-538.
+
+	[2] D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
+		respiration rates from decay time series. *Biogeosciences*, **9**,
+		3601-3612.
+	'''
+
+	#set constants
+	nt = len(t)
+	nk = len(k)
+
+	#get arrays in the right format and ensure lengths
+	k = assert_len(k, nk) #s-1
+	t = assert_len(t, nt) #s
+
+	#calculate k gradient
+	dk = np.gradient(k)
+
+	#pre-allocate A
+	A = np.zeros([nt,nk])
+
+	#generate t and k matrices
+	tmat = np.outer(t, np.ones(nk))
+	kmat = np.outer(np.ones(nt), k)
+
+	#generate and dk matrix
+	dkmat = np.outer(np.ones(nt), dk)
+
+	if logged is True:
+		#calculate A matrix
+		A = np.exp(-np.exp(kmat)*tmat)*dkmat #s-1
+
+	else:
+		#calculate A matrix
+		A = np.exp(-kmat*tmat)*dkmat #s-1
+
+	return A
 
 #define a function to generate estimated time data from model and ratedata
 def _calc_ghat(model, ratedata):
@@ -227,62 +299,5 @@ def _rpo_calc_A(E, log10omega, t, T):
 		#generate A for row i (i.e. for each timepoint) and store in A
 		hE_mat = -omega_mat*dtau*np.exp(-eps_mat/(R*u_mat)) #unitless, [nE,i]
 		A[i] = np.exp(np.sum(hE_mat, axis = 1))*dE #kJ/mol
-
-	return A
-
-##define function to calculte the A matrix for DAEM models
-def _bd_calc_A(k, t):
-	'''
-	Calculates the A matrix for a BioDecay model (e.g. an IsoCaRB run).
-
-	Parameters
-	----------
-	k : array-like
-		Array of first-order rate constants to be used in the A matrix, in s-1.
-		Length `nk`.
-
-	t : array-like
-		Array of timepoints to be used in the A matrix, in seconds. Length `nt`.
-
-	Returns
-	-------
-	A : np.ndarray
-		2d array of the Laplace transform for the first-order decay model. 
-		Shape [`nt` x `nk`].
-
-	References
-	----------
-	[1] B.P. Boudreau and B.R. Ruddick (1991) On a reactive continuum
-		representation of organic matter diagenesis. *Am. J. Sci.*, **291**,
-		507-538.
-
-	[2] D.C. Forney and D.H. Rothman (2012) Inverse method for calculating
-		respiration rates from decay time series. *Biogeosciences*, **9**,
-		3601-3612.
-	'''
-
-	#set constants
-	nt = len(t)
-	nk = len(k)
-
-	#get arrays in the right format and ensure lengths
-	k = assert_len(k, nk) #s-1
-	t = assert_len(t, nt) #s
-
-	#calculate k gradient
-	dk = np.gradient(k)
-
-	#pre-allocate A
-	A = np.zeros([nt,nk])
-
-	#generate t and k matrices
-	tmat = np.outer(t, np.ones(nk))
-	kmat = np.outer(np.ones(nt), k)
-
-	#generate and dk matrix
-	dkmat = np.outer(np.ones(nt), dk)
-
-	#calculate A matrix
-	A = np.exp(-kmat*tmat)*dkmat #s-1
 
 	return A

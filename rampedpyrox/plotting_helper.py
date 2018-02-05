@@ -131,20 +131,59 @@ def _plot_dicts(case, td):
 
 	if case == 'bd_labs':
 		#create a dict to keep track of axis labels
-		pl_dict = {'fraction' : ('time (s)', 'g (unitless)'),
+		pl_dict = {'secs': 
+						{'fraction' : ('time (s)', 'g (unitless)'),
 						'rate' : ('time (s)', r'fraction/time $(s^{-1})$')
+						},
+					'mins' : 
+						{'fraction' : ('time (min)', 'g (unitless)'),
+						'rate' : ('time (min)', r'fraction/temp $(K^{-1})$')
+						},
+					'hours' : 
+						{'fraction' : ('time (hr)', 'g (unitless)'),
+						'rate' : ('time (hr)', r'fraction/temp $(K^{-1})$')
+						},
+					'days' : 
+						{'fraction' : ('time (d)', 'g (unitless)'),
+						'rate' : ('time (d)', r'fraction/temp $(K^{-1})$')}
 						}
 
 	elif case == 'bd_md':
 		#create a dict to keep track of cases of modeled data
-		pl_dict = {'fraction' : (td.t, td.ghat),
+		pl_dict = {'secs': 
+						{'fraction' : (td.t, td.ghat),
 						'rate' : (td.t, -td.dghatdt)
+						},
+					'mins': 
+						{'fraction' : (td.t / 60, td.ghat),
+						'rate' : (td.t / 60, -td.dghatdT)
+						},
+					'hours': 
+						{'fraction' : (td.t / (60*60), td.ghat),
+						'rate' : (td.t / (60*60), -td.dghatdT)
+						},
+					'days': 
+						{'fraction' : (td.t / (60*60*24), td.ghat),
+						'rate' : (td.t / (60*60*24), -td.dghatdT)}
 						}
 
 	elif case == 'bd_rd':
 		#create a dict to keep track of cases for real data
-		pl_dict = {'fraction' : (td.t, td.g),
+		pl_dict = {'secs': 
+						{'fraction' : (td.t, td.g),
 						'rate' : (td.t, -td.dgdt)
+						},
+					'mins': 
+						{'fraction' : (td.t / 60, td.g),
+						'rate' : (td.t / 60, -td.dgdT)
+						},
+					'hours': 
+						{'fraction' : (td.t / (60*60), td.g),
+						'rate' : (td.t / (60*60), -td.dgdT)
+						},
+					'days': 
+						{'fraction' : (td.t / (60*60*24), td.g),
+						'rate' : (td.t / (60*60*24), -td.dgdT)}
 						}
 
 	elif case == 'rpo_labs':

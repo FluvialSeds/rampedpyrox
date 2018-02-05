@@ -737,6 +737,8 @@ class RpoThermogram(TimeData):
 		return ax
 
 
+#TODO: ADD DOCUMENTATION!!
+
 class BioDecay(TimeData):
 	__doc__ = '''
 	Class for inputting and storing IsoCaRB true (observed) and estimated
@@ -935,6 +937,7 @@ class BioDecay(TimeData):
 
 		return bd
 
+	#define method for calculating bacterial growth efficiency
 	def calc_BGE(self, cell_counts_err = None, alpha = [50, 1]):
 		'''
 		Function to calculate bacterial growth efficiency (BGE) over the 
@@ -1082,7 +1085,7 @@ class BioDecay(TimeData):
 
 		return
 
-	#define method for inputting model-estimate data
+	#define method for inputting model-estimated data
 	def input_estimated(self, ghat):
 		'''
 		Inputs estimated BioDecay profile into the ``rp.BioDecay`` instance and 
@@ -1107,7 +1110,112 @@ class BioDecay(TimeData):
 		#add BioDecay-specific modelled bd summary file
 		self.bdhat_info = _calc_BD_info(self.t, self.T, ghat)
 
+	#define method to plot timedata info (analagous to RpoThermogram.plot())
+	def plot(self, ax = None, xaxis = 'secs', yaxis = 'rate'):
+		'''
+		Plots the true and model-estimated decay profiles against time.
+
+		Parameters
+		----------
+		ax : None or matplotlib.axis
+			Axis to plot on. If `None`, automatically creates a
+			``matplotlip.axis`` instance to return. Defaults to `None`.
+
+		xaxis : str
+			Sets the x axis unit, either 'secs', 'mins', 'hours', or 'days'.
+			Defaults to seconds.
+
+		yaxis : str
+			Sets the y axis unit, either 'fraction' or 'rate'. Defaults to 
+			'rate'.
+
+		Returns
+		-------
+		ax : matplotlib.axis
+			Updated axis instance with plotted data.
+
+		Raises
+		------
+		StringError
+			if `yaxis` is not 'fraction' or 'rate'.
+		'''
+
+		#check that axes are appropriate strings
+		xl = ['secs',
+				'Secs',
+				'seconds',
+				'Seconds',
+				'mins',
+				'minutes',
+				'Mins',
+				'Minutes',
+				'hours',
+				'Hours',
+				'days',
+				'Days',
+				]
+
+		if xaxis not in xl:
+			raise StringError(
+				'xaxis does not accept %r. Must be "mins", "hours",'\
+				'  or "days"' %xaxis)
+
+		elif yaxis not in ['fraction','rate']:
+			raise StringError(
+				'yaxis does not accept %r. Must be either "rate" or'
+				' "fraction"' %yaxis)
+
+		#ensure x axis is correct for dictionary extraction
+		if xaxis in ['secs','Secs','seconds','Seconds']:
+			xaxis = 'secs'
+		
+		elif xaxis in ['mins','minuts','Mins','Minutes']:
+			xaxis = 'mins'
+		
+		elif xaxis in ['hours','Hours']:
+			xaxis = 'hours'
+		
+		else:
+			xaxis = 'days'
+
+		#extract axis label dictionary
+		bd_labs = _plot_dicts('bd_labs', self)
+		labs = (
+			bd_labs[xaxis][yaxis][0], 
+			bd_labs[xaxis][yaxis][1])
+
+		#check if real data exist
+		if hasattr(self, 'g'):
+			#extract real data dict
+			bd_rd = _plot_dicts('bd_rd', self)
+			rd = (
+				bd_rd[xaxis][yaxis][0], 
+				bd_rd[xaxis][yaxis][1])
+		else:
+			rd = None
+
+		#check if modelled data exist
+		if hasattr(self, 'ghat'):
+			#extract modelled data dict
+			bd_md = _plot_dicts('rpo_md', self)
+			md = (
+				bd_md[xaxis][yaxis][0], 
+				bd_md[xaxis][yaxis][1])
+		else:
+			md = None
+
+		ax = super(BioDecay, self).plot(
+			ax = ax, 
+			md = md,
+			labs = labs, 
+			rd = rd)
+
+		return ax
+
 	#define method to plot inputted experimental results (ppmCO2, BGE, etc.)
+
+	#TODO: MIGRATE SWITCH CASES TO PLOTTING_HELPER PLOT_DICTS FUNCTION!
+
 	def plot_experimental(
 		self,
 		ax = None,
@@ -1153,7 +1261,6 @@ class BioDecay(TimeData):
 			raise AttributeError(
 				'bd object does not have "all_data" attribute. Try importing' \
 				' from csv files.')
-
 
 		#check that axes are appropriate strings
 		xl = ['secs',
@@ -1219,7 +1326,6 @@ class BioDecay(TimeData):
 			y = self.all_data['ugC_minL']
 			ye = self.all_data['Cflux_err']
 			ylab = r'Carbon flux $(\mu g C min^{-1} L^{-1})$'
-
 
 		#make axis if it does not exist
 		if ax is None:
