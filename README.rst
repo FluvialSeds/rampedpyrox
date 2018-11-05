@@ -10,10 +10,10 @@ Package Information
   Jordon D. Hemingway (jordon_hemingway@harvard.edu)
 
 :Version:
-  1.0.1
+  1.0.2
 
 :Release:
-  21 August 2017
+  5 November 2018
 
 :License:
   GNU GPL v3 (or greater)
