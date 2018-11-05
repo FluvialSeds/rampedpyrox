@@ -13,7 +13,7 @@ documentation can be found at:
 
 	http://rampedpyrox.readthedocs.io
 
-Version 1.0.1 is current as of 21 August 2017 and reflects the notation used
+Version 1.0.2 is current as of 5 November 2018 and reflects the notation used
 in Hemingway et al. Biogeosciences, 2017.
 
 To do for future versions:
@@ -27,7 +27,7 @@ from __future__ import(
 	print_function,
 	)
 
-__version__ = '1.0.1'
+__version__ = '1.0.2'
 
 __docformat__ = 'restructuredtext en'
 

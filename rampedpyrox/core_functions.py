@@ -74,13 +74,13 @@ def assert_len(data, n):
 
 #define package-level function for calculating L curves
 def calc_L_curve(
-		model, 
-		timedata, 
-		ax = None, 
-		plot = False, 
-		nLam = 150, 
-		lam_max = 1e2, 
-		lam_min = 1e-3):
+	model, 
+	timedata, 
+	ax = None, 
+	plot = False, 
+	nLam = 150, 
+	lam_max = 1e2, 
+	lam_min = 1e-3):
 	'''
 	Function to calculate the L-curve for a given model and timedata
 	instance in order to choose the best-fit smoothing parameter, `lambda`.
@@ -384,10 +384,11 @@ def plot_tg_isotopes(timedata, result, ax = None, plt_corr = True):
 	if Fm is not None:
 
 		Fm_plot = ax2.bar(
-			result.t_frac[:,0],
+			result.t_frac[:,0] + DT/2,
 			Fm,
 			width = DT,
 			color = 'none',
+			edgecolor = 'k', #ADDED 5 NOV 2018
 			linewidth = 1.5,
 			zorder = 2,
 			label = 'fraction Fm')
