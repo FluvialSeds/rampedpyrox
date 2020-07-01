@@ -34,10 +34,8 @@ def _calc_rate_info(k, p, kstr = 'E'):
 	----------
 	k : np.ndarray
 		Array of rates (or E), length `nk`.
-
 	p : np.ndarray
 		Array of pdf of rates (or E), length `nk`.
-
 	kstr : string
 		String of nomenclature for k (i.e. 'k' or 'E')
 
@@ -88,10 +86,8 @@ def _calc_BD_info(t, T, g):
 	----------
 	t : numpy.ndarray
 		Array of timepoints, in seconds. Length `nt`.
-
 	T : numpy.ndarray
 		Array of temperature, in Kelvin. Length `nt`.
-
 	g : numpy.ndarray
 		Array of the true fraction of carbon remaining at each timepoint.
 		Length `nt`.
@@ -140,10 +136,8 @@ def _calc_RPO_info(t, T, g):
 	----------
 	t : numpy.ndarray
 		Array of timepoints, in seconds. Length `nt`.
-
 	T : numpy.ndarray
 		Array of temperature, in Kelvin. Length `nt`.
-
 	g : numpy.ndarray
 		Array of the true fraction of carbon remaining at each timepoint.
 		Length `nt`.
@@ -200,10 +194,9 @@ def _calc_ri_info(ri, flag = 'raw'):
 	----------
 	ri : rp.RpoIsotopes
 		``rp.RpoIsotopes`` instance containing fractions to be summarized.
-
 	flag : str
 		Tells the method whether to store raw or corrected data
-
+	
 	Returns
 	-------
 	frac_info : pd.DataFrame
@@ -274,4 +267,3 @@ def _calc_ri_info(ri, flag = 'raw'):
 		index = np.arange(1, ri.nFrac + 1))
 
 	return frac_info
-
