@@ -375,7 +375,14 @@ def _rpo_extract_iso(file, mass_err):
 	#import file as a pd.DataFrame if inputted as a string path and check
 	#that it is in the right format
 	if isinstance(file, str):
-		file = pd.DataFrame.from_csv(file)
+		# file = pd.DataFrame.from_csv(file)
+
+		#UPDATING TO DEAL WITH DEPRECATED PANDAS CALL 25 JULY 2020
+		file = pd.read_csv(
+			file,
+			index_col = 0,
+			parse_dates = True
+			)
 
 	elif not isinstance(file, pd.DataFrame):
 		raise FileError(
