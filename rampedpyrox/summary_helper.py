@@ -46,7 +46,7 @@ def _calc_rate_info(k, p, kstr = 'E'):
 	'''
 
 	#set pandas display options
-	pd.set_option('precision', 2)
+	pd.set_option('display.precision', 2)
 
 	if kstr == 'E':
 		unit = ' (kJ/mol)'
@@ -99,7 +99,7 @@ def _calc_BD_info(t, T, g):
 	'''
 
 	#set pandas display options
-	pd.set_option('precision', 2)
+	pd.set_option('display.precision', 2)
 
 	#define series index
 	ind = ['t_max (s)',
@@ -149,7 +149,7 @@ def _calc_RPO_info(t, T, g):
 	'''
 
 	#set pandas display options
-	pd.set_option('precision', 2)
+	pd.set_option('display.precision', 2)
 
 	#define series index
 	ind = ['t_max (s)',
@@ -258,7 +258,7 @@ def _calc_ri_info(ri, flag = 'raw'):
 	info = np.column_stack(info)
 	
 	#set pandas display options
-	pd.set_option('precision', 2)
+	pd.set_option('display.precision', 2)
 
 	#store in dataframe
 	frac_info = pd.DataFrame(
