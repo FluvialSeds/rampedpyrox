@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import warnings
 
-from collections import Sequence
+from collections.abc import Sequence
 from numpy.linalg import norm
 from scipy.optimize import least_squares
 from scipy.optimize import nnls
