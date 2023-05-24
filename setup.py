@@ -20,7 +20,8 @@ setup(name='rampedpyrox',
 		'Topic :: Scientific/Engineering'
 	],
 	url='https://github.com/FluvialSeds/rampedpyrox',
-	download_url='https://github.com/FluvialSeds/rampedpyrox/tarball/1.0.3',
+	# download_url='https://github.com/FluvialSeds/rampedpyrox/tarball/1.0.3',
+	download_url='https://github.com/FluvialSeds/rampedpyrox/archive/1.0.3.tar.gz',
 	keywords=[
 		'geochemistry',
 		'isotopes',
