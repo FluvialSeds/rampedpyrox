@@ -1051,25 +1051,11 @@ def _rpo_extract_tg(
 
 	#check data format and raise appropriate errors
 	if isinstance(file, str):
-
-# REVISION NOTES
-# 2023.05.29: CHANGED 'parse_dates = True' TO PARSE AS OBJECT AND THEN
-#			  PARSE DIRECTLY USING 'to_datetime()'. FIXED WARNING.
-
 		#import as dataframe
 		file = pd.read_csv(
 			file,
 			index_col = 0,
-			# parse_dates = True
-			parse_dates = False
-			)
-
-		#convert index to datetime
-		ind = file.index.astype(object)
-		ind_dt = pd.to_datetime(ind,format='%I:%M:%S %p')
-
-		#now re-save as index
-		file.index = ind_dt
+			parse_dates = True)
 
 	elif not isinstance(file, pd.DataFrame):
 		raise FileError(

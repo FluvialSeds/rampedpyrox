@@ -45,11 +45,8 @@ def _calc_rate_info(k, p, kstr = 'E'):
 		Series of resulting RateData summary info.
 	'''
 
-	# REVISION NOTES:
-	#	2023.05.29: CHANGED TO 'display.precison' FOR PANDAS V 2.0
-	
 	#set pandas display options
-	pd.set_option('display.precision', 2)
+	pd.set_option('precision', 2)
 
 	if kstr == 'E':
 		unit = ' (kJ/mol)'
@@ -101,11 +98,8 @@ def _calc_BD_info(t, T, g):
 		Series of resulting BioDecay summary info.
 	'''
 
-	# REVISION NOTES:
-	#	2023.05.29: CHANGED TO 'display.precison' FOR PANDAS V 2.0
-	
 	#set pandas display options
-	pd.set_option('display.precision', 2)
+	pd.set_option('precision', 2)
 
 	#define series index
 	ind = ['t_max (s)',
@@ -154,9 +148,6 @@ def _calc_RPO_info(t, T, g):
 		Series of resulting thermogram summary info.
 	'''
 
-	# REVISION NOTES:
-	#	2023.05.29: CHANGED TO 'display.precison' FOR PANDAS V 2.0
-	
 	#set pandas display options
 	pd.set_option('display.precision', 2)
 
@@ -266,11 +257,8 @@ def _calc_ri_info(ri, flag = 'raw'):
 
 	info = np.column_stack(info)
 	
-	# REVISION NOTES:
-	#	2023.05.29: CHANGED TO 'display.precison' FOR PANDAS V 2.0
-	
 	#set pandas display options
-	pd.set_option('display.precision', 2)
+	pd.set_option('precision', 2)
 
 	#store in dataframe
 	frac_info = pd.DataFrame(

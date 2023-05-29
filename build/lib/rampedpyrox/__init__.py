@@ -2,8 +2,8 @@
 rampedpyrox was created as a thesis dissertation supplement by:
 
 	Jordon D. Hemingway, MIT/WHOI Joint Program
-	Currently Assistant Professor, ETH Zurich
-	jordon.hemingway@erdw.ethz.ch
+	Currently Postdoctoral Fellow, Harvard University
+	jordon_hemingway@fas.harvard.edu
 
 source code can be found at:
 	
@@ -13,19 +13,13 @@ documentation can be found at:
 
 	http://rampedpyrox.readthedocs.io
 
-Version 1.0.4 is current as of 29 May 2023 and reflects the notation used
+Version 1.0.3 is current as of 25 July 2020 and reflects the notation used
 in Hemingway et al. Biogeosciences, 2017.
 
 To do for future versions:
 * Change exception structure to "try/except"
 * Add more robust nose testing suite for debugging
 
-REVISION NOTES:
----------------
-
-2023.05.29: CHANGED TO 'display.precison' FOR PANDAS V 2.0
-2023.05.29: CHANGED 'parse_dates = True' TO PARSE AS OBJECT AND THEN
-			PARSE DIRECTLY USING 'to_datetime()'. FIXED WARNING.
 '''
 
 from __future__ import(
@@ -33,7 +27,7 @@ from __future__ import(
 	print_function,
 	)
 
-__version__ = '1.0.4'
+__version__ = '1.0.3'
 
 __docformat__ = 'restructuredtext en'
 

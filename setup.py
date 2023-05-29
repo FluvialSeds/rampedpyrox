@@ -5,7 +5,7 @@ def readme():
 		return f.read()
 
 setup(name='rampedpyrox',
-	version='1.0.3',
+	version='1.0.4',
 	description='Ramped PyrOx kinetic and isotope analysis',
 	long_description=readme(),
 	classifiers=[
@@ -21,7 +21,7 @@ setup(name='rampedpyrox',
 	],
 	url='https://github.com/FluvialSeds/rampedpyrox',
 	# download_url='https://github.com/FluvialSeds/rampedpyrox/tarball/1.0.3',
-	download_url='https://github.com/FluvialSeds/rampedpyrox/archive/1.0.3.tar.gz',
+	download_url='https://github.com/FluvialSeds/rampedpyrox/archive/1.0.4.tar.gz',
 	keywords=[
 		'geochemistry',
 		'isotopes',
@@ -30,7 +30,7 @@ setup(name='rampedpyrox',
 		'carbon cycle'
 	],
 	author='Jordon D. Hemingway',
-	author_email='jhemingway@whoi.edu',
+	author_email='jordon.hemingway@erdw.ethz.ch',
 	license='GNU GPL Version 3',
 	packages=['rampedpyrox'],
 	install_requires=[

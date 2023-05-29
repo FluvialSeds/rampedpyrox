@@ -375,25 +375,14 @@ def _rpo_extract_iso(file, mass_err):
 	#import file as a pd.DataFrame if inputted as a string path and check
 	#that it is in the right format
 	if isinstance(file, str):
-		
-# REVISION NOTES
-# 2023.05.29: CHANGED 'parse_dates = True' TO PARSE AS OBJECT AND THEN
-#			  PARSE DIRECTLY USING 'to_datetime()'. FIXED WARNING.
+		# file = pd.DataFrame.from_csv(file)
 
-		#import as dataframe
+		#UPDATING TO DEAL WITH DEPRECATED PANDAS CALL 25 JULY 2020
 		file = pd.read_csv(
 			file,
 			index_col = 0,
-			# parse_dates = True
-			parse_dates = False
+			parse_dates = True
 			)
-
-		#convert index to datetime
-		ind = file.index.astype(object)
-		ind_dt = pd.to_datetime(ind,format='%I:%M:%S %p')
-
-		#now re-save as index
-		file.index = ind_dt
 
 	elif not isinstance(file, pd.DataFrame):
 		raise FileError(

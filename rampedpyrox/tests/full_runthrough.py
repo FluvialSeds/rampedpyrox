@@ -53,4 +53,4 @@ ri = rp.RpoIsotopes.from_csv(
 # ax[2] = ri.plot(ax = ax[2], plt_var = 'd13C', plt_corr = True)
 
 
-plt.show()
+# plt.show()
