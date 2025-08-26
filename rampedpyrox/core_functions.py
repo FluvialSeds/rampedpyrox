@@ -13,7 +13,7 @@ __all__ = ['assert_len', 'calc_L_curve', 'derivatize', 'extract_moments']
 import matplotlib.pyplot as plt
 import numpy as np
 
-from collections import Sequence
+from collections.abc import Sequence
 
 #import exceptions
 from .exceptions import(

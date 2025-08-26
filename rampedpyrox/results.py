@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import warnings
 
-from collections import Sequence
+from collections.abc import Sequence
 
 #import exceptions
 from .exceptions import(
